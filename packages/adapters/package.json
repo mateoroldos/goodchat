@@ -1,0 +1,16 @@
+{
+  "name": "@goodchat/adapters",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./local-adapter": "./src/local-adapter/index.ts",
+    "./local-adapter.schema": "./src/local-adapter/schema.ts",
+    "./local-adapter.errors": "./src/local-adapter/errors.ts"
+  },
+  "dependencies": {
+    "@goodchat/core": "workspace:*",
+    "better-result": "^2.7.0",
+    "zod": "^4.3.6"
+  }
+}

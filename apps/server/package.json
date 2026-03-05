@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/openapi": "^1.4.14",
+    "@goodchat/adapters": "workspace:*",
+    "@goodchat/core": "workspace:*",
     "@goodchat/env": "workspace:*",
-    "dotenv": "catalog:",
-    "elysia": "^1.4.21",
-    "zod": "catalog:"
+    "better-result": "^2.7.0",
+    "elysia": "^1.4.21"
   },
   "devDependencies": {
     "@goodchat/config": "workspace:*",

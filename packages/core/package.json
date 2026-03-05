@@ -1,0 +1,21 @@
+{
+  "name": "@goodchat/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./bot": "./src/bot/index.ts",
+    "./bot.schema": "./src/bot/schema.ts",
+    "./bot.types": "./src/bot/types.ts",
+    "./bot.errors": "./src/bot/errors.ts",
+    "./config": "./src/config/index.ts",
+    "./config.errors": "./src/config/errors.ts",
+    "./log-store": "./src/log-store/index.ts",
+    "./log-store.types": "./src/log-store/types.ts",
+    "./log-store.errors": "./src/log-store/errors.ts"
+  },
+  "dependencies": {
+    "better-result": "^2.7.0",
+    "zod": "catalog:"
+  }
+}
