@@ -20,9 +20,11 @@
         "@elysiajs/openapi": "^1.4.14",
         "@goodchat/adapters": "workspace:*",
         "@goodchat/core": "workspace:*",
-        "@goodchat/env": "workspace:*",
+        "@t3-oss/env-core": "^0.13.1",
         "better-result": "^2.7.0",
+        "dotenv": "catalog:",
         "elysia": "^1.4.21",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@goodchat/config": "workspace:*",
@@ -66,20 +68,6 @@
       "dependencies": {
         "better-result": "^2.7.0",
         "zod": "catalog:",
-      },
-    },
-    "packages/env": {
-      "name": "@goodchat/env",
-      "version": "0.0.0",
-      "dependencies": {
-        "@t3-oss/env-core": "^0.13.1",
-        "dotenv": "catalog:",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@goodchat/config": "workspace:*",
-        "@types/bun": "catalog:",
-        "typescript": "catalog:",
       },
     },
   },
@@ -175,8 +163,6 @@
     "@goodchat/config": ["@goodchat/config@workspace:packages/config"],
 
     "@goodchat/core": ["@goodchat/core@workspace:packages/core"],
-
-    "@goodchat/env": ["@goodchat/env@workspace:packages/env"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

@@ -2,8 +2,8 @@ import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
 import { FileConfigService } from "@goodchat/core/config";
 import { InMemoryLogStoreService } from "@goodchat/core/log-store";
-import { env } from "@goodchat/env/server";
 import { Elysia } from "elysia";
+import { env } from "./env";
 import { logsController } from "./modules/logs";
 import { webhookLocalController } from "./modules/webhook-local";
 
