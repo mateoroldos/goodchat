@@ -1,5 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { Result } from "better-result";
+import { describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../../test/create-test-app";
+
+vi.mock("@goodchat/core/bot", async () => {
+  const actual =
+    await vi.importActual<typeof import("@goodchat/core/bot")>(
+      "@goodchat/core/bot"
+    );
+
+  class MockBotService {
+    sendMessage() {
+      return Result.ok({ text: "Test response" });
+    }
+  }
+
+  return {
+    ...actual,
+    DefaultBotService: MockBotService,
+  };
+});
 
 describe("POST /webhook/local", () => {
   it("returns a bot response and log id for valid payloads", async () => {
@@ -27,7 +46,7 @@ describe("POST /webhook/local", () => {
       logId: string;
     };
 
-    expect(payload.text).toBe("Echo: Hello");
+    expect(payload.text).toBe("Test response");
     expect(payload.logId.length).toBeGreaterThan(0);
   });
 

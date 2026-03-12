@@ -12,3 +12,16 @@ export class BotInputInvalidError extends TaggedError("BotInputInvalidError")<{
     }
   }
 }
+
+export class BotGenerationError extends TaggedError("BotGenerationError")<{
+  message: string;
+  code: "BOT_GENERATION_FAILED";
+  details?: string[];
+}>() {
+  constructor(message: string, details?: string[], cause?: unknown) {
+    super({ message, code: "BOT_GENERATION_FAILED", details });
+    if (cause) {
+      (this as { cause?: unknown }).cause = cause;
+    }
+  }
+}

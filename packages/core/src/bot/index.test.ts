@@ -1,9 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { generateText } from "ai";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultBotService } from "./index";
 import type { BotConfig, IncomingMessage } from "./types";
 
+vi.mock("ai", () => ({
+  generateText: vi.fn(),
+}));
+
 describe("DefaultBotService", () => {
-  it("echoes back valid messages", () => {
+  beforeEach(() => {
+    vi.mocked(generateText).mockReset();
+  });
+
+  it("echoes back valid messages", async () => {
     const service = new DefaultBotService();
     const botConfig: BotConfig = {
       name: "Echo",
@@ -18,17 +27,23 @@ describe("DefaultBotService", () => {
       userId: "user-1",
     };
 
-    const result = service.sendMessage(message, botConfig);
+    const mockResult = {
+      text: "AI: Hello",
+    } as unknown as Awaited<ReturnType<typeof generateText>>;
+
+    vi.mocked(generateText).mockResolvedValue(mockResult);
+
+    const result = await service.sendMessage(message, botConfig);
 
     expect(result.isOk()).toBe(true);
     if (result.isErr()) {
       throw new Error(result.error.message);
     }
 
-    expect(result.value).toEqual({ text: "Echo: Hello" });
+    expect(result.value).toEqual({ text: "AI: Hello" });
   });
 
-  it("returns validation errors for invalid messages", () => {
+  it("returns validation errors for invalid messages", async () => {
     const service = new DefaultBotService();
     const botConfig: BotConfig = {
       name: "Echo",
@@ -44,7 +59,7 @@ describe("DefaultBotService", () => {
       userId: "user-1",
     } as IncomingMessage;
 
-    const result = service.sendMessage(invalidMessage, botConfig);
+    const result = await service.sendMessage(invalidMessage, botConfig);
 
     expect(result.isErr()).toBe(true);
     if (result.isOk()) {
@@ -53,5 +68,6 @@ describe("DefaultBotService", () => {
 
     expect(result.error.code).toBe("BOT_INPUT_INVALID");
     expect(result.error.details?.length).toBeGreaterThan(0);
+    expect(generateText).not.toHaveBeenCalled();
   });
 });

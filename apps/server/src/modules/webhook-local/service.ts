@@ -14,12 +14,14 @@ export const handleLocalWebhook = (
     logger: LogStoreService;
   }
 ) =>
-  Result.gen(function* () {
+  Result.gen(async function* () {
     const { adapter, bot, logger } = services;
 
     const message = yield* adapter.parseWebhook(body);
 
-    const botResponse = yield* bot.sendMessage(message, botConfig);
+    const botResponse = yield* Result.await(
+      bot.sendMessage(message, botConfig)
+    );
 
     const logEntry: LogEntry = {
       id: crypto.randomUUID(),

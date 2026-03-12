@@ -14,14 +14,14 @@ export const webhookLocalController = (
 ) =>
   new Elysia({ prefix: "/webhook" }).post(
     "/local",
-    ({ body, set }) => {
+    async ({ body, set }) => {
       const services = {
         adapter: new DefaultLocalAdapterService(),
         bot: new DefaultBotService(),
         logger,
       };
 
-      const result = handleLocalWebhook(body, botConfig, services);
+      const result = await handleLocalWebhook(body, botConfig, services);
 
       if (result.isErr()) {
         const error = result.error;
@@ -42,6 +42,14 @@ export const webhookLocalController = (
             return {
               code: taggedError.code,
               message: "Invalid bot message input.",
+              requestId,
+            };
+          },
+          BotGenerationError: (taggedError) => {
+            set.status = 502;
+            return {
+              code: taggedError.code,
+              message: taggedError.message,
               requestId,
             };
           },
