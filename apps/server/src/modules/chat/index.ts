@@ -134,7 +134,7 @@ export const webhookChatController = (
       const url = new URL(request.url);
       const webhookUrl =
         url.searchParams.get("webhookUrl") ??
-        `${url.origin}/webhook/${botConfig.id}/discord`;
+        `${url.origin}/api/webhook/${botConfig.id}/discord`;
 
       return discordAdapter.startGatewayListener(
         {

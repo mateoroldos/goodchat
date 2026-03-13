@@ -12,6 +12,7 @@
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/openapi": "^1.4.14",
+    "@elysiajs/static": "^1.4.7",
     "@goodchat/core": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "better-result": "^2.7.0",

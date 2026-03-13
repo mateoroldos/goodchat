@@ -1,18 +1,9 @@
 import { treaty } from "@elysiajs/eden";
 import type { App } from "../../../server/src/app";
 
-interface EdenClientOptions {
-  credentials?: RequestCredentials;
-  fetcher?: typeof fetch;
-}
+const getBaseUrl = () =>
+  typeof window === "undefined" ? "" : `${window.location.origin}/api`;
 
-export const createEdenClient = (
-  baseUrl: string,
-  options: EdenClientOptions = {}
-) =>
-  treaty<App>(baseUrl, {
-    fetcher: options.fetcher,
-    fetch: options.credentials
-      ? { credentials: options.credentials }
-      : undefined,
-  });
+export const eden = treaty<App>(getBaseUrl(), {
+  fetcher: fetch,
+});

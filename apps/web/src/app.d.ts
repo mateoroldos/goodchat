@@ -3,9 +3,7 @@
 declare global {
   namespace App {
     // interface Error {}
-    interface Locals {
-      eden: ReturnType<typeof import("$lib/eden-client").createEdenClient>;
-    }
+    // interface Locals {}
     // interface PageData {}
     // interface PageState {}
     // interface Platform {}
