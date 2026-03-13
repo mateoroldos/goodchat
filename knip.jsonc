@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     ".": {
-      "ignore": [".claude/**", ".agents/**", ".pi/**", "goodchat.config.ts"]
+      "ignore": [".claude/**", ".agents/**", ".pi/**", "bots/**"]
     }
   }
 }

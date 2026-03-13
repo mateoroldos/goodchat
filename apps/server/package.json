@@ -20,6 +20,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@chat-adapter/discord": "^4.20.1",
     "@goodchat/config": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.16.5",
