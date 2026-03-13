@@ -457,7 +457,7 @@ export default defineBot({
 
 Not a developer? Run `goodchat dev` and open `http://localhost:3000`.
 
-The dashboard lets you create bots, write prompts, attach context, connect platforms via OAuth, and read conversation logs — without touching a config file. Everything you change in the dashboard syncs back to `goodchat.config.ts`.
+The dashboard lets you create bots, write prompts, attach context, connect platforms via OAuth, and read conversation threads — without touching a config file. Everything you change in the dashboard syncs back to `goodchat.config.ts`.
 
 ---
 
@@ -489,7 +489,7 @@ goodchat init <name>     # Scaffold a new bot project
 goodchat dev             # Start local dev server with hot reload
 goodchat build           # Build for production
 goodchat start           # Start production server
-goodchat logs <name>     # Stream live conversation logs
+goodchat threads <name>  # Stream live conversation threads
 goodchat deploy          # Deploy to goodchat.dev
 ````
 

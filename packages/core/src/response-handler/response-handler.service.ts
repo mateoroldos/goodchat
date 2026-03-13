@@ -49,15 +49,18 @@ export class DefaultResponseHandlerService implements ResponseHandlerService {
       return botResponse;
     }
 
-    const logEntry = createMessageEntry(
+    const threadEntry = createMessageEntry(
       context,
       incomingMessage,
       botResponse.value.text
     );
 
-    this.#messageStore.appendLog(logEntry);
+    this.#messageStore.appendThread(threadEntry);
 
-    return Result.ok({ text: botResponse.value.text, logId: logEntry.id });
+    return Result.ok({
+      text: botResponse.value.text,
+      threadEntryId: threadEntry.id,
+    });
   }
 }
 

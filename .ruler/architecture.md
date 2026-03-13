@@ -6,7 +6,7 @@ Goodchat is a monorepo managed with Turborepo and bun workspaces. The repo is sp
 
 Apps
 
-- `apps/web/` - SvelteKit dashboard for configuring bots, connecting platforms, and viewing logs.
+- `apps/web/` - SvelteKit dashboard for configuring bots, connecting platforms, and viewing threads.
 - `apps/server/` - Elysia control plane API, webhook ingress, and runtime orchestration.
 - `apps/cli/` - `goodchat` CLI that scaffolds, launches dev, builds, and runs production.
 
@@ -24,7 +24,7 @@ Packages
 ## Runtime Topology
 
 - The CLI is the launcher. `goodchat dev` starts the local control plane (Elysia server + dashboard) and loads `goodchat.config.ts`.
-- The web app talks to the server API for bot config, OAuth connections, and log streams.
+- The web app talks to the server API for bot config, OAuth connections, and thread streams.
 - The server exposes webhook endpoints per adapter and streams responses back to platforms.
 - Shared packages are consumed by both apps to keep runtime, config, and env rules consistent.
 
@@ -37,7 +37,7 @@ Each incoming message follows a consistent pipeline:
 3. Context retrieval runs (RAG over files, URLs, folders, or custom loaders).
 4. Tool calls execute as needed, then the LLM generates a response.
 5. Response streams back through the adapter.
-6. Middleware `after` hooks run, and logs are persisted.
+6. Middleware `after` hooks run, and threads are persisted.
 
 ## Data & Storage (SQLite)
 
@@ -45,7 +45,7 @@ SQLite is the source of truth for:
 
 - Bot configs and versions (syncs with `goodchat.config.ts`).
 - Platform connections and OAuth tokens.
-- Conversation logs and message history.
+- Conversation threads and message history.
 - Context index metadata (document versions, embeddings, chunk maps).
 - API tokens and user sessions for the dashboard.
 

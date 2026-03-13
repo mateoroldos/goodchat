@@ -18,8 +18,8 @@ export interface ResponseMessageParams {
 }
 
 export interface ResponseMessageResult {
-  logId: string;
   text: string;
+  threadEntryId: string;
 }
 
 export type ResponseMessageError = BotInputInvalidError | BotGenerationError;

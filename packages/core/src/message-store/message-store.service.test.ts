@@ -8,7 +8,7 @@ const createMessageEntry = (
   adapterName: "local",
   botId: "local-echo",
   botName: "Echo",
-  id: "log-1",
+  id: "thread-1",
   platform: "local",
   responseText: "Echo: Hello",
   text: "Hello",
@@ -19,27 +19,34 @@ const createMessageEntry = (
 });
 
 describe("InMemoryMessageStoreService", () => {
-  it("appends logs and returns the latest entries first", () => {
+  it("appends threads and returns the latest entries first", () => {
     const service = new InMemoryMessageStoreService();
-    service.appendLog(createMessageEntry({ id: "log-1", text: "First" }));
-    service.appendLog(createMessageEntry({ id: "log-2", text: "Second" }));
+    service.appendThread(createMessageEntry({ id: "thread-1", text: "First" }));
+    service.appendThread(
+      createMessageEntry({ id: "thread-2", text: "Second" })
+    );
 
-    const result = service.listLogs(2);
+    const result = service.listThreads(2);
 
     expect(result.isOk()).toBe(true);
     if (result.isErr()) {
       throw new Error(result.error.message);
     }
 
-    expect(result.value.map((entry) => entry.id)).toEqual(["log-2", "log-1"]);
+    expect(result.value.map((entry) => entry.id)).toEqual([
+      "thread-2",
+      "thread-1",
+    ]);
   });
 
   it("caps the list size by the provided limit", () => {
     const service = new InMemoryMessageStoreService();
-    service.appendLog(createMessageEntry({ id: "log-1", text: "First" }));
-    service.appendLog(createMessageEntry({ id: "log-2", text: "Second" }));
+    service.appendThread(createMessageEntry({ id: "thread-1", text: "First" }));
+    service.appendThread(
+      createMessageEntry({ id: "thread-2", text: "Second" })
+    );
 
-    const result = service.listLogs(1);
+    const result = service.listThreads(1);
 
     expect(result.isOk()).toBe(true);
     if (result.isErr()) {
@@ -47,19 +54,19 @@ describe("InMemoryMessageStoreService", () => {
     }
 
     expect(result.value).toHaveLength(1);
-    expect(result.value[0]?.id).toBe("log-2");
+    expect(result.value[0]?.id).toBe("thread-2");
   });
 
   it("returns an error for invalid limits", () => {
     const service = new InMemoryMessageStoreService();
 
-    const result = service.listLogs(-1);
+    const result = service.listThreads(-1);
 
     expect(result.isErr()).toBe(true);
     if (result.isOk()) {
       throw new Error("Expected an error result");
     }
 
-    expect(result.error.code).toBe("LOG_LIMIT_INVALID");
+    expect(result.error.code).toBe("THREAD_LIMIT_INVALID");
   });
 });

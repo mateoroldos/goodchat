@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getLogs } from "../remote/logs.remote";
+  import { getThreads } from "../remote/threads.remote";
 </script>
 
 <div class="container mx-auto max-w-3xl px-4 py-2">
@@ -8,12 +8,12 @@
       <div
         class="mb-4 flex items-center justify-between text-xs uppercase tracking-wide text-slate-500"
       >
-        <span>Recent Logs</span>
+        <span>Recent Threads</span>
       </div>
 
       <div class="space-y-4">
         <svelte:boundary>
-          {#each await getLogs() as entry (entry.id)}
+          {#each await getThreads() as entry (entry.id)}
             <article
               class="rounded-lg border border-slate-100 bg-white p-4 shadow-sm"
             >
@@ -50,7 +50,7 @@
               </div>
             </article>
           {:else}
-            <p>No logs!</p>
+            <p>No threads!</p>
           {/each}
 
           {#snippet pending()}
@@ -58,7 +58,7 @@
           {/snippet}
 
           {#snippet failed(_e, reset)}
-            oops! there was an error loading logs.
+            oops! there was an error loading threads.
             <button onclick={reset} type="button">try again</button>
           {/snippet}
         </svelte:boundary>

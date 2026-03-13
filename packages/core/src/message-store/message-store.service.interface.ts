@@ -1,8 +1,8 @@
 import type { Ok, Result } from "better-result";
-import type { LogLimitInvalidError } from "./errors";
+import type { ThreadLimitInvalidError } from "./errors";
 import type { MessageEntry } from "./models";
 
 export interface MessageStoreService {
-  appendLog(entry: MessageEntry): Ok<undefined, never>;
-  listLogs(limit: number): Result<MessageEntry[], LogLimitInvalidError>;
+  appendThread(entry: MessageEntry): Ok<undefined, never>;
+  listThreads(limit: number): Result<MessageEntry[], ThreadLimitInvalidError>;
 }

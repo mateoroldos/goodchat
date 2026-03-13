@@ -1,10 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { getRequestEvent, query } from "$app/server";
 
-export const getLogs = query(async () => {
+export const getThreads = query(async () => {
   const { locals } = getRequestEvent();
 
-  const { data, error: edenError } = await locals.eden.logs.get();
+  const { data, error: edenError } = await locals.eden.threads.get();
 
   if (edenError) {
     const { status, value } = edenError;
@@ -13,7 +13,7 @@ export const getLogs = query(async () => {
   }
 
   if (!Array.isArray(data)) {
-    error(500, "Failed to load logs");
+    error(500, "Failed to load threads");
   }
 
   return data;

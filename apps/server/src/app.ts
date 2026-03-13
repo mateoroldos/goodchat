@@ -6,7 +6,7 @@ import { Elysia } from "elysia";
 import { env } from "./env";
 import { botsController } from "./modules/bots";
 import { webhookChatController } from "./modules/chat";
-import { logsController } from "./modules/logs";
+import { threadsController } from "./modules/threads";
 
 const configService = new FileConfigService();
 const botResult = await configService.loadBotConfigs();
@@ -29,7 +29,7 @@ export const app = new Elysia()
   .use(openapi())
   .get("/", () => "OK")
   .use(botsController(botConfigs))
-  .use(logsController(messageStore));
+  .use(threadsController(messageStore));
 
 for (const botConfig of botConfigs) {
   const chatController = webhookChatController(botConfig, messageStore);

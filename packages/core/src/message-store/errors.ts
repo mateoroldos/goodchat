@@ -1,22 +1,24 @@
 import { TaggedError } from "better-result";
 
-export class LogLimitInvalidError extends TaggedError("LogLimitInvalidError")<{
+export class ThreadLimitInvalidError extends TaggedError(
+  "ThreadLimitInvalidError"
+)<{
   message: string;
-  code: "LOG_LIMIT_INVALID";
+  code: "THREAD_LIMIT_INVALID";
 }>() {
   constructor(message: string) {
-    super({ message, code: "LOG_LIMIT_INVALID" });
+    super({ message, code: "THREAD_LIMIT_INVALID" });
   }
 }
 
-export class LogStoreUnavailableError extends TaggedError(
-  "LogStoreUnavailableError"
+export class ThreadStoreUnavailableError extends TaggedError(
+  "ThreadStoreUnavailableError"
 )<{
   message: string;
-  code: "LOG_STORE_UNAVAILABLE";
+  code: "THREAD_STORE_UNAVAILABLE";
 }>() {
   constructor(message: string, cause?: unknown) {
-    super({ message, code: "LOG_STORE_UNAVAILABLE" });
+    super({ message, code: "THREAD_STORE_UNAVAILABLE" });
     if (cause) {
       (this as { cause?: unknown }).cause = cause;
     }
