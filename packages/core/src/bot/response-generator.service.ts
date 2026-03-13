@@ -1,18 +1,21 @@
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { Result } from "better-result";
+import type { RawBotConfig } from "../config/models";
 import { BotGenerationError, BotInputInvalidError } from "./errors";
-import type { BotService } from "./interface";
-import { incomingMessageSchema } from "./schema";
-import type { BotConfig, IncomingMessage } from "./types";
-
-export const defineBot = (config: BotConfig): BotConfig => config;
+import type { ResponseRequest } from "./models";
+import { incomingMessageSchema } from "./models";
+import type { ResponseGeneratorService } from "./response-generator.service.interface";
 
 const DEFAULT_MODEL_ID = "gpt-4.1-nano";
 
-export class DefaultBotService implements BotService {
-  async sendMessage(message: IncomingMessage, bot: BotConfig) {
-    const parsed = incomingMessageSchema.safeParse(message);
+export const defineBot = (config: RawBotConfig): RawBotConfig => config;
+
+export class DefaultResponseGeneratorService
+  implements ResponseGeneratorService
+{
+  async generateResponse(request: ResponseRequest) {
+    const parsed = incomingMessageSchema.safeParse(request.message);
 
     if (!parsed.success) {
       return Result.err(
@@ -23,14 +26,15 @@ export class DefaultBotService implements BotService {
       );
     }
 
-    const systemPrompt = `${bot.prompt}\n\nBot name: ${bot.name}`;
+    const systemPrompt = `${request.botConfig.prompt}\n\nBot name: ${request.botConfig.name}`;
+    const modelId = request.runtime?.modelId ?? DEFAULT_MODEL_ID;
 
     const generationResult = await Result.tryPromise({
       try: () =>
         generateText({
-          model: openai(DEFAULT_MODEL_ID),
+          model: openai(modelId),
           system: systemPrompt,
-          prompt: message.text,
+          prompt: request.message.text,
         }),
       catch: (cause) => {
         const errorMessage =
@@ -46,5 +50,3 @@ export class DefaultBotService implements BotService {
     return generationResult.map(({ text }) => ({ text }));
   }
 }
-
-export type { BotService } from "./interface";

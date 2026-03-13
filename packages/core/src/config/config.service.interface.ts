@@ -1,9 +1,9 @@
 import type { Result } from "better-result";
-import type { BotConfig } from "../bot/types";
 import type { ConfigInvalidError, ConfigNotFoundError } from "./errors";
+import type { BotConfig } from "./models";
 
 export interface ConfigService {
-  loadBotConfig(
+  loadBotConfigs(
     configPath?: string
-  ): Promise<Result<BotConfig, ConfigInvalidError | ConfigNotFoundError>>;
+  ): Promise<Result<BotConfig[], ConfigInvalidError | ConfigNotFoundError>>;
 }

@@ -1,22 +1,16 @@
-import type { BotConfig } from "@goodchat/core/bot.types";
-import { InMemoryLogStoreService } from "@goodchat/core/log-store";
+import type { BotConfig } from "@goodchat/core/config/models";
+import { InMemoryMessageStoreService } from "@goodchat/core/message-store/index";
 import { Elysia } from "elysia";
+import { botsController } from "../modules/bots";
 import { logsController } from "../modules/logs";
-import { webhookLocalController } from "../modules/webhook-local";
 
-const DEFAULT_BOT_CONFIG: BotConfig = {
-  name: "Echo",
-  prompt: "Be friendly",
-  platforms: ["local"],
-};
-
-export const createTestApp = (botConfig: BotConfig = DEFAULT_BOT_CONFIG) => {
-  const logger = new InMemoryLogStoreService();
+export const createTestApp = (bots: BotConfig[] = []) => {
+  const messageStore = new InMemoryMessageStoreService();
 
   const app = new Elysia()
     .get("/", () => "OK")
-    .use(webhookLocalController(botConfig, logger))
-    .use(logsController(logger));
+    .use(botsController(bots))
+    .use(logsController(messageStore));
 
-  return { app, logger };
+  return { app, messageStore, logger: messageStore };
 };

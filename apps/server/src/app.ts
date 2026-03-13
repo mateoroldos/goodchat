@@ -1,22 +1,23 @@
 import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
-import { FileConfigService } from "@goodchat/core/config";
-import { InMemoryLogStoreService } from "@goodchat/core/log-store";
+import { FileConfigService } from "@goodchat/core/config/config.service";
+import { InMemoryMessageStoreService } from "@goodchat/core/message-store/index";
 import { Elysia } from "elysia";
 import { env } from "./env";
+import { botsController } from "./modules/bots";
+import { webhookChatController } from "./modules/chat";
 import { logsController } from "./modules/logs";
-import { webhookLocalController } from "./modules/webhook-local";
 
 const configService = new FileConfigService();
-const botResult = await configService.loadBotConfig();
+const botResult = await configService.loadBotConfigs();
 if (botResult.isErr()) {
-  console.error("Failed to load bot config:", botResult.error.message);
+  console.error("Failed to load bot configs:", botResult.error.message);
   process.exit(1);
 }
 
-const botConfig = botResult.value;
+const botConfigs = botResult.value;
 
-const logger = new InMemoryLogStoreService();
+const messageStore = new InMemoryMessageStoreService();
 
 export const app = new Elysia()
   .use(
@@ -27,7 +28,14 @@ export const app = new Elysia()
   )
   .use(openapi())
   .get("/", () => "OK")
-  .use(webhookLocalController(botConfig, logger))
-  .use(logsController(logger));
+  .use(botsController(botConfigs))
+  .use(logsController(messageStore));
+
+for (const botConfig of botConfigs) {
+  const chatController = webhookChatController(botConfig, messageStore);
+  if (chatController) {
+    app.use(chatController);
+  }
+}
 
 export type App = typeof app;

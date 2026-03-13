@@ -1,12 +1,12 @@
 import { Result } from "better-result";
 import { LogLimitInvalidError as LogLimitInvalidErrorClass } from "./errors";
-import type { LogStoreService } from "./interface";
-import type { LogEntry } from "./types";
+import type { MessageStoreService } from "./message-store.service.interface";
+import type { MessageEntry } from "./models";
 
-export class InMemoryLogStoreService implements LogStoreService {
-  readonly #logs: LogEntry[] = [];
+export class InMemoryMessageStoreService implements MessageStoreService {
+  readonly #logs: MessageEntry[] = [];
 
-  appendLog(entry: LogEntry) {
+  appendLog(entry: MessageEntry) {
     this.#logs.push(entry);
     return Result.ok(undefined);
   }
@@ -23,4 +23,4 @@ export class InMemoryLogStoreService implements LogStoreService {
   }
 }
 
-export type { LogStoreService } from "./interface";
+export type { MessageStoreService } from "./message-store.service.interface";

@@ -1,20 +1,24 @@
 import { generateText } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DefaultBotService } from "./index";
-import type { BotConfig, IncomingMessage } from "./types";
+import type { BotConfig } from "../config/models";
+import type { IncomingMessage } from "./models";
+import { DefaultResponseGeneratorService } from "./response-generator.service";
 
 vi.mock("ai", () => ({
   generateText: vi.fn(),
 }));
 
-describe("DefaultBotService", () => {
+const mockedGenerateText = generateText as unknown as ReturnType<typeof vi.fn>;
+
+describe("DefaultResponseGeneratorService", () => {
   beforeEach(() => {
-    vi.mocked(generateText).mockReset();
+    mockedGenerateText.mockReset();
   });
 
   it("echoes back valid messages", async () => {
-    const service = new DefaultBotService();
+    const service = new DefaultResponseGeneratorService();
     const botConfig: BotConfig = {
+      id: "echo",
       name: "Echo",
       prompt: "Be friendly",
       platforms: ["local"],
@@ -31,9 +35,12 @@ describe("DefaultBotService", () => {
       text: "AI: Hello",
     } as unknown as Awaited<ReturnType<typeof generateText>>;
 
-    vi.mocked(generateText).mockResolvedValue(mockResult);
+    mockedGenerateText.mockResolvedValue(mockResult);
 
-    const result = await service.sendMessage(message, botConfig);
+    const result = await service.generateResponse({
+      botConfig,
+      message,
+    });
 
     expect(result.isOk()).toBe(true);
     if (result.isErr()) {
@@ -44,8 +51,9 @@ describe("DefaultBotService", () => {
   });
 
   it("returns validation errors for invalid messages", async () => {
-    const service = new DefaultBotService();
+    const service = new DefaultResponseGeneratorService();
     const botConfig: BotConfig = {
+      id: "echo",
       name: "Echo",
       prompt: "Be friendly",
       platforms: ["local"],
@@ -59,7 +67,10 @@ describe("DefaultBotService", () => {
       userId: "user-1",
     } as IncomingMessage;
 
-    const result = await service.sendMessage(invalidMessage, botConfig);
+    const result = await service.generateResponse({
+      botConfig,
+      message: invalidMessage,
+    });
 
     expect(result.isErr()).toBe(true);
     if (result.isOk()) {

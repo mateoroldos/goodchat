@@ -1,6 +1,8 @@
-import type { Platform } from "../bot/types";
+import type { Platform } from "../config/models";
 
-export interface LogEntry {
+export interface MessageEntry {
+  adapterName: string;
+  botId: string;
   botName: string;
   id: string;
   platform: Platform;

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryLogStoreService } from "./index";
-import type { LogEntry } from "./types";
+import { InMemoryMessageStoreService } from "./index";
+import type { MessageEntry } from "./models";
 
-const createLogEntry = (overrides: Partial<LogEntry> = {}): LogEntry => ({
+const createMessageEntry = (
+  overrides: Partial<MessageEntry> = {}
+): MessageEntry => ({
+  adapterName: "local",
+  botId: "local-echo",
   botName: "Echo",
   id: "log-1",
   platform: "local",
@@ -14,11 +18,11 @@ const createLogEntry = (overrides: Partial<LogEntry> = {}): LogEntry => ({
   ...overrides,
 });
 
-describe("InMemoryLogStoreService", () => {
+describe("InMemoryMessageStoreService", () => {
   it("appends logs and returns the latest entries first", () => {
-    const service = new InMemoryLogStoreService();
-    service.appendLog(createLogEntry({ id: "log-1", text: "First" }));
-    service.appendLog(createLogEntry({ id: "log-2", text: "Second" }));
+    const service = new InMemoryMessageStoreService();
+    service.appendLog(createMessageEntry({ id: "log-1", text: "First" }));
+    service.appendLog(createMessageEntry({ id: "log-2", text: "Second" }));
 
     const result = service.listLogs(2);
 
@@ -31,9 +35,9 @@ describe("InMemoryLogStoreService", () => {
   });
 
   it("caps the list size by the provided limit", () => {
-    const service = new InMemoryLogStoreService();
-    service.appendLog(createLogEntry({ id: "log-1", text: "First" }));
-    service.appendLog(createLogEntry({ id: "log-2", text: "Second" }));
+    const service = new InMemoryMessageStoreService();
+    service.appendLog(createMessageEntry({ id: "log-1", text: "First" }));
+    service.appendLog(createMessageEntry({ id: "log-2", text: "Second" }));
 
     const result = service.listLogs(1);
 
@@ -47,7 +51,7 @@ describe("InMemoryLogStoreService", () => {
   });
 
   it("returns an error for invalid limits", () => {
-    const service = new InMemoryLogStoreService();
+    const service = new InMemoryMessageStoreService();
 
     const result = service.listLogs(-1);
 
