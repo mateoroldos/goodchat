@@ -2,7 +2,14 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     ".": {
-      "ignore": [".claude/**", ".agents/**", ".pi/**", "bots/**"]
+      "ignore": [
+        ".claude/**",
+        ".agents/**",
+        ".pi/**",
+        "bots/**",
+        "apps/web/src/lib/components/ui/**",
+        "apps/web/src/lib/api/**/*.types.ts"
+      ]
     }
   }
 }

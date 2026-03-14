@@ -87,4 +87,4 @@ if (webIndexHtml) {
   });
 }
 
-export type App = typeof app;
+export type App = typeof api;

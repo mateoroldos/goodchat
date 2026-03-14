@@ -15,3 +15,13 @@ export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
   ref?: U | null;
 };
+
+export type ApiError =
+  | { message: string }
+  | { code: string; message: string; requestId: string };
+type EdenResponse<T> = T extends (...args: infer _Args) => infer Return
+  ? Awaited<Return>
+  : never;
+export type EdenData<T> =
+  EdenResponse<T> extends { data?: infer Data } ? Data : never;
+export type EdenSuccess<T> = Exclude<EdenData<T>, ApiError | null | undefined>;
