@@ -2,7 +2,7 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["ultracite/biome/core", "ultracite/biome/svelte"],
   "files": {
-    "includes": ["!.agents", "!**/*.d.ts"]
+    "includes": ["!.agents", "!**/*.d.ts", "!**/lib/components/ui"]
   },
   "overrides": [
     {
@@ -17,6 +17,10 @@
             "noUnusedVariables": "off",
             "noUnusedImports": "off",
             "noUndeclaredVariables": "off"
+          },
+          // shadcn-svelte uses namespace imports for compound components (Card, Sheet, etc.)
+          "performance": {
+            "noNamespaceImport": "off"
           }
         }
       }
