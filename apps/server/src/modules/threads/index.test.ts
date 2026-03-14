@@ -20,7 +20,7 @@ const createThreadEntry = (
 
 describe("GET /threads", () => {
   it("returns threads using the default limit", async () => {
-    const { app, messageStore } = createTestApp();
+    const { app, messageStore } = await createTestApp();
     messageStore.appendThread(
       createThreadEntry({ id: "thread-1", text: "First" })
     );
@@ -38,7 +38,7 @@ describe("GET /threads", () => {
   });
 
   it("respects the requested limit", async () => {
-    const { app, messageStore } = createTestApp();
+    const { app, messageStore } = await createTestApp();
     messageStore.appendThread(
       createThreadEntry({ id: "thread-1", text: "First" })
     );
@@ -58,7 +58,7 @@ describe("GET /threads", () => {
   });
 
   it("rejects invalid limits with a 400", async () => {
-    const { app } = createTestApp();
+    const { app } = await createTestApp();
 
     const response = await app.handle(
       new Request("http://localhost/threads?limit=-1")

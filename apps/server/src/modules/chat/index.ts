@@ -1,153 +1,88 @@
 import type { DiscordAdapter } from "@chat-adapter/discord";
-import { BotInputInvalidError } from "@goodchat/core/bot/errors";
-import { DefaultResponseGeneratorService } from "@goodchat/core/bot/response-generator.service";
-import type { BotConfig, Platform } from "@goodchat/core/config/models";
-import { DefaultChatGatewayService } from "@goodchat/core/gateway/chat-gateway.service";
-import type { MessageStoreService } from "@goodchat/core/message-store/message-store.service.interface";
-import { DefaultResponseHandlerService } from "@goodchat/core/response-handler/response-handler.service";
+import type { Platform } from "@goodchat/core/config/models";
 import { Elysia } from "elysia";
+import type { BotRegistry } from "../../runtime/bot-registry";
 
-export const webhookChatController = (
-  botConfig: BotConfig,
-  messageStore: MessageStoreService
-) => {
-  const adapter = new DefaultChatGatewayService({
-    botId: botConfig.id,
-    userName: botConfig.name,
-    platforms: botConfig.platforms,
-  });
-  const platformIds = adapter.getPlatformIds();
+export const webhookChatController = (registry: BotRegistry) => {
+  const app = new Elysia({ prefix: "/webhook" });
 
-  if (platformIds.length === 0) {
-    return null;
-  }
-
-  const responseGenerator = new DefaultResponseGeneratorService();
-  const responseHandler = new DefaultResponseHandlerService({
-    responseGenerator,
-    messageStore,
-  });
-
-  const DEFAULT_ERROR_MESSAGE = "Sorry, I ran into an error while responding.";
-
-  const resolvePlatform = (threadId: string): Platform | null => {
-    const [platform] = threadId.split(":");
-    if (!platform) {
-      return null;
+  app.post("/:botId/:platform", ({ params, request, set }) => {
+    const botConfig = registry.getConfig(params.botId);
+    if (!botConfig) {
+      set.status = 404;
+      return { message: "Bot not found" };
     }
 
-    return botConfig.platforms.includes(platform as Platform)
-      ? (platform as Platform)
-      : null;
-  };
+    if (!botConfig.platforms.includes(params.platform as Platform)) {
+      set.status = 404;
+      return { message: "Platform not configured" };
+    }
 
-  adapter.registerHandlers({
-    onNewMention: async (thread, message) => {
-      await thread.subscribe();
+    const runtimeResult = registry.getRuntime(params.botId);
+    if (runtimeResult.isErr()) {
+      set.status = runtimeResult.error.code === "BOT_NOT_FOUND" ? 404 : 500;
+      return { message: runtimeResult.error.message };
+    }
 
-      const platform = resolvePlatform(thread.id);
-      if (!platform) {
-        await thread.post(DEFAULT_ERROR_MESSAGE);
-        return;
-      }
+    const runtime = runtimeResult.value;
 
-      const result = await responseHandler.handleMessage(
-        {
-          adapterName: platform,
-          botConfig,
-          platform,
-          threadId: thread.id,
-          userId: message.author.userId,
-        },
-        { text: message.text }
-      );
-
-      if (result.isErr()) {
-        if (result.error instanceof BotInputInvalidError) {
-          await thread.post(DEFAULT_ERROR_MESSAGE);
-          return;
-        }
-
-        await thread.post(DEFAULT_ERROR_MESSAGE);
-        return;
-      }
-
-      await thread.post(result.value.text);
-    },
-    onSubscribedMessage: async (thread, message) => {
-      const platform = resolvePlatform(thread.id);
-      if (!platform) {
-        await thread.post(DEFAULT_ERROR_MESSAGE);
-        return;
-      }
-
-      const result = await responseHandler.handleMessage(
-        {
-          adapterName: platform,
-          botConfig,
-          platform,
-          threadId: thread.id,
-          userId: message.author.userId,
-        },
-        { text: message.text }
-      );
-
-      if (result.isErr()) {
-        if (result.error instanceof BotInputInvalidError) {
-          await thread.post(DEFAULT_ERROR_MESSAGE);
-          return;
-        }
-
-        await thread.post(DEFAULT_ERROR_MESSAGE);
-        return;
-      }
-
-      await thread.post(result.value.text);
-    },
-  });
-
-  const webhooks = adapter.getWebhooks();
-  const app = new Elysia({ prefix: `/webhook/${botConfig.id}` });
-
-  for (const platform of platformIds) {
-    const handler = webhooks[platform as keyof typeof webhooks];
+    const webhooks = runtime.gateway.getWebhooks();
+    const handler = webhooks[params.platform as keyof typeof webhooks];
     if (!handler) {
-      continue;
+      set.status = 404;
+      return { message: "Platform webhook not configured" };
     }
 
-    app.post(`/${platform}`, ({ request }) => handler(request));
-  }
+    return handler(request);
+  });
 
-  if (platformIds.includes("discord")) {
-    app.get("/discord/gateway", async ({ request, set }) => {
-      const discordAdapter = adapter.getAdapter(
-        "discord"
-      ) as DiscordAdapter | null;
+  app.get("/:botId/discord/gateway", async ({ params, request, set }) => {
+    const botConfig = registry.getConfig(params.botId);
+    if (!botConfig) {
+      set.status = 404;
+      return { message: "Bot not found" };
+    }
 
-      if (!discordAdapter) {
-        set.status = 404;
-        return { message: "Discord adapter not configured" };
-      }
+    if (!botConfig.platforms.includes("discord")) {
+      set.status = 404;
+      return { message: "Discord adapter not configured" };
+    }
 
-      await adapter.initialize();
+    const runtimeResult = registry.getRuntime(params.botId);
+    if (runtimeResult.isErr()) {
+      set.status = runtimeResult.error.code === "BOT_NOT_FOUND" ? 404 : 500;
+      return { message: runtimeResult.error.message };
+    }
 
-      const url = new URL(request.url);
-      const webhookUrl =
-        url.searchParams.get("webhookUrl") ??
-        `${url.origin}/api/webhook/${botConfig.id}/discord`;
+    const runtime = runtimeResult.value;
 
-      return discordAdapter.startGatewayListener(
-        {
-          waitUntil: (task) => {
-            task.catch(() => undefined);
-          },
+    const discordAdapter = runtime.gateway.getAdapter(
+      "discord"
+    ) as DiscordAdapter | null;
+
+    if (!discordAdapter) {
+      set.status = 404;
+      return { message: "Discord adapter not configured" };
+    }
+
+    await runtime.gateway.initialize();
+
+    const url = new URL(request.url);
+    const webhookUrl =
+      url.searchParams.get("webhookUrl") ??
+      `${url.origin}/api/webhook/${params.botId}/discord`;
+
+    return discordAdapter.startGatewayListener(
+      {
+        waitUntil: (task) => {
+          task.catch(() => undefined);
         },
-        10 * 60 * 1000,
-        undefined,
-        webhookUrl
-      );
-    });
-  }
+      },
+      10 * 60 * 1000,
+      undefined,
+      webhookUrl
+    );
+  });
 
   return app;
 };

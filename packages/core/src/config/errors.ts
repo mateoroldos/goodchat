@@ -41,3 +41,26 @@ export class ConfigInvalidError extends TaggedError("ConfigInvalidError")<{
     }
   }
 }
+
+export class ConfigWatcherError extends TaggedError("ConfigWatcherError")<{
+  message: string;
+  configPath?: string;
+  attemptedPaths?: string[];
+  code: "CONFIG_WATCHER_FAILED";
+}>() {
+  constructor(
+    message: string,
+    options?: { configPath?: string; attemptedPaths?: string[] },
+    cause?: unknown
+  ) {
+    super({
+      message,
+      configPath: options?.configPath,
+      attemptedPaths: options?.attemptedPaths,
+      code: "CONFIG_WATCHER_FAILED",
+    });
+    if (cause) {
+      (this as { cause?: unknown }).cause = cause;
+    }
+  }
+}

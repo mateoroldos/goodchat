@@ -4,44 +4,58 @@ import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
 import { staticPlugin } from "@elysiajs/static";
 import { FileConfigService } from "@goodchat/core/config/config.service";
+import { watchBotConfigs } from "@goodchat/core/config/config-watcher";
 import { InMemoryMessageStoreService } from "@goodchat/core/message-store/index";
 import { Elysia } from "elysia";
 import { env } from "./env";
 import { botsController } from "./modules/bots";
 import { webhookChatController } from "./modules/chat";
 import { threadsController } from "./modules/threads";
+import { BotRegistry } from "./runtime/bot-registry";
 
 const configService = new FileConfigService();
+const messageStore = new InMemoryMessageStoreService();
+const botRegistry = new BotRegistry(messageStore);
+
 const botResult = await configService.loadBotConfigs();
 if (botResult.isErr()) {
   console.error("Failed to load bot configs:", botResult.error.message);
   process.exit(1);
 }
 
-const botConfigs = botResult.value;
+await botRegistry.applyConfigs(botResult.value);
 
-const messageStore = new InMemoryMessageStoreService();
+const watcherResult = await watchBotConfigs({
+  configService,
+  onReload: async (configs) => {
+    await botRegistry.applyConfigs(configs);
+  },
+  onError: (error) => {
+    console.error("Failed to reload bot configs:", error.message);
+  },
+});
+
+if (watcherResult.isErr()) {
+  console.error(
+    "Failed to start bot config watcher:",
+    watcherResult.error.message
+  );
+}
 
 export const app = new Elysia()
   .use(
     cors({
       origin: env.CORS_ORIGIN,
-      methods: ["GET", "POST", "OPTIONS"],
+      methods: ["GET", "POST", "PATCH", "OPTIONS"],
     })
   )
   .use(openapi());
 
 const api = new Elysia({ prefix: "/api" })
-  .use(botsController(botConfigs))
+  .use(botsController(botRegistry, messageStore))
   .use(threadsController(messageStore))
+  .use(webhookChatController(botRegistry))
   .get("/health", () => "OK");
-
-for (const botConfig of botConfigs) {
-  const chatController = webhookChatController(botConfig, messageStore);
-  if (chatController) {
-    api.use(chatController);
-  }
-}
 
 app.use(api);
 

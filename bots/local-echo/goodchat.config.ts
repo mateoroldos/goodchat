@@ -1,4 +1,4 @@
-import { defineBot } from "@goodchat/core/bot/response-generator.service";
+import { defineBot } from "@goodchat/core/bot/define-bot";
 
 export default defineBot({
   name: "lfg",

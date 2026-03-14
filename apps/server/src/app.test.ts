@@ -3,7 +3,7 @@ import { createTestApp } from "./test/create-test-app";
 
 describe("server app", () => {
   it("responds to health checks", async () => {
-    const { app } = createTestApp();
+    const { app } = await createTestApp();
 
     const response = await app.handle(new Request("http://localhost/"));
 
@@ -12,7 +12,7 @@ describe("server app", () => {
   });
 
   it("lists available bots", async () => {
-    const { app } = createTestApp([
+    const { app } = await createTestApp([
       {
         id: "local-echo",
         name: "local-echo",
@@ -34,11 +34,13 @@ describe("server app", () => {
       {
         id: "local-echo",
         name: "local-echo",
+        prompt: "Echoes incoming messages for local testing.",
         platforms: ["local"],
       },
       {
         id: "support-echo",
         name: "support-echo",
+        prompt: "Helps with support queries using a friendly tone.",
         platforms: ["local"],
       },
     ]);

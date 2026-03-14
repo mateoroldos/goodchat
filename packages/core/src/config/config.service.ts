@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Result } from "better-result";
@@ -9,12 +9,7 @@ import { rawBotConfigSchema } from "./models";
 
 export class FileConfigService implements ConfigService {
   async loadBotConfigs(configPath = "bots") {
-    const configDirectories = isAbsolute(configPath)
-      ? [configPath]
-      : [
-          join(process.cwd(), configPath),
-          join(new URL("../../../../", import.meta.url).pathname, configPath),
-        ];
+    const configDirectories = resolveConfigDirectories(configPath);
 
     let lastError: unknown = null;
 
@@ -50,6 +45,14 @@ export class FileConfigService implements ConfigService {
   }
 }
 
+export const resolveConfigDirectories = (configPath: string) =>
+  isAbsolute(configPath)
+    ? [configPath]
+    : [
+        join(process.cwd(), configPath),
+        join(new URL("../../../../", import.meta.url).pathname, configPath),
+      ];
+
 const loadBotsFromDirectory = async (baseDirectory: string) => {
   const entries = await readdir(baseDirectory, { withFileTypes: true });
   const botDirs = entries
@@ -61,11 +64,21 @@ const loadBotsFromDirectory = async (baseDirectory: string) => {
     const botSlug = botDir.name;
     const configPath = join(baseDirectory, botSlug, "goodchat.config.ts");
     const configUrl = pathToFileURL(configPath);
+    const shouldBustCache =
+      !process.env.VITEST && process.env.NODE_ENV !== "test";
+    let importUrl = configUrl;
+
+    if (shouldBustCache) {
+      const configStats = await stat(configPath);
+      const nextUrl = new URL(configUrl);
+      nextUrl.searchParams.set("t", String(configStats.mtimeMs));
+      importUrl = nextUrl;
+    }
 
     let module: { default?: unknown };
 
     try {
-      module = await import(configUrl.href);
+      module = await import(importUrl.href);
     } catch (error) {
       throw new ConfigInvalidError(
         "Bot config failed to load",

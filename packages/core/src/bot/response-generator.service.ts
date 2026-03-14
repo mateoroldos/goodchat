@@ -1,15 +1,12 @@
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { Result } from "better-result";
-import type { RawBotConfig } from "../config/models";
 import { BotGenerationError, BotInputInvalidError } from "./errors";
 import type { ResponseRequest } from "./models";
 import { incomingMessageSchema } from "./models";
 import type { ResponseGeneratorService } from "./response-generator.service.interface";
 
 const DEFAULT_MODEL_ID = "gpt-4.1-nano";
-
-export const defineBot = (config: RawBotConfig): RawBotConfig => config;
 
 export class DefaultResponseGeneratorService
   implements ResponseGeneratorService

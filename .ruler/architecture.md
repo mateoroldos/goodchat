@@ -12,7 +12,7 @@ Apps
 
 Packages
 
-- `packages/core/` - Bot runtime primitives: `defineBot`, middleware, tools, events, prompt assembly.
+- `packages/core/` - Core primitives and services: `defineBot`, config loading, gateway, response generation, response handling.
 - `packages/adapters/` - Platform adapters (Slack, Discord, Teams, Google Chat) and a common message model.
 - `packages/context/` - RAG pipeline: loaders, chunking, embeddings, indexing, retrieval.
 - `packages/plugins/` - Plugin SDK and built-in plugins (GitHub, Linear, Stripe, etc.).
@@ -25,8 +25,14 @@ Packages
 
 - The CLI is the launcher. `goodchat dev` starts the local control plane (Elysia server + dashboard) and loads `goodchat.config.ts`.
 - The web app talks to the server API for bot config, OAuth connections, and thread streams.
-- The server exposes webhook endpoints per adapter and streams responses back to platforms.
+- The server exposes a catch-all webhook endpoint (`/api/webhook/:botId/:platform`) and streams responses back to platforms.
 - Shared packages are consumed by both apps to keep runtime, config, and env rules consistent.
+
+## Server Runtime Layout
+
+- `apps/server/src/runtime/` - Orchestration layer: bot registry, chat runtime wiring, and runtime-specific errors.
+- `apps/server/src/modules/` - Controllers only (HTTP routing and adapter dispatch).
+- `packages/core/src/config/config-watcher.ts` - Optional config watcher helper used by the server.
 
 ## Core Pipeline
 
