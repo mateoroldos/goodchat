@@ -527,7 +527,7 @@ Use the Dockerfile from the repo root:
 docker build -f apps/server/Dockerfile -t goodchat-server .
 ```
 
-Then deploy the image on Railway. The server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY`, `CORS_ORIGIN`, and any adapter credentials).
+Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerfile` and build context set to the repo root. The build uses Turborepo filters for `server` and `web`, and the server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY`, `CORS_ORIGIN`, and any adapter credentials).
 
 ### Docker (custom)
 

@@ -2,14 +2,14 @@ FROM oven/bun:1 AS build
 
 WORKDIR /app
 
-COPY package.json bun.lock ./
+COPY package.json bun.lock turbo.json ./
 COPY packages ./packages
 COPY apps ./apps
 
 ENV NODE_ENV=production
 
 RUN bun install --frozen-lockfile
-RUN bun run build
+RUN bun run build --filter=server --filter=web
 RUN bun build \
   --compile \
   --minify-whitespace \
