@@ -514,3 +514,39 @@ The cloud version at [goodchat.dev](https://goodchat.dev) is the same codebase �
 Most bot builders make you choose between simplicity and power. `goodchat` doesn't.
 
 The config file is the product. Everything — prompts, platforms, context, tools, events — lives in one place and is readable by anyone on your team, technical or not. The complexity of multi-platform deployment, webhook routing, and streaming lives in the framework layer so you never have to see it.
+
+---
+
+## Deployment providers
+
+### Railway (Docker)
+
+Use the Dockerfile from the repo root:
+
+```bash
+docker build -f apps/server/Dockerfile -t goodchat-server .
+```
+
+Then deploy the image on Railway. The server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY`, `CORS_ORIGIN`, and any adapter credentials).
+
+### Docker (custom)
+
+Build and run the server image locally or on any container host:
+
+```bash
+docker build -f apps/server/Dockerfile -t goodchat-server .
+docker run -p 3000:3000 \
+  -e OPENAI_API_KEY=... \
+  -e CORS_ORIGIN=https://your.domain \
+  goodchat-server
+```
+
+The Docker build runs `bun run build` so `apps/web/build` is produced and served by the API.
+
+### Vercel (Bun)
+
+Vercel functions will run the default export from `apps/server/src/index.ts`. The repo includes `vercel.json` to select the Bun runtime.
+
+- Set environment variables in Vercel for `OPENAI_API_KEY`, `CORS_ORIGIN`, and any platform credentials.
+- Serverless deployments skip the config watcher and the static dashboard build. If you want the dashboard, deploy `apps/web` separately as a static site.
+- For other serverless providers, set `SERVERLESS=true` to disable file watchers and static file serving.
