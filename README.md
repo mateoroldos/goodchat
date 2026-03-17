@@ -527,7 +527,7 @@ Use the Dockerfile from the repo root:
 docker build -f apps/server/Dockerfile -t goodchat-server .
 ```
 
-Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerfile` and build context set to the repo root. The build uses Turborepo filters for `server` and `web`, and the server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY`, `CORS_ORIGIN`, and any adapter credentials).
+Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerfile` and build context set to the repo root. The build uses Turborepo filters for `server` and `web`, and the server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY` and any adapter credentials). `CORS_ORIGIN` is optional and only needed if your UI is on a different origin.
 
 ### Docker (custom)
 
@@ -537,7 +537,6 @@ Build and run the server image locally or on any container host:
 docker build -f apps/server/Dockerfile -t goodchat-server .
 docker run -p 3000:3000 \
   -e OPENAI_API_KEY=... \
-  -e CORS_ORIGIN=https://your.domain \
   goodchat-server
 ```
 
@@ -547,6 +546,6 @@ The Docker build runs `bun run build` so `apps/web/build` is produced and served
 
 Vercel functions will run the default export from `apps/server/src/index.ts`. The repo includes `vercel.json` to select the Bun runtime.
 
-- Set environment variables in Vercel for `OPENAI_API_KEY`, `CORS_ORIGIN`, and any platform credentials.
+- Set environment variables in Vercel for `OPENAI_API_KEY` and any platform credentials. `CORS_ORIGIN` is optional and only needed if your UI is on a different origin.
 - Serverless deployments skip the config watcher and the static dashboard build. If you want the dashboard, deploy `apps/web` separately as a static site.
 - For other serverless providers, set `SERVERLESS=true` to disable file watchers and static file serving.

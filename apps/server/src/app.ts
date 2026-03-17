@@ -20,6 +20,24 @@ const configService = new FileConfigService();
 const messageStore = new InMemoryMessageStoreService();
 const botRegistry = new BotRegistry(messageStore);
 
+const sameOriginCors = (request: Request) => {
+  const origin = request.headers.get("origin");
+  if (!origin) {
+    return true;
+  }
+
+  const host = request.headers.get("host");
+  if (!host) {
+    return false;
+  }
+
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+};
+
 const botResult = await configService.loadBotConfigs();
 if (botResult.isErr()) {
   console.error("Failed to load bot configs:", botResult.error.message);
@@ -50,7 +68,7 @@ if (!isServerless) {
 export const app = new Elysia()
   .use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: env.CORS_ORIGIN ?? sameOriginCors,
       methods: ["GET", "POST", "PATCH", "OPTIONS"],
     })
   )
