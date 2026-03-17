@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package.json bun.lock turbo.json ./
 COPY packages ./packages
 COPY apps ./apps
+COPY bots ./bots
 
 ENV NODE_ENV=production
 
