@@ -1,6 +1,5 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { Result } from "better-result";
 import type { ConfigService } from "./config.service.interface";
 import { ConfigInvalidError, ConfigNotFoundError } from "./errors";
@@ -63,22 +62,11 @@ const loadBotsFromDirectory = async (baseDirectory: string) => {
   for (const botDir of botDirs) {
     const botSlug = botDir.name;
     const configPath = join(baseDirectory, botSlug, "goodchat.config.ts");
-    const configUrl = pathToFileURL(configPath);
-    const shouldBustCache =
-      !process.env.VITEST && process.env.NODE_ENV !== "test";
-    let importUrl = configUrl;
-
-    if (shouldBustCache) {
-      const configStats = await stat(configPath);
-      const nextUrl = new URL(configUrl);
-      nextUrl.searchParams.set("t", String(configStats.mtimeMs));
-      importUrl = nextUrl;
-    }
 
     let module: { default?: unknown };
 
     try {
-      module = await import(importUrl.href);
+      module = await importConfigModule(configPath);
     } catch (error) {
       throw new ConfigInvalidError(
         "Bot config failed to load",
@@ -105,4 +93,11 @@ const loadBotsFromDirectory = async (baseDirectory: string) => {
   }
 
   return bots;
+};
+
+const importConfigModule = async (configPath: string) => {
+  const source = await readFile(configPath, "utf8");
+  const encoded = Buffer.from(source, "utf8").toString("base64");
+  const dataUrl = `data:text/javascript;base64,${encoded}`;
+  return import(dataUrl);
 };
