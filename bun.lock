@@ -20,6 +20,7 @@
         "@elysiajs/cors": "^1.4.1",
         "@elysiajs/openapi": "^1.4.14",
         "@elysiajs/static": "^1.4.7",
+        "@goodchat/bots": "workspace:*",
         "@goodchat/core": "workspace:*",
         "@t3-oss/env-core": "^0.13.1",
         "better-result": "^2.7.0",
@@ -58,6 +59,13 @@
         "tw-animate-css": "^1.4.0",
         "typescript": "catalog:",
         "vite": "^7.1.2",
+      },
+    },
+    "packages/bots": {
+      "name": "@goodchat/bots",
+      "version": "0.0.0",
+      "dependencies": {
+        "@goodchat/core": "workspace:*",
       },
     },
     "packages/config": {
@@ -234,6 +242,8 @@
     "@floating-ui/dom": ["@floating-ui/dom@1.7.6", "", { "dependencies": { "@floating-ui/core": "^1.7.5", "@floating-ui/utils": "^0.2.11" } }, "sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
+
+    "@goodchat/bots": ["@goodchat/bots@workspace:packages/bots"],
 
     "@goodchat/config": ["@goodchat/config@workspace:packages/config"],
 

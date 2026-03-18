@@ -6,7 +6,6 @@
         ".claude/**",
         ".agents/**",
         ".pi/**",
-        "bots/**",
         "apps/web/src/lib/components/ui/**",
         "apps/web/src/lib/api/**/*.types.ts"
       ]

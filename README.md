@@ -1,27 +1,40 @@
 # goodchat
 
-`goodchat` is a minimalistic framework for building and deploying AI-powered chatbots across Slack, Discord, Microsoft Teams, and Google Chat — from a single config file.
+`goodchat` is a minimalistic framework for building and deploying AI-powered chatbots across Slack, Discord, Microsoft Teams, and Google Chat — from a single bot module.
 
 ## How to use
 
-Create a new bot:
+Create a new bot module:
 
 ```bash
-npx goodchat init my-bot
-cd my-bot
+goodchat init my-bot
 ```
 
-This scaffolds a single file: `goodchat.config.ts`
+This scaffolds a module in `packages/bots/src/my-bot.ts`:
 
 ```ts
-import { defineBot } from 'goodchat'
+import { defineBot } from "goodchat";
 
-export default defineBot({
-  name: 'my-bot',
-  prompt: 'You are a helpful assistant for Acme Inc. Be concise and friendly.',
-  platforms: ['slack', 'discord'],
-}
+export const myBot = defineBot({
+  name: "my-bot",
+  prompt: "You are a helpful assistant for Acme Inc. Be concise and friendly.",
+  platforms: ["slack", "discord"],
+});
 ```
+
+Then export it from `packages/bots/src/index.ts` so the server can load it:
+
+```ts
+import { myBot } from "./my-bot";
+
+export const bots = {
+  myBot,
+};
+```
+
+Bot IDs are derived from the export names (for example `myBot` becomes `my-bot`).
+
+Bots are loaded from `@goodchat/bots` at startup, so changes require a rebuild and redeploy.
 
 Then run:
 
@@ -340,7 +353,7 @@ const notionLoader = defineContextLoader({
 Register it globally so any bot in your project can use it:
 
 ```ts
-// goodchat.config.ts
+// packages/bots/src/my-bot.ts
 import { defineConfig } from "goodchat";
 
 export const config = defineConfig({
@@ -457,7 +470,7 @@ export default defineBot({
 
 Not a developer? Run `goodchat dev` and open `http://localhost:3000`.
 
-The dashboard lets you create bots, write prompts, attach context, connect platforms via OAuth, and read conversation threads — without touching a config file. Everything you change in the dashboard syncs back to `goodchat.config.ts`.
+The dashboard lets you create bots, write prompts, attach context, connect platforms via OAuth, and read conversation threads. Bots are packaged in `@goodchat/bots`, so changes require a rebuild and redeploy.
 
 ---
 
@@ -513,7 +526,7 @@ The cloud version at [goodchat.dev](https://goodchat.dev) is the same codebase �
 
 Most bot builders make you choose between simplicity and power. `goodchat` doesn't.
 
-The config file is the product. Everything — prompts, platforms, context, tools, events — lives in one place and is readable by anyone on your team, technical or not. The complexity of multi-platform deployment, webhook routing, and streaming lives in the framework layer so you never have to see it.
+The bot package is the product. Everything — prompts, platforms, context, tools, events — lives in one place and is readable by anyone on your team, technical or not. The complexity of multi-platform deployment, webhook routing, and streaming lives in the framework layer so you never have to see it.
 
 ---
 

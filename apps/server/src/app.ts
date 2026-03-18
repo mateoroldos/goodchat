@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
 import { staticPlugin } from "@elysiajs/static";
-import { FileConfigService } from "@goodchat/core/config/config.service";
-import { watchBotConfigs } from "@goodchat/core/config/config-watcher";
+import { bots } from "@goodchat/bots";
+import { PackageConfigService } from "@goodchat/core/config/package-config.service";
 import { InMemoryMessageStoreService } from "@goodchat/core/message-store/index";
 import { Elysia } from "elysia";
 import { env } from "./env";
@@ -16,7 +16,7 @@ import { BotRegistry } from "./runtime/bot-registry";
 const isServerless =
   process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
 
-const configService = new FileConfigService();
+const configService = new PackageConfigService(bots);
 const messageStore = new InMemoryMessageStoreService();
 const botRegistry = new BotRegistry(messageStore);
 
@@ -45,25 +45,6 @@ if (botResult.isErr()) {
 }
 
 await botRegistry.applyConfigs(botResult.value);
-
-if (!isServerless) {
-  const watcherResult = await watchBotConfigs({
-    configService,
-    onReload: async (configs) => {
-      await botRegistry.applyConfigs(configs);
-    },
-    onError: (error) => {
-      console.error("Failed to reload bot configs:", error.message);
-    },
-  });
-
-  if (watcherResult.isErr()) {
-    console.error(
-      "Failed to start bot config watcher:",
-      watcherResult.error.message
-    );
-  }
-}
 
 export const app = new Elysia()
   .use(
