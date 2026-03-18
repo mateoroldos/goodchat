@@ -7,7 +7,6 @@ import type {
 import type { Platform } from "../config/models";
 
 export interface ChatGatewayConfig {
-  botId: string;
   platforms: readonly Platform[];
   userName: string;
 }
@@ -18,7 +17,7 @@ export interface ChatGatewayHandlers {
 }
 
 export interface ChatGatewayService {
-  getAdapter(name: string): Adapter | null;
+  getAdapter(name: Platform): Adapter | null;
   getPlatformIds(): readonly Platform[];
   getWebhooks(): Chat["webhooks"];
   initialize(): Promise<void>;

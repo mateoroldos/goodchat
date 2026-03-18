@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { InMemoryMessageStoreService } from "./index";
 import type { MessageEntry } from "./models";
 
+const clock = () => new Date("2024-01-01T00:00:00.000Z");
+
 const createMessageEntry = (
   overrides: Partial<MessageEntry> = {}
 ): MessageEntry => ({
@@ -13,7 +15,7 @@ const createMessageEntry = (
   responseText: "Echo: Hello",
   text: "Hello",
   threadId: "thread-1",
-  timestamp: new Date().toISOString(),
+  timestamp: clock().toISOString(),
   userId: "user-1",
   ...overrides,
 });

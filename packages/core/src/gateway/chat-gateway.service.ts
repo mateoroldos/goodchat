@@ -25,11 +25,23 @@ const isChatPlatform = (platform: Platform): platform is Platform =>
 const createStateAdapter = () =>
   process.env.REDIS_URL ? createRedisState() : createMemoryState();
 
+const ADAPTER_FACTORIES: Partial<Record<Platform, () => Adapter>> = {
+  discord: () => createDiscordAdapter() as unknown as Adapter,
+  gchat: () => createGoogleChatAdapter() as unknown as Adapter,
+  slack: () => createSlackAdapter() as unknown as Adapter,
+  teams: () => createTeamsAdapter() as unknown as Adapter,
+};
+
 const createAdapters = (platforms: readonly Platform[]) => {
   const adapters: Record<string, Adapter> = {};
   const errors: ChatAdapterInitializationError[] = [];
 
-  const safeCreate = (platform: Platform, factory: () => Adapter) => {
+  for (const platform of platforms) {
+    const factory = ADAPTER_FACTORIES[platform];
+    if (!factory) {
+      continue;
+    }
+
     try {
       adapters[platform] = factory();
     } catch (error) {
@@ -41,22 +53,6 @@ const createAdapters = (platforms: readonly Platform[]) => {
         )
       );
     }
-  };
-
-  if (platforms.includes("slack")) {
-    safeCreate("slack", () => createSlackAdapter());
-  }
-
-  if (platforms.includes("discord")) {
-    safeCreate("discord", () => createDiscordAdapter());
-  }
-
-  if (platforms.includes("teams")) {
-    safeCreate("teams", () => createTeamsAdapter());
-  }
-
-  if (platforms.includes("gchat")) {
-    safeCreate("gchat", () => createGoogleChatAdapter());
   }
 
   return { adapters, errors };
@@ -89,7 +85,7 @@ export class DefaultChatGatewayService implements ChatGatewayService {
     return this.#platformIds;
   }
 
-  getAdapter(name: string) {
+  getAdapter(name: Platform) {
     return this.#chat.getAdapter(name) ?? null;
   }
 

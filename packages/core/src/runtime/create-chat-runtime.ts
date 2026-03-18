@@ -35,7 +35,6 @@ export const createChatRuntime = (
 ) => {
   try {
     const gateway = new DefaultChatGatewayService({
-      botId: botConfig.id,
       userName: botConfig.name,
       platforms: botConfig.platforms,
     });

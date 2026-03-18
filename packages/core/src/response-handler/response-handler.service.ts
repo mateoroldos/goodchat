@@ -40,12 +40,10 @@ export class DefaultResponseHandlerService implements ResponseHandlerService {
     }
 
     const incomingMessage = createIncomingMessage(context, params.text);
-    console.log(incomingMessage);
     const botResponse = await this.#responseGenerator.generateResponse({
       botConfig: context.botConfig,
       message: incomingMessage,
     });
-    console.log(botResponse);
 
     if (botResponse.isErr()) {
       return botResponse;
