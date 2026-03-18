@@ -68,9 +68,11 @@ export const webhookChatController = (registry: BotRegistry) => {
     await runtime.gateway.initialize();
 
     const url = new URL(request.url);
+    console.log("URL", url)
     const webhookUrl =
       url.searchParams.get("webhookUrl") ??
       `${url.origin}/api/webhook/${params.botId}/discord`;
+    console.log("HOOK", webhookUrl)
 
     return discordAdapter.startGatewayListener(
       {
