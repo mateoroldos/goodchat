@@ -207,7 +207,9 @@ export const webhookChatController = (registry: BotRegistry) => {
       })
     );
 
-    runDiscordGatewayKeepalive();
+    setTimeout(() => {
+      runDiscordGatewayKeepalive();
+    }, 5000);
   }
 
   return app;
