@@ -5,6 +5,7 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     OPENAI_API_KEY: z.string().min(1, "OpenAI API key is required"),
+    WEBHOOK_PUBLIC_URL: z.string().url().optional(),
     CORS_ORIGIN: z.string().url().optional(),
     REDIS_URL: z.string().url().optional(),
     SLACK_BOT_TOKEN: z.string().optional(),

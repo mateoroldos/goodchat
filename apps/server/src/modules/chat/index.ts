@@ -1,6 +1,7 @@
 import type { DiscordAdapter } from "@chat-adapter/discord";
 import type { Platform } from "@goodchat/core/config/models";
 import { Elysia } from "elysia";
+import { env } from "../../env";
 import type { BotRegistry } from "../../runtime/bot-registry";
 
 export const webhookChatController = (registry: BotRegistry) => {
@@ -68,11 +69,12 @@ export const webhookChatController = (registry: BotRegistry) => {
     await runtime.gateway.initialize();
 
     const url = new URL(request.url);
-    console.log("URL", url)
+    console.log("URL", url);
+    const webhookBaseUrl = env.WEBHOOK_PUBLIC_URL ?? url.origin;
     const webhookUrl =
       url.searchParams.get("webhookUrl") ??
-      `${url.origin}/api/webhook/${params.botId}/discord`;
-    console.log("HOOK", webhookUrl)
+      `${webhookBaseUrl}/api/webhook/${params.botId}/discord`;
+    console.log("HOOK", webhookUrl);
 
     return discordAdapter.startGatewayListener(
       {
