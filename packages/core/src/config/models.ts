@@ -12,20 +12,15 @@ export const platformSchema = z.enum(CHAT_PLATFORMS);
 
 export type Platform = z.infer<typeof platformSchema>;
 
-export const rawBotConfigSchema = z.object({
+export const botConfigSchema = z.object({
+  id: z.string().min(1, "Bot id is required").optional(),
   name: z.string().min(1, "Bot name is required"),
   prompt: z.string().min(1, "Bot prompt is required"),
   platforms: z.array(platformSchema).min(1, "Platform is required"),
 });
 
-export type RawBotConfig = z.infer<typeof rawBotConfigSchema>;
+export type BotConfigInput = z.infer<typeof botConfigSchema>;
 
-export const botConfigsSchema = z.object({
-  bots: z.array(rawBotConfigSchema).min(1, "At least one bot is required"),
-});
-
-export type BotConfigs = z.infer<typeof botConfigsSchema>;
-
-export type BotConfig = RawBotConfig & {
+export type BotConfig = BotConfigInput & {
   id: string;
 };

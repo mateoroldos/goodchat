@@ -23,8 +23,8 @@
 
   const webhookUrl = $derived(
     typeof window !== "undefined"
-      ? `${window.location.origin}/api/webhook/${bot.id}/discord`
-      : `/api/webhook/${bot.id}/discord`
+      ? `${window.location.origin}/api/webhook/discord`
+      : "/api/webhook/discord"
   );
 
   const DISCORD_PORTAL_URL = "https://discord.com/developers/applications";
@@ -55,6 +55,7 @@
   <Card.Root class="border-[#5865f2]/30 bg-[#5865f2]/5">
     <!-- Header -->
     <button
+      type="button"
       class="flex w-full cursor-pointer items-center justify-between px-5 py-4 text-left"
       onclick={() => (expanded = !expanded)}
       aria-expanded={expanded}

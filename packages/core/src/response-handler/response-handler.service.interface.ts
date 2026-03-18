@@ -1,8 +1,8 @@
+import type { BotConfig, Platform } from "@goodchat/core/config/models";
 import type {
   BotGenerationError,
   BotInputInvalidError,
-} from "@goodchat/core/bot/errors";
-import type { BotConfig, Platform } from "@goodchat/core/config/models";
+} from "@goodchat/core/response-handler/errors";
 import type { Result } from "better-result";
 
 export interface ChatEventContext {

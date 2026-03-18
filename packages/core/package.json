@@ -7,16 +7,21 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.41",
     "@chat-adapter/discord": "^4.20.0",
     "@chat-adapter/gchat": "^4.20.0",
     "@chat-adapter/slack": "^4.20.0",
     "@chat-adapter/state-memory": "^4.20.0",
     "@chat-adapter/state-redis": "^4.20.0",
     "@chat-adapter/teams": "^4.20.0",
-    "@ai-sdk/openai": "^3.0.41",
+    "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/cron": "^1.4.1",
+    "@elysiajs/openapi": "^1.4.14",
+    "@elysiajs/static": "^1.4.7",
     "ai": "^6.0.116",
     "better-result": "^2.7.0",
     "chat": "^4.20.0",
+    "elysia": "^1.4.28",
     "zod": "catalog:"
   }
 }

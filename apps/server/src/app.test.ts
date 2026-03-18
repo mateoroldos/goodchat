@@ -11,7 +11,7 @@ describe("server app", () => {
     await expect(response.text()).resolves.toBe("OK");
   });
 
-  it("lists available bots", async () => {
+  it("returns the configured bot", async () => {
     const { app } = await createTestApp([
       {
         id: "local-echo",
@@ -19,30 +19,16 @@ describe("server app", () => {
         prompt: "Echoes incoming messages for local testing.",
         platforms: ["local"],
       },
-      {
-        id: "support-echo",
-        name: "support-echo",
-        prompt: "Helps with support queries using a friendly tone.",
-        platforms: ["local"],
-      },
     ]);
 
-    const response = await app.handle(new Request("http://localhost/bots"));
+    const response = await app.handle(new Request("http://localhost/api/bot"));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual([
-      {
-        id: "local-echo",
-        name: "local-echo",
-        prompt: "Echoes incoming messages for local testing.",
-        platforms: ["local"],
-      },
-      {
-        id: "support-echo",
-        name: "support-echo",
-        prompt: "Helps with support queries using a friendly tone.",
-        platforms: ["local"],
-      },
-    ]);
+    await expect(response.json()).resolves.toEqual({
+      id: "local-echo",
+      name: "local-echo",
+      prompt: "Echoes incoming messages for local testing.",
+      platforms: ["local"],
+    });
   });
 });

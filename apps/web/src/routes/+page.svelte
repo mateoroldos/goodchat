@@ -1,53 +1,38 @@
 <script lang="ts">
   import { createQuery } from "@tanstack/svelte-query";
   import { Bot, Globe, MessageSquare, RefreshCw } from "lucide-svelte";
-  import { botsQueries } from "$lib/api/bots/bots.queries";
+  import { botQueries } from "$lib/api/bots/bots.queries";
   import { threadsQueries } from "$lib/api/threads/threads.queries";
-  import BotCard from "$lib/components/bot-card.svelte";
+  import DiscordSetupGuide from "$lib/components/discord-setup-guide.svelte";
   import PageHeader from "$lib/components/page-header.svelte";
+  import PlatformBadge from "$lib/components/platform-badge.svelte";
   import StatCard from "$lib/components/stat-card.svelte";
   import ThreadCard from "$lib/components/thread-card.svelte";
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import { Skeleton } from "$lib/components/ui/skeleton";
 
-  const botsQuery = createQuery(() => botsQueries.list());
+  const botQuery = createQuery(() => botQueries.detail());
 
   const limit = 10;
 
   const threadsQuery = createQuery(() => threadsQueries.list({ limit }));
 
-  const platformCount = $derived(
-    new Set((botsQuery.data ?? []).flatMap((b) => b.platforms)).size
-  );
-
-  const threadCountByBot = $derived.by(() => {
-    const counts: Record<string, number> = {};
-    for (const t of threadsQuery.data ?? []) {
-      counts[t.botId] = (counts[t.botId] ?? 0) + 1;
-    }
-    return counts;
-  });
+  const platformCount = $derived(botQuery.data?.platforms.length ?? 0);
 </script>
 
 <PageHeader
-  title="Dashboard"
-  description="Overview of your bots and recent activity."
+  title="Bot Overview"
+  description="Overview of your bot configuration and recent activity."
 />
 
 <!-- Stats -->
-<div class="mb-8 grid grid-cols-3 gap-4">
-  {#if botsQuery.isPending}
-    {#each [0, 1, 2] as i (i)}
+<div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+  {#if botQuery.isPending || threadsQuery.isPending}
+    {#each [0, 1] as i (i)}
       <Skeleton class="h-[88px] rounded-lg" />
     {/each}
   {:else}
-    <StatCard
-      label="Bots"
-      value={botsQuery.data?.length ?? 0}
-      icon={Bot}
-      description="Configured bots"
-    />
     <StatCard
       label="Recent Threads"
       value={threadsQuery.data?.length ?? 0}
@@ -63,65 +48,73 @@
   {/if}
 </div>
 
-<!-- Bots -->
+<!-- Bot Summary -->
 <section class="mb-8">
   <div class="mb-3 flex items-center justify-between">
     <h2
       class="text-sm font-semibold uppercase tracking-wider text-muted-foreground"
     >
-      Your Bots
+      Bot Summary
     </h2>
   </div>
 
-  {#if botsQuery.isPending}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#each [0, 1, 2] as i (i)}
-        <Skeleton class="h-48 rounded-lg" />
-      {/each}
-    </div>
-  {:else if botsQuery.isError}
+  {#if botQuery.isPending}
+    <Skeleton class="h-32 rounded-lg" />
+  {:else if botQuery.isError}
     <Card.Root class="border-destructive/30 bg-destructive/5">
       <Card.Content class="py-8 text-center">
-        <p class="text-sm text-muted-foreground">Failed to load bots.</p>
+        <p class="text-sm text-muted-foreground">Failed to load bot.</p>
         <Button
           variant="ghost"
           size="sm"
           class="mt-2"
-          onclick={() => botsQuery.refetch()}
+          onclick={() => botQuery.refetch()}
         >
           <RefreshCw size={14} />
           Retry
         </Button>
       </Card.Content>
     </Card.Root>
-  {:else if botsQuery.data?.length === 0}
+  {:else if botQuery.data}
+    {@const bot = botQuery.data}
     <Card.Root>
-      <Card.Content class="py-12 text-center">
-        <Bot size={32} class="mx-auto mb-3 text-muted-foreground/40" />
-        <p class="text-sm text-muted-foreground">No bots configured yet.</p>
-        <p class="mt-1 text-xs text-muted-foreground/60">
-          Add a bot config to the
-          <code class="font-mono">/bots</code>
-          directory.
-        </p>
+      <Card.Content class="p-5">
+        <div class="flex items-start gap-4">
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Bot size={20} />
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+              <h2 class="text-sm font-semibold">{bot.name}</h2>
+              {#each bot.platforms as platform (platform)}
+                <PlatformBadge {platform} />
+              {/each}
+            </div>
+            <p
+              class="line-clamp-3 text-sm leading-relaxed text-muted-foreground"
+            >
+              {bot.prompt}
+            </p>
+          </div>
+        </div>
       </Card.Content>
     </Card.Root>
-  {:else}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#each botsQuery.data ?? [] as bot (bot.id)}
-        <BotCard {bot} threadCount={threadCountByBot[bot.id] ?? 0} />
-      {/each}
-    </div>
+
+    {#if bot.platforms.includes("discord")}
+      <div class="mt-6"><DiscordSetupGuide {bot} /></div>
+    {/if}
   {/if}
 </section>
 
-<!-- Recent Activity -->
+<!-- Recent Threads -->
 <section>
   <div class="mb-3 flex items-center justify-between">
     <h2
       class="text-sm font-semibold uppercase tracking-wider text-muted-foreground"
     >
-      Recent Activity
+      Recent Threads
     </h2>
     {#if !threadsQuery.isPending}
       <Button
@@ -157,7 +150,7 @@
         />
         <p class="text-sm text-muted-foreground">No conversations yet.</p>
         <p class="mt-1 text-xs text-muted-foreground/60">
-          Send a message to one of your bots to see threads here.
+          Send a message to your bot to see threads here.
         </p>
       </Card.Content>
     </Card.Root>

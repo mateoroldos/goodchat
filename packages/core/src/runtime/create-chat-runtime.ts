@@ -1,11 +1,11 @@
-import { BotInputInvalidError } from "@goodchat/core/bot/errors";
-import { DefaultResponseGeneratorService } from "@goodchat/core/bot/response-generator.service";
-import type { BotConfig, Platform } from "@goodchat/core/config/models";
-import { DefaultChatGatewayService } from "@goodchat/core/gateway/chat-gateway.service";
-import type { ChatGatewayHandlers } from "@goodchat/core/gateway/chat-gateway.service.interface";
-import type { MessageStoreService } from "@goodchat/core/message-store/message-store.service.interface";
-import { DefaultResponseHandlerService } from "@goodchat/core/response-handler/response-handler.service";
 import { Result } from "better-result";
+import type { BotConfig, Platform } from "../config/models";
+import { DefaultChatGatewayService } from "../gateway/chat-gateway.service";
+import type { ChatGatewayHandlers } from "../gateway/chat-gateway.service.interface";
+import type { MessageStoreService } from "../message-store/message-store.service.interface";
+import { BotInputInvalidError } from "../response-handler/errors";
+import { DefaultResponseGeneratorService } from "../response-handler/response-generator.service";
+import { DefaultResponseHandlerService } from "../response-handler/response-handler.service";
 import { ChatRuntimeInitializationError } from "./errors";
 
 export interface ChatRuntime {

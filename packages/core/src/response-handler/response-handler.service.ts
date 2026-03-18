@@ -1,9 +1,9 @@
-import { BotInputInvalidError } from "@goodchat/core/bot/errors";
-import type { IncomingMessage } from "@goodchat/core/bot/models";
-import type { ResponseGeneratorService } from "@goodchat/core/bot/response-generator.service.interface";
 import type { Platform } from "@goodchat/core/config/models";
 import type { MessageStoreService } from "@goodchat/core/message-store/message-store.service.interface";
 import type { MessageEntry } from "@goodchat/core/message-store/models";
+import { BotInputInvalidError } from "@goodchat/core/response-handler/errors";
+import type { IncomingMessage } from "@goodchat/core/response-handler/models";
+import type { ResponseGeneratorService } from "@goodchat/core/response-handler/response-generator.service.interface";
 import { Result } from "better-result";
 import type {
   ChatEventContext,
@@ -40,10 +40,12 @@ export class DefaultResponseHandlerService implements ResponseHandlerService {
     }
 
     const incomingMessage = createIncomingMessage(context, params.text);
+    console.log(incomingMessage);
     const botResponse = await this.#responseGenerator.generateResponse({
       botConfig: context.botConfig,
       message: incomingMessage,
     });
+    console.log(botResponse);
 
     if (botResponse.isErr()) {
       return botResponse;

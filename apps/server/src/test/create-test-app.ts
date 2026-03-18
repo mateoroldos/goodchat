@@ -1,19 +1,23 @@
 import type { BotConfig } from "@goodchat/core/config/models";
+import { createGoodbot } from "@goodchat/core/create-goodbot";
 import { InMemoryMessageStoreService } from "@goodchat/core/message-store/index";
 import { Elysia } from "elysia";
-import { botsController } from "../modules/bots";
-import { threadsController } from "../modules/threads";
-import { BotRegistry } from "../runtime/bot-registry";
 
 export const createTestApp = async (bots: BotConfig[] = []) => {
   const messageStore = new InMemoryMessageStoreService();
-  const botRegistry = new BotRegistry(messageStore);
-  await botRegistry.applyConfigs(bots);
+  const botConfig = bots[0];
+  const app = new Elysia().get("/", () => "OK");
 
-  const app = new Elysia()
-    .get("/", () => "OK")
-    .use(botsController(botRegistry, messageStore))
-    .use(threadsController(messageStore));
+  if (botConfig) {
+    const goodbot = await createGoodbot({
+      botConfig,
+      messageStore,
+      withDashboard: false,
+      isServerless: true,
+    });
 
-  return { app, messageStore, botRegistry };
+    app.use(goodbot.app);
+  }
+
+  return { app, messageStore };
 };

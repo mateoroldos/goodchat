@@ -25,7 +25,7 @@ Packages
 
 - The CLI is the launcher. `goodchat dev` starts the local control plane (Elysia server + dashboard) and loads `goodchat.config.ts`.
 - The web app talks to the server API for bot config, OAuth connections, and thread streams.
-- The server exposes a catch-all webhook endpoint (`/api/webhook/:botId/:platform`) and streams responses back to platforms.
+- The server exposes per-platform webhook endpoints (for example `/api/webhook/discord`) and streams responses back to platforms.
 - Shared packages are consumed by both apps to keep runtime, config, and env rules consistent.
 
 ## Server Runtime Layout

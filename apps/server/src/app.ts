@@ -1,24 +1,9 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { cors } from "@elysiajs/cors";
-import { openapi } from "@elysiajs/openapi";
-import { staticPlugin } from "@elysiajs/static";
-import { bots } from "@goodchat/bots";
-import { PackageConfigService } from "@goodchat/core/config/package-config.service";
-import { InMemoryMessageStoreService } from "@goodchat/core/message-store/index";
-import { Elysia } from "elysia";
+import { createGoodbot } from "@goodchat/core/create-goodbot";
 import { env } from "./env";
-import { botsController } from "./modules/bots";
-import { webhookChatController } from "./modules/chat";
-import { threadsController } from "./modules/threads";
-import { BotRegistry } from "./runtime/bot-registry";
 
 const isServerless =
   process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
-
-const configService = new PackageConfigService(bots);
-const messageStore = new InMemoryMessageStoreService();
-const botRegistry = new BotRegistry(messageStore);
 
 const sameOriginCors = (request: Request) => {
   const origin = request.headers.get("origin");
@@ -38,59 +23,26 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
-const botResult = await configService.loadBotConfigs();
-if (botResult.isErr()) {
-  console.error("Failed to load bot configs:", botResult.error.message);
-  process.exit(1);
-}
-
-await botRegistry.applyConfigs(botResult.value);
-
-export const app = new Elysia()
-  .use(
-    cors({
-      origin: env.CORS_ORIGIN ?? sameOriginCors,
-      methods: ["GET", "POST", "PATCH", "OPTIONS"],
-    })
-  )
-  .use(openapi());
-
-const api = new Elysia({ prefix: "/api" })
-  .use(botsController(botRegistry, messageStore))
-  .use(threadsController(messageStore))
-  .use(webhookChatController(botRegistry))
-  .get("/health", () => "OK");
-
-app.use(api);
-
 const webBuildPath = join(process.cwd(), "web/build");
-let webIndexHtml: Buffer | null = null;
 
-if (!isServerless) {
-  try {
-    webIndexHtml = await readFile(join(webBuildPath, "index.html"));
-  } catch (error) {
-    if (env.NODE_ENV === "production") {
-      console.error("Failed to load web build:", error);
-      process.exit(1);
-    }
-  }
-}
+const { app, api } = await createGoodbot({
+  botConfig: {
+    id: "lfg",
+    name: "lfg",
+    prompt:
+      "Every time you should respond with a super exageratted tone some detivative of LFG. Like Lifeee is foooookin goood. Or LLLLL FFFFFF GGGGGG. Those kind of things. You are addicted to the wolf of wallstreat and you allways give examples with him",
+    platforms: ["local", "discord"],
+  },
+  corsOrigin: env.CORS_ORIGIN ?? sameOriginCors,
+  withDashboard: true,
+  isServerless,
+  webBuildPath,
+  webhookEnv: {
+    CRON_SECRET: env.CRON_SECRET,
+    WEBHOOK_FORWARD_URL: env.WEBHOOK_FORWARD_URL,
+    NODE_ENV: env.NODE_ENV,
+  },
+});
 
-if (webIndexHtml) {
-  app.use(
-    staticPlugin({
-      assets: webBuildPath,
-      prefix: "/",
-      alwaysStatic: true,
-      indexHTML: true,
-    })
-  );
-
-  app.get("/*", ({ set }) => {
-    set.headers["content-type"] = "text/html; charset=utf-8";
-    return webIndexHtml;
-  });
-}
-
+export { app };
 export type App = typeof api;

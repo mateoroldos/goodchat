@@ -1,14 +1,5 @@
 import { TaggedError } from "better-result";
 
-export class BotNotFoundError extends TaggedError("BotNotFoundError")<{
-  message: string;
-  code: "BOT_NOT_FOUND";
-}>() {
-  constructor(message: string) {
-    super({ message, code: "BOT_NOT_FOUND" });
-  }
-}
-
 export class ChatRuntimeInitializationError extends TaggedError(
   "ChatRuntimeInitializationError"
 )<{
