@@ -63,7 +63,7 @@ const api = new Elysia({ prefix: "/api" })
 
 app.use(api);
 
-const webBuildPath = join(import.meta.dir, "../../web/build");
+const webBuildPath = join(process.cwd(), "web/build");
 let webIndexHtml: Buffer | null = null;
 
 if (!isServerless) {
