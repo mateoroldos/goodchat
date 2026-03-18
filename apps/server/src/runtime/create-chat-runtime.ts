@@ -49,17 +49,13 @@ export const createChatRuntime = (
     const handleIncomingMessage: NonNullable<
       ChatGatewayHandlers["onNewMention"]
     > = async (thread, message) => {
-      console.log("MENTION", thread)
       await thread.subscribe();
 
-      console.log("next")
       const platform = resolvePlatform(botConfig, thread.id);
       if (!platform) {
         await thread.post(DEFAULT_ERROR_MESSAGE);
         return;
       }
-
-      console.log(platform)
 
       const result = await responseHandler.handleMessage(
         {
