@@ -4,6 +4,7 @@
   import { page } from "$app/stores";
   import { botsQueries } from "$lib/api/bots/bots.queries";
   import BotEditSheet from "$lib/components/bot-edit-sheet.svelte";
+  import DiscordSetupGuide from "$lib/components/discord-setup-guide.svelte";
   import PageHeader from "$lib/components/page-header.svelte";
   import PlatformBadge from "$lib/components/platform-badge.svelte";
   import ThreadCard from "$lib/components/thread-card.svelte";
@@ -95,6 +96,11 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+  <!-- Discord setup guide (only when Discord platform is active) -->
+  {#if bot.platforms.includes("discord")}
+    <div class="mb-6"><DiscordSetupGuide {bot} /></div>
+  {/if}
 
   <!-- Threads section -->
   <section>
