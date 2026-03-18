@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/cron": "^1.4.1",
     "@elysiajs/openapi": "^1.4.14",
     "@elysiajs/static": "^1.4.7",
     "@goodchat/bots": "workspace:*",

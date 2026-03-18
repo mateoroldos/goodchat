@@ -17,6 +17,7 @@ export const env = createEnv({
     DISCORD_PUBLIC_KEY: z.string().optional(),
     DISCORD_APPLICATION_ID: z.string().optional(),
     DISCORD_MENTION_ROLE_IDS: z.string().optional(),
+    CRON_SECRET: z.string().optional(),
     TEAMS_APP_ID: z.string().optional(),
     TEAMS_APP_PASSWORD: z.string().optional(),
     TEAMS_APP_TENANT_ID: z.string().optional(),
