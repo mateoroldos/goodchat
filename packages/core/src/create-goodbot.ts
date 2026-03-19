@@ -41,6 +41,8 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
+const HTML_IGNORE_PATTERN = /\.html$/;
+
 export const createGoodbot = async ({
   botConfig,
   messageStore,
@@ -91,11 +93,11 @@ export const createGoodbot = async ({
           assets: webBuildPath,
           prefix: "/",
           alwaysStatic: true,
-          indexHTML: true,
+          indexHTML: false,
         })
       );
 
-      app.get("/*", ({ set }: { set: { headers: Record<string, string> } }) => {
+      app.get("/*", ({ set }) => {
         set.headers["content-type"] = "text/html; charset=utf-8";
         return webIndexHtml;
       });
