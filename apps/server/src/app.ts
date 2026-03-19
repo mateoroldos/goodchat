@@ -26,7 +26,7 @@ const sameOriginCors = (request: Request) => {
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(appDir, "../../..");
-const webBuildPath = join(rootDir, "apps/web/build");
+const webBuildPath = env.WEB_BUILD_PATH ?? join(rootDir, "apps/web/build");
 
 const { app, api } = await createGoodbot({
   botConfig: {

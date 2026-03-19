@@ -25,6 +25,7 @@ export const env = createEnv({
     GOOGLE_CHAT_USE_ADC: z.string().optional(),
     GOOGLE_CHAT_PUBSUB_TOPIC: z.string().optional(),
     GOOGLE_CHAT_IMPERSONATE_USER: z.string().optional(),
+    WEB_BUILD_PATH: z.string().optional(),
     SERVERLESS: z.enum(["true", "false"]).optional(),
     NODE_ENV: z
       .enum(["development", "production", "test"])

@@ -7,6 +7,7 @@ COPY packages ./packages
 COPY apps ./apps
 
 ENV NODE_ENV=production
+ENV WEB_BUILD_PATH=/app/web/build
 
 RUN bun install --frozen-lockfile
 RUN bun run build --filter=server --filter=web
