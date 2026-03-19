@@ -1,4 +1,5 @@
-import {  join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createGoodbot } from "@goodchat/core/create-goodbot";
 import { env } from "./env";
 
@@ -23,8 +24,9 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
-const webBuildPath = join(import.meta.dir, "../../web/build");
-console.log(webBuildPath)
+const appDir = dirname(fileURLToPath(import.meta.url));
+const rootDir = join(appDir, "../../..");
+const webBuildPath = join(rootDir, "apps/web/build");
 
 const { app, api } = await createGoodbot({
   botConfig: {
