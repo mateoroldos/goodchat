@@ -15,7 +15,7 @@ export const normalizeBotConfig = (
   exportName: string
 ): BotConfig => {
   const parsed = botConfigSchema.parse(input);
-  const id = parsed.id ?? getBotIdFromExportName(exportName);
+  const id = getBotIdFromExportName(exportName);
 
   return {
     ...parsed,

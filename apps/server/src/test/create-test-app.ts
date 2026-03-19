@@ -10,7 +10,7 @@ export const createTestApp = async (bots: BotConfig[] = []) => {
 
   if (botConfig) {
     const goodbot = await createGoodbot({
-      botConfig,
+      ...botConfig,
       messageStore,
       withDashboard: false,
       isServerless: true,
