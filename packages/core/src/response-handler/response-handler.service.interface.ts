@@ -4,6 +4,7 @@ import type {
   BotInputInvalidError,
 } from "@goodchat/core/response-handler/errors";
 import type { Result } from "better-result";
+import type { GoodbotExtensions } from "../plugins/models";
 
 export interface ChatEventContext {
   adapterName: string;
@@ -27,6 +28,7 @@ export type ResponseMessageError = BotInputInvalidError | BotGenerationError;
 export interface ResponseHandlerService {
   handleMessage(
     context: ChatEventContext,
-    params: ResponseMessageParams
+    params: ResponseMessageParams,
+    extensions?: GoodbotExtensions
   ): Promise<Result<ResponseMessageResult, ResponseMessageError>>;
 }

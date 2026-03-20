@@ -5,6 +5,7 @@ import { BotInputInvalidError } from "@goodchat/core/response-handler/errors";
 import type { IncomingMessage } from "@goodchat/core/response-handler/models";
 import type { ResponseGeneratorService } from "@goodchat/core/response-handler/response-generator.service.interface";
 import { Result } from "better-result";
+import type { GoodbotExtensions } from "../plugins/models";
 import type {
   ChatEventContext,
   ResponseHandlerService,
@@ -30,7 +31,8 @@ export class DefaultResponseHandlerService implements ResponseHandlerService {
 
   async handleMessage(
     context: ChatEventContext,
-    params: ResponseMessageParams
+    params: ResponseMessageParams,
+    extensions?: GoodbotExtensions
   ) {
     const platform = resolvePlatform(context);
     if (!platform) {
@@ -40,13 +42,33 @@ export class DefaultResponseHandlerService implements ResponseHandlerService {
     }
 
     const incomingMessage = createIncomingMessage(context, params.text);
+
+    if (extensions) {
+      for (const hook of extensions.beforeMessageHooks) {
+        await hook(context, incomingMessage);
+      }
+    }
+
     const botResponse = await this.#responseGenerator.generateResponse({
       botConfig: context.botConfig,
       message: incomingMessage,
+      runtime: extensions
+        ? {
+            mcp: extensions.mcp,
+            systemPromptExtensions: extensions.systemPrompt || undefined,
+            tools: extensions.tools,
+          }
+        : undefined,
     });
 
     if (botResponse.isErr()) {
       return botResponse;
+    }
+
+    if (extensions) {
+      for (const hook of extensions.afterMessageHooks) {
+        await hook(context, incomingMessage, botResponse.value);
+      }
     }
 
     const threadEntry = createMessageEntry(

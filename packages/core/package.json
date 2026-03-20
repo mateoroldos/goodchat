@@ -7,6 +7,7 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.30",
     "@ai-sdk/openai": "^3.0.41",
     "@chat-adapter/discord": "^4.20.0",
     "@chat-adapter/gchat": "^4.20.0",
@@ -18,6 +19,7 @@
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/openapi": "^1.4.14",
     "@elysiajs/static": "^1.4.7",
+    "@t3-oss/env-core": "^0.13.1",
     "ai": "^6.0.116",
     "better-result": "^2.7.0",
     "chat": "^4.20.0",

@@ -5,25 +5,21 @@ import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
-import type { BotConfig, Platform } from "./config/models";
+import type { BotConfig } from "./config/models";
 import { deriveBotId } from "./config/models";
+import {
+  type GoodbotOptionsInput,
+  goodbotOptionsSchema,
+} from "./create-goodbot.schema";
 import { InMemoryMessageStoreService } from "./message-store/index";
-import type { MessageStoreService } from "./message-store/message-store.service.interface";
+import { validatePluginEnv } from "./plugins/env";
+import { mergePlugins } from "./plugins/merge";
+import type { GoodbotPlugin } from "./plugins/models";
+import { isPluginDescriptor } from "./plugins/models";
 import { createChatRuntime } from "./runtime/create-chat-runtime";
 import { botController } from "./server/bot-controller";
 import { threadsController } from "./server/threads-controller";
 import { webhookChatController } from "./server/webhook-chat-controller";
-
-interface GoodbotOptions {
-  corsOrigin?: string | ((request: Request) => boolean);
-  id?: string;
-  isServerless?: boolean;
-  messageStore?: MessageStoreService;
-  name: string;
-  platforms: Platform[];
-  prompt: string;
-  withDashboard?: boolean;
-}
 
 const sameOriginCors = (request: Request) => {
   const origin = request.headers.get("origin");
@@ -43,16 +39,21 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
-export const createGoodbot = async ({
-  name,
-  prompt,
-  platforms,
-  id,
-  messageStore,
-  corsOrigin,
-  withDashboard = true,
-  isServerless = false,
-}: GoodbotOptions) => {
+export const createGoodbot = async (options: GoodbotOptionsInput) => {
+  const {
+    name,
+    prompt,
+    platforms,
+    id,
+    messageStore,
+    corsOrigin,
+    plugins = [],
+    tools,
+    hooks,
+    mcp,
+    withDashboard = true,
+    isServerless = false,
+  } = goodbotOptionsSchema.parse(options);
   const coreDir = dirname(fileURLToPath(import.meta.url));
   const rootDir = join(coreDir, "../../..");
   const webBuildPath =
@@ -65,6 +66,16 @@ export const createGoodbot = async ({
     platforms,
   };
 
+  const resolvedPlugins: GoodbotPlugin[] = plugins.map((p) => {
+    if (!isPluginDescriptor(p)) {
+      return p;
+    }
+    const env = p.env ? validatePluginEnv(p.name, p.env) : ({} as never);
+    return { name: p.name, ...p.create(env) };
+  });
+
+  const extensions = mergePlugins(resolvedPlugins, { hooks, mcp, tools });
+
   const webhookEnv = {
     CRON_SECRET: process.env.CRON_SECRET,
     WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
@@ -72,7 +83,7 @@ export const createGoodbot = async ({
   };
 
   const store = messageStore ?? new InMemoryMessageStoreService();
-  const runtimeResult = createChatRuntime(botConfig, store);
+  const runtimeResult = createChatRuntime(botConfig, store, extensions);
   if (runtimeResult.isErr()) {
     throw runtimeResult.error;
   }

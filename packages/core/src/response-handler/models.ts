@@ -1,5 +1,6 @@
+import type { Tool } from "ai";
 import { z } from "zod";
-import type { BotConfig } from "../config/models";
+import type { BotConfig, MCPServerConfig } from "../config/models";
 import { platformSchema } from "../config/models";
 
 export const incomingMessageSchema = z.object({
@@ -17,9 +18,10 @@ export interface BotResponse {
 }
 
 export interface BotRuntimeContext {
-  mcp?: unknown;
+  mcp?: MCPServerConfig[];
   modelId?: string;
-  tools?: unknown;
+  systemPromptExtensions?: string;
+  tools?: Record<string, Tool>;
 }
 
 export interface ResponseRequest {

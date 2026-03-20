@@ -1,0 +1,14 @@
+{
+  "name": "@goodchat/plugins",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@goodchat/core": "workspace:*",
+    "ai": "^6.0.116",
+    "zod": "catalog:"
+  }
+}
