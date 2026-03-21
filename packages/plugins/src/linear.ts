@@ -22,7 +22,7 @@ export const linear = definePlugin({
         {
           name: "linear",
           transport: {
-            type: "sse",
+            type: "http",
             url: "https://mcp.linear.app/mcp",
             headers: {
               Authorization: authorization,
