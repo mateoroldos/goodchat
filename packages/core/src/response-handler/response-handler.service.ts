@@ -4,6 +4,7 @@ import type { MessageEntry } from "@goodchat/core/message-store/models";
 import { BotInputInvalidError } from "@goodchat/core/response-handler/errors";
 import type { IncomingMessage } from "@goodchat/core/response-handler/models";
 import type { ResponseGeneratorService } from "@goodchat/core/response-handler/response-generator.service.interface";
+import { readUIMessageStream } from "ai";
 import { Result } from "better-result";
 import type { GoodbotExtensions } from "../plugins/models";
 import type {
@@ -83,6 +84,78 @@ export class DefaultResponseHandlerService implements ResponseHandlerService {
       text: botResponse.value.text,
       threadEntryId: threadEntry.id,
     });
+  }
+
+  async handleMessageStream(
+    context: ChatEventContext,
+    params: ResponseMessageParams,
+    extensions?: GoodbotExtensions
+  ) {
+    const platform = resolvePlatform(context);
+    if (!platform) {
+      return Result.err(
+        new BotInputInvalidError("Unsupported platform for chat message")
+      );
+    }
+
+    const incomingMessage = createIncomingMessage(context, params.text);
+
+    if (extensions) {
+      for (const hook of extensions.beforeMessageHooks) {
+        await hook(context, incomingMessage);
+      }
+    }
+
+    const botResponse = await this.#responseGenerator.streamResponse({
+      botConfig: context.botConfig,
+      message: incomingMessage,
+      runtime: extensions
+        ? {
+            mcp: extensions.mcp,
+            systemPromptExtensions: extensions.systemPrompt || undefined,
+            tools: extensions.tools,
+          }
+        : undefined,
+    });
+
+    if (botResponse.isErr()) {
+      return botResponse;
+    }
+
+    const [clientStream, storeStream] = botResponse.value.uiStream.tee();
+
+    const storeResponse = async () => {
+      let responseText = "";
+      for await (const uiMessage of readUIMessageStream({
+        stream: storeStream,
+      })) {
+        if (uiMessage.role !== "assistant") {
+          continue;
+        }
+
+        responseText = uiMessage.parts
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join("");
+      }
+
+      if (extensions) {
+        for (const hook of extensions.afterMessageHooks) {
+          await hook(context, incomingMessage, { text: responseText });
+        }
+      }
+
+      const threadEntry = createMessageEntry(
+        context,
+        incomingMessage,
+        responseText
+      );
+      this.#messageStore.appendThread(threadEntry);
+    };
+
+    storeResponse().catch(() => undefined);
+
+    return Result.ok({ uiStream: clientStream });
   }
 }
 

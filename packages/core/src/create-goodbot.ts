@@ -18,6 +18,7 @@ import type { GoodbotPlugin } from "./plugins/models";
 import { isPluginDescriptor } from "./plugins/models";
 import { createChatRuntime } from "./runtime/create-chat-runtime";
 import { botController } from "./server/bot-controller";
+import { localChatController } from "./server/local-chat-controller";
 import { threadsController } from "./server/threads-controller";
 import { webhookChatController } from "./server/webhook-chat-controller";
 
@@ -112,6 +113,16 @@ export const createGoodbot = async (options: GoodbotOptionsInput) => {
       })
     )
     .get("/health", () => "OK");
+
+  if (botConfig.platforms.includes("local")) {
+    api.use(
+      localChatController({
+        botConfig,
+        extensions,
+        responseHandler: chatRuntime.responseHandler,
+      })
+    );
+  }
 
   app.use(api);
 

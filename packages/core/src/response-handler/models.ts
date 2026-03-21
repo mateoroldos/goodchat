@@ -1,4 +1,4 @@
-import type { Tool } from "ai";
+import type { Tool, UIMessageChunk } from "ai";
 import { z } from "zod";
 import type { BotConfig, MCPServerConfig } from "../config/models";
 import { platformSchema } from "../config/models";
@@ -15,6 +15,10 @@ export type IncomingMessage = z.infer<typeof incomingMessageSchema>;
 
 export interface BotResponse {
   text: string;
+}
+
+export interface BotResponseStream {
+  uiStream: ReadableStream<UIMessageChunk>;
 }
 
 export interface BotRuntimeContext {

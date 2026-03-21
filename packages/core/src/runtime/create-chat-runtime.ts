@@ -102,7 +102,7 @@ const createThreadMessageHandler = (params: {
     );
 
     if (result.isErr()) {
-      console.error("Error while handling response:", result.error)
+      console.error("Error while handling response:", result.error);
       if (result.error instanceof BotInputInvalidError) {
         await postErrorMessage(thread);
         return;

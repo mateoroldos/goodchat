@@ -2,7 +2,7 @@ import { createMCPClient } from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
 import { openai } from "@ai-sdk/openai";
 import type { Tool } from "ai";
-import { generateText, stepCountIs } from "ai";
+import { generateText, stepCountIs, streamText } from "ai";
 import { Result } from "better-result";
 import type { MCPServerConfig } from "../config/models";
 import { BotGenerationError, BotInputInvalidError } from "./errors";
@@ -80,6 +80,77 @@ export class DefaultResponseGeneratorService
     });
 
     return generationResult.map(({ text }) => ({ text }));
+  }
+
+  async streamResponse(request: ResponseRequest) {
+    const parsed = incomingMessageSchema.safeParse(request.message);
+
+    if (!parsed.success) {
+      return Result.err(
+        new BotInputInvalidError(
+          "Invalid bot message input",
+          parsed.error.issues.map((issue) => issue.message)
+        )
+      );
+    }
+
+    const baseSystemPrompt = `${request.botConfig.prompt}\n\nBot name: ${request.botConfig.name}`;
+    const systemPromptExtensions = request.runtime?.systemPromptExtensions;
+    const systemPrompt = systemPromptExtensions
+      ? `${baseSystemPrompt}\n\n${systemPromptExtensions}`
+      : baseSystemPrompt;
+
+    const modelId = request.runtime?.modelId ?? DEFAULT_MODEL_ID;
+    const toolsResult = await Result.tryPromise({
+      try: () => createRuntimeTools(request.runtime),
+      catch: (cause) =>
+        new BotGenerationError(
+          "Failed to initialize tools",
+          [cause instanceof Error ? cause.message : "Unknown tool error"],
+          cause
+        ),
+    });
+
+    if (toolsResult.isErr()) {
+      return toolsResult;
+    }
+
+    const { tools, closeMcpClients } = toolsResult.value;
+    const hasTools = Object.keys(tools).length > 0;
+
+    const streamResult = await Result.tryPromise({
+      try: async () =>
+        await Promise.resolve(
+          streamText({
+            model: openai(modelId),
+            system: systemPrompt,
+            prompt: request.message.text,
+            ...(hasTools && {
+              tools,
+              stopWhen: stepCountIs(TOOL_USE_MAX_STEPS),
+            }),
+            onFinish: async () => {
+              await closeMcpClients();
+            },
+            onError: async () => {
+              await closeMcpClients();
+            },
+          })
+        ),
+      catch: (cause: unknown) => {
+        const errorMessage =
+          cause instanceof Error ? cause.message : "Unknown AI error";
+        return new BotGenerationError(
+          "Failed to generate response",
+          [errorMessage],
+          cause
+        );
+      },
+    });
+
+    return streamResult.map((result) => ({
+      uiStream: result.toUIMessageStream(),
+    }));
   }
 }
 

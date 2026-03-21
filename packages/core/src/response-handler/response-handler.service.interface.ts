@@ -3,6 +3,7 @@ import type {
   BotGenerationError,
   BotInputInvalidError,
 } from "@goodchat/core/response-handler/errors";
+import type { UIMessageChunk } from "ai";
 import type { Result } from "better-result";
 import type { GoodbotExtensions } from "../plugins/models";
 
@@ -23,6 +24,10 @@ export interface ResponseMessageResult {
   threadEntryId: string;
 }
 
+export interface ResponseMessageStreamResult {
+  uiStream: ReadableStream<UIMessageChunk>;
+}
+
 export type ResponseMessageError = BotInputInvalidError | BotGenerationError;
 
 export interface ResponseHandlerService {
@@ -31,4 +36,9 @@ export interface ResponseHandlerService {
     params: ResponseMessageParams,
     extensions?: GoodbotExtensions
   ): Promise<Result<ResponseMessageResult, ResponseMessageError>>;
+  handleMessageStream(
+    context: ChatEventContext,
+    params: ResponseMessageParams,
+    extensions?: GoodbotExtensions
+  ): Promise<Result<ResponseMessageStreamResult, ResponseMessageError>>;
 }
