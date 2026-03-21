@@ -103,8 +103,10 @@ const createRuntimeTools = async (
       transport: createMcpTransport(server),
       name: `goodchat:${server.name}`,
     });
+    console.log("MCP Server Initialized:", server)
     mcpClients.push(client);
     const tools = (await client.tools()) as Record<string, Tool>;
+    console.log("MCP Server Tools:", tools)
     for (const [name, tool] of Object.entries(tools)) {
       if (!(name in mcpTools)) {
         mcpTools[name] = tool;
