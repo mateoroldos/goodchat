@@ -1,6 +1,10 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/biome/core", "ultracite/biome/svelte"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/svelte",
+    "ultracite/biome/astro"
+  ],
   "files": {
     "includes": [
       "!.agents",
@@ -26,6 +30,18 @@
           // shadcn-svelte uses namespace imports for compound components (Card, Sheet, etc.)
           "performance": {
             "noNamespaceImport": "off"
+          },
+          // nursery/useSortedClasses auto-fix is not supported in Astro/Svelte/Vue templates
+          "nursery": {
+            "useSortedClasses": "off"
+          }
+        }
+      },
+      "assist": {
+        "actions": {
+          "source": {
+            // useSortedAttributes auto-fix is not supported in Astro/Svelte/Vue templates
+            "useSortedAttributes": "off"
           }
         }
       }

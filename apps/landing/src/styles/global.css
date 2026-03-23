@@ -1,0 +1,134 @@
+@import "@goodchat/styles/index.css";
+
+/* ── Landing-specific tokens ── */
+:root {
+  --surface-1: oklch(0.18 0.024 54);
+  --surface-2: oklch(0.215 0.026 56);
+  --surface-3: oklch(0.25 0.028 56);
+  --code-bg: oklch(0.1 0.018 54);
+  --gradient-start: oklch(0.84 0.175 74);
+  --gradient-end: oklch(0.68 0.19 50);
+  --glow-primary: oklch(0.78 0.185 70 / 22%);
+  --glow-secondary: oklch(0.72 0.185 52 / 14%);
+}
+
+/* ── Extend @theme with landing-specific color tokens ── */
+@theme inline {
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+}
+
+/* ── Base overrides for landing ── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* ─── Gradient text ─────────────────────────────────────────── */
+.gradient-text {
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(
+    135deg,
+    var(--gradient-start),
+    var(--gradient-end)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* ─── Glow effects ──────────────────────────────────────────── */
+.glow-primary {
+  box-shadow:
+    0 0 40px var(--glow-primary),
+    0 0 80px var(--glow-secondary);
+}
+
+.glow-border {
+  border: 1px solid oklch(0.78 0.185 70 / 30%);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 5%);
+}
+
+/* ─── Code blocks ───────────────────────────────────────────── */
+.code-block {
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ─── Syntax highlight ──────────────────────────────────────── */
+.token-keyword {
+  color: oklch(0.78 0.185 70);
+}
+.token-string {
+  color: oklch(0.75 0.14 140);
+}
+.token-comment {
+  color: oklch(0.52 0.04 68);
+}
+.token-function {
+  color: oklch(0.72 0.16 52);
+}
+.token-property {
+  color: oklch(0.82 0.12 78);
+}
+.token-value {
+  color: oklch(0.8 0.14 30);
+}
+.token-punctuation {
+  color: oklch(0.58 0.04 62);
+}
+
+/* ─── Chat bubbles ──────────────────────────────────────────── */
+.chat-bubble {
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+.chat-bubble-user {
+  background: oklch(0.22 0.06 58);
+  border-color: oklch(0.78 0.185 70 / 20%);
+  border-radius: 1rem 1rem 0.25rem 1rem;
+}
+
+.chat-bubble-bot {
+  background: var(--surface-1);
+  border-color: var(--border);
+  border-radius: 1rem 1rem 1rem 0.25rem;
+}
+
+/* ─── Feature card hover ────────────────────────────────────── */
+.feature-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.feature-card:hover {
+  border-color: oklch(0.78 0.185 70 / 40%);
+  box-shadow: 0 8px 32px oklch(0.78 0.185 70 / 10%);
+  transform: translateY(-2px);
+}
+
+/* ─── Noise overlay ─────────────────────────────────────────── */
+.noise-overlay::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  border-radius: inherit;
+}

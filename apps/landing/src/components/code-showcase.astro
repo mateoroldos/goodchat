@@ -1,0 +1,155 @@
+---
+---
+
+<section class="relative px-6 py-24">
+  <div class="mx-auto max-w-6xl">
+    <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center">
+      <!-- Left: explanation -->
+      <div>
+        <p
+          class="mb-3 text-sm font-medium uppercase tracking-widest text-primary"
+        >
+          Simple by design
+        </p>
+        <h2
+          class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+        >
+          From zero to live bot<br>in under 5 minutes
+        </h2>
+        <p class="mt-5 text-muted-foreground leading-relaxed">
+          No boilerplate. No adapter configuration. No webhook setup. Define
+          your bot in a single file — goodchat takes care of the rest.
+        </p>
+
+        <ul class="mt-8 space-y-4">
+          {[
+            { step: "01", label: "Define your bot", detail: "Name, prompt, and platforms — that's it." },
+            { step: "02", label: "Add plugins or tools", detail: "Extend capabilities with one-line integrations." },
+            { step: "03", label: "Run goodchat dev", detail: "Connect platforms via the dashboard with one click." },
+          ].map(({ step, label, detail }) => (
+            <li class="flex items-start gap-4">
+              <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-mono font-bold text-primary">{step}</span>
+              <div>
+                <p class="text-sm font-semibold text-foreground">{label}</p>
+                <p class="text-sm text-muted-foreground">{detail}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div class="mt-8 flex items-center gap-4">
+          <a
+            href="#get-started-section"
+            class="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            Start building
+          </a>
+          <a
+            href="https://github.com/emestudio/goodchat"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Read the docs →
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: code tabs -->
+      <div class="space-y-3">
+        <!-- Tab 1: Minimal bot -->
+        <div
+          class="rounded-2xl border border-white/6 bg-surface-1 overflow-hidden"
+        >
+          <div
+            class="flex items-center gap-2 border-b border-white/5 px-4 py-3"
+          >
+            <div class="h-2.5 w-2.5 rounded-full bg-red-500/60"></div>
+            <div class="h-2.5 w-2.5 rounded-full bg-yellow-500/60"></div>
+            <div class="h-2.5 w-2.5 rounded-full bg-green-500/60"></div>
+            <span class="ml-3 text-xs text-muted-foreground font-mono"
+              >the simplest bot</span
+            >
+          </div>
+          <div
+            class="code-block rounded-none border-none text-xs leading-relaxed"
+          >
+            <pre
+            ><code><span class="token-keyword">await</span> <span class="token-function">createGoodbot</span><span class="token-punctuation">(&#123;</span>
+  <span class="token-property">name</span><span class="token-punctuation">:</span> <span class="token-string">"my-bot"</span><span class="token-punctuation">,</span>
+  <span class="token-property">prompt</span><span class="token-punctuation">:</span> <span class="token-string">"You are a helpful assistant."</span><span class="token-punctuation">,</span>
+  <span class="token-property">platforms</span><span class="token-punctuation">:</span> <span class="token-punctuation">[</span><span class="token-string">"slack"</span><span class="token-punctuation">,</span> <span class="token-string">"discord"</span><span class="token-punctuation">]</span><span class="token-punctuation">,</span>
+<span class="token-punctuation">&#125;)</span><span class="token-punctuation">;</span></code></pre>
+          </div>
+        </div>
+
+        <!-- Tab 2: With tools -->
+        <div
+          class="rounded-2xl border border-white/6 bg-surface-1 overflow-hidden"
+        >
+          <div
+            class="flex items-center gap-2 border-b border-white/5 px-4 py-3"
+          >
+            <div class="h-2.5 w-2.5 rounded-full bg-red-500/60"></div>
+            <div class="h-2.5 w-2.5 rounded-full bg-yellow-500/60"></div>
+            <div class="h-2.5 w-2.5 rounded-full bg-green-500/60"></div>
+            <span class="ml-3 text-xs text-muted-foreground font-mono"
+              >with custom tools</span
+            >
+          </div>
+          <div
+            class="code-block rounded-none border-none text-xs leading-relaxed"
+          >
+            <pre
+            ><code><span class="token-keyword">await</span> <span class="token-function">createGoodbot</span><span class="token-punctuation">(&#123;</span>
+  <span class="token-property">name</span><span class="token-punctuation">:</span> <span class="token-string">"order-bot"</span><span class="token-punctuation">,</span>
+  <span class="token-property">prompt</span><span class="token-punctuation">:</span> <span class="token-string">"You can look up order statuses."</span><span class="token-punctuation">,</span>
+  <span class="token-property">platforms</span><span class="token-punctuation">:</span> <span class="token-punctuation">[</span><span class="token-string">"slack"</span><span class="token-punctuation">]</span><span class="token-punctuation">,</span>
+  <span class="token-property">tools</span><span class="token-punctuation">:</span> <span class="token-punctuation">&#123;</span>
+    <span class="token-property">getOrderStatus</span><span class="token-punctuation">:</span> <span class="token-function">tool</span><span class="token-punctuation">(&#123;</span>
+      <span class="token-property">description</span><span class="token-punctuation">:</span> <span class="token-string">"Look up an order by ID"</span><span class="token-punctuation">,</span>
+      <span class="token-property">parameters</span><span class="token-punctuation">:</span> z<span class="token-punctuation">.</span><span class="token-function">object</span><span class="token-punctuation">(&#123;</span> <span class="token-property">orderId</span><span class="token-punctuation">:</span> z<span class="token-punctuation">.</span><span class="token-function">string</span><span class="token-punctuation">()</span> <span class="token-punctuation">&#125;)</span><span class="token-punctuation">,</span>
+      <span class="token-property">execute</span><span class="token-punctuation">:</span> <span class="token-keyword">async</span> <span class="token-punctuation">(&#123;</span> <span class="token-value">orderId</span> <span class="token-punctuation">&#125;)</span> <span class="token-punctuation">=&gt;</span>
+        <span class="token-keyword">await</span> db<span class="token-punctuation">.</span>orders<span class="token-punctuation">.</span><span class="token-function">find</span><span class="token-punctuation">(</span><span class="token-value">orderId</span><span class="token-punctuation">)</span><span class="token-punctuation">,</span>
+    <span class="token-punctuation">&#125;)</span><span class="token-punctuation">,</span>
+  <span class="token-punctuation">&#125;</span><span class="token-punctuation">,</span>
+<span class="token-punctuation">&#125;)</span><span class="token-punctuation">;</span></code></pre>
+          </div>
+        </div>
+
+        <!-- Tab 3: With escalation -->
+        <div
+          class="rounded-2xl border border-white/6 bg-surface-1 overflow-hidden"
+        >
+          <div
+            class="flex items-center gap-2 border-b border-white/5 px-4 py-3"
+          >
+            <div class="h-2.5 w-2.5 rounded-full bg-red-500/60"></div>
+            <div class="h-2.5 w-2.5 rounded-full bg-yellow-500/60"></div>
+            <div class="h-2.5 w-2.5 rounded-full bg-green-500/60"></div>
+            <span class="ml-3 text-xs text-muted-foreground font-mono"
+              >with human escalation</span
+            >
+          </div>
+          <div
+            class="code-block rounded-none border-none text-xs leading-relaxed"
+          >
+            <pre
+            ><code><span class="token-keyword">await</span> <span class="token-function">createGoodbot</span><span class="token-punctuation">(&#123;</span>
+  <span class="token-property">name</span><span class="token-punctuation">:</span> <span class="token-string">"support-bot"</span><span class="token-punctuation">,</span>
+  <span class="token-property">prompt</span><span class="token-punctuation">:</span> <span class="token-string">"Answer product questions."</span><span class="token-punctuation">,</span>
+  <span class="token-property">platforms</span><span class="token-punctuation">:</span> <span class="token-punctuation">[</span><span class="token-string">"slack"</span><span class="token-punctuation">]</span><span class="token-punctuation">,</span>
+  <span class="token-property">escalation</span><span class="token-punctuation">:</span> <span class="token-punctuation">&#123;</span>
+    <span class="token-property">trigger</span><span class="token-punctuation">:</span> <span class="token-string">"frustrated users or billing issues"</span><span class="token-punctuation">,</span>
+    <span class="token-property">action</span><span class="token-punctuation">:</span> <span class="token-punctuation">&#123;</span>
+      <span class="token-property">type</span><span class="token-punctuation">:</span> <span class="token-string">"tag"</span><span class="token-punctuation">,</span>
+      <span class="token-property">user</span><span class="token-punctuation">:</span> <span class="token-string">"@support-team"</span><span class="token-punctuation">,</span>
+    <span class="token-punctuation">&#125;</span><span class="token-punctuation">,</span>
+  <span class="token-punctuation">&#125;</span><span class="token-punctuation">,</span>
+<span class="token-punctuation">&#125;)</span><span class="token-punctuation">;</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

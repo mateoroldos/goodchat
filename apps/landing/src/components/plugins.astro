@@ -1,0 +1,141 @@
+---
+const plugins = [
+  {
+    name: "GitHub",
+    package: "@goodchat/plugin-github",
+    description:
+      "List open PRs, check issue statuses, review comments — all from chat.",
+    color: "oklch(0.75 0.05 70)",
+    bg: "oklch(0.75 0.05 70 / 8%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.483 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12c0-5.523-4.477-10-10-10Z"/></svg>`,
+    tools: ["listOpenPRs", "getIssue", "createComment", "reviewPR"],
+  },
+  {
+    name: "Linear",
+    package: "@goodchat/plugin-linear",
+    description:
+      "Check sprint progress, create tickets, and update issue statuses in seconds.",
+    color: "oklch(0.78 0.185 70)",
+    bg: "oklch(0.78 0.185 70 / 8%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.269 14.389 9.61 21.73a11.07 11.07 0 0 1-7.341-7.341zm-.27-2.657L11.27 21.999C6.3 21.562 2.438 17.7 2 12.73zm9.49 9.268L2.27 11.79l-.002-.14c.002-5.434 3.946-9.953 9.109-10.808L21.73 11.19c-.855 5.163-5.374 9.107-10.81 9.11h-.43zM21.999 11.27 12.729 2c5.226.432 9.337 4.802 9.269 10.088v.182h.001z"/></svg>`,
+    tools: ["getIssues", "createIssue", "updateStatus", "getSprintProgress"],
+  },
+  {
+    name: "Stripe",
+    package: "@goodchat/plugin-stripe",
+    description:
+      "Look up subscriptions, check MRR, and handle billing questions from Slack.",
+    color: "oklch(0.65 0.2 250)",
+    bg: "oklch(0.65 0.2 250 / 8%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/></svg>`,
+    tools: ["getSubscription", "lookupCustomer", "getMRR", "checkPayment"],
+  },
+  {
+    name: "Notion",
+    package: "@goodchat/plugin-notion",
+    description:
+      "Query databases, search pages, and keep your team aligned with Notion context.",
+    color: "oklch(0.75 0.03 70)",
+    bg: "oklch(0.75 0.03 70 / 8%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/></svg>`,
+    tools: ["searchPages", "queryDatabase", "getPage", "createPage"],
+  },
+  {
+    name: "Jira",
+    package: "@goodchat/plugin-jira",
+    description:
+      "Sprint boards, ticket status, and blockers — surfaced right where your team talks.",
+    color: "oklch(0.60 0.18 230)",
+    bg: "oklch(0.60 0.18 230 / 8%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.004-1.005zm5.723-5.756H5.757a5.215 5.215 0 0 0 5.214 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.762a1.003 1.003 0 0 0-1.021-1.005zM23.013 0H11.507a5.215 5.215 0 0 0 5.214 5.215h2.129v2.057A5.215 5.215 0 0 0 24.018 12.49V1.005A1.005 1.005 0 0 0 23.013 0z"/></svg>`,
+    tools: ["getTicket", "listSprint", "createIssue", "getBlockers"],
+  },
+  {
+    name: "Slack",
+    package: "@goodchat/plugin-slack",
+    description:
+      "Post announcements, search message history, and react to events programmatically.",
+    color: "oklch(0.60 0.2 10)",
+    bg: "oklch(0.60 0.2 10 / 8%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zm2.521-10.123a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>`,
+    tools: ["postMessage", "searchHistory", "getUserInfo", "setStatus"],
+  },
+];
+---
+
+<section id="plugins" class="relative px-6 py-24">
+  <!-- Subtle divider line -->
+  <div
+    class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
+  ></div>
+
+  <div class="mx-auto max-w-6xl">
+    <!-- Section header -->
+    <div class="mb-16 text-center">
+      <p
+        class="mb-3 text-sm font-medium uppercase tracking-widest text-primary"
+      >
+        Ecosystem
+      </p>
+      <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        Plugins that work on day one
+      </h2>
+      <p class="mt-4 max-w-xl mx-auto text-muted-foreground">
+        Install a plugin and your bot instantly speaks GitHub, Linear, or Stripe
+        — no wiring needed.
+      </p>
+    </div>
+
+    <!-- Plugin grid -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {plugins.map((plugin) => (
+          <div class="feature-card group rounded-2xl border border-white/6 bg-surface-1 p-5">
+            <div class="mb-4 flex items-start justify-between">
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={`background: ${plugin.bg}; color: ${plugin.color};`}
+                set:html={plugin.icon}
+              />
+              <code class="rounded-lg border border-white/5 bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground font-mono">
+                {plugin.package}
+              </code>
+            </div>
+            <h3 class="mb-1.5 text-sm font-semibold text-foreground">{plugin.name}</h3>
+            <p class="mb-4 text-xs leading-relaxed text-muted-foreground">{plugin.description}</p>
+            <div class="flex flex-wrap gap-1.5">
+              {plugin.tools.map((tool) => (
+                <span
+                  class="rounded-full border border-white/5 bg-surface-2 px-2 py-0.5 text-[10px] font-mono text-muted-foreground"
+                >
+                  {tool}()
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+    </div>
+
+    <!-- Write your own -->
+    <div
+      class="mt-8 rounded-2xl border border-dashed border-white/10 bg-surface-1/50 p-8 text-center"
+    >
+      <p class="text-sm font-medium text-foreground">Need something custom?</p>
+      <p class="mt-1 text-sm text-muted-foreground">
+        Plugins are just functions. Write your own with
+        <code
+          class="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-primary"
+          >definePlugin()</code
+        >
+        and share it with the community.
+      </p>
+      <a
+        href="https://github.com/emestudio/goodchat"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary transition-opacity hover:opacity-80"
+      >
+        Write a plugin →
+      </a>
+    </div>
+  </div>
+</section>
