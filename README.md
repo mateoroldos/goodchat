@@ -4,28 +4,29 @@
 
 ## How to use
 
-Create a bot config in `apps/server/src/app.ts` and pass it into `createGoodbot`:
+Create your bot in `apps/server/src/app.ts` with `createGoodbot`:
 
 ```ts
-import type { BotConfigInput } from "@goodchat/core/config/models";
-import { normalizeBotConfig } from "@goodchat/core/config/utils";
 import { createGoodbot } from "@goodchat/core/create-goodbot";
+import { linear } from "@goodchat/plugins/linear";
 
-const botInput: BotConfigInput = {
-  name: "my-bot",
-  prompt: "You are a helpful assistant for Acme Inc. Be concise and friendly.",
-  platforms: ["slack", "discord"],
-};
-
-const botConfig = normalizeBotConfig(botInput, "myBot");
+const isServerless =
+  process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
 
 const { app } = await createGoodbot({
-  botConfig,
+  name: "Linear Assistant",
+  prompt:
+    "You are a Linear assistant. Respond briefly with what I have on Linear.",
+  platforms: ["local", "discord"],
+  plugins: [linear],
   withDashboard: true,
+  isServerless,
 });
+
+export { app };
 ```
 
-Bot IDs are derived from the export name you pass into `normalizeBotConfig` (for example `myBot` becomes `my-bot`).
+Bot IDs are derived from the name (for example `Linear Assistant` becomes `Linear Assistant`).
 
 Goodchat runs one bot per server. Changes require a rebuild and redeploy.
 
@@ -46,11 +47,11 @@ Your bot is live. Connect it to Slack or Discord in the dashboard at `http://loc
 Write your bot logic once. `goodchat` handles the adapter layer, webhook routing, and message formatting for each platform automatically.
 
 ```ts
-export default {
+await createGoodbot({
   name: "support-bot",
   prompt: "You are a support assistant. Answer questions about our product.",
   platforms: ["slack", "discord", "teams", "google-chat"],
-};
+});
 ```
 
 Deploy once. Works everywhere.
@@ -60,7 +61,7 @@ Deploy once. Works everywhere.
 Attach files, URLs, or folders as context. Your bot will use them to answer questions.
 
 ```ts
-export default {
+await createGoodbot({
   name: "docs-bot",
   prompt:
     "You are a documentation assistant. Answer only based on the provided docs.",
@@ -70,7 +71,7 @@ export default {
     { type: "file", src: "./docs/faq.pdf" },
     { type: "folder", src: "./knowledge-base" },
   ],
-};
+});
 ```
 
 Context is chunked, embedded, and retrieved automatically. It re-indexes whenever your sources change.
@@ -80,12 +81,12 @@ Context is chunked, embedded, and retrieved automatically. It re-indexes wheneve
 Responses stream in real time across every connected platform. Users see the bot typing progressively — no waiting for a complete reply.
 
 ```ts
-export default {
+await createGoodbot({
   name: "my-bot",
   prompt: "...",
   platforms: ["slack"],
   streaming: true, // default
-};
+});
 ```
 
 ### Tools — let your bot take actions
@@ -96,7 +97,7 @@ Give your bot the ability to look things up, check statuses, or call your APIs i
 import { tool } from "goodchat";
 import { z } from "zod";
 
-export default {
+await createGoodbot({
   name: "support-bot",
   prompt: "You are a support assistant. You can look up order statuses.",
   platforms: ["slack"],
@@ -110,7 +111,7 @@ export default {
       },
     }),
   },
-};
+});
 ```
 
 ### Escalation — know when to hand off
@@ -118,7 +119,7 @@ export default {
 Define when the bot should stop and bring a human in.
 
 ```ts
-export default {
+await createGoodbot({
   name: "support-bot",
   prompt: "...",
   platforms: ["slack"],
@@ -127,7 +128,7 @@ export default {
       "when the user is frustrated or the question is outside your knowledge",
     action: { type: "tag", user: "@support-team" },
   },
-};
+});
 ```
 
 The bot will gracefully hand off the conversation instead of guessing.
@@ -137,7 +138,7 @@ The bot will gracefully hand off the conversation instead of guessing.
 Go beyond responding to messages. React to reactions, new members joining, threads being created, and more.
 
 ```ts
-export default {
+await createGoodbot({
   name: "community-bot",
   prompt: "...",
   platforms: ["discord"],
@@ -153,7 +154,7 @@ export default {
       }
     },
   },
-};
+});
 ```
 
 ### Plugins — extend with one line
@@ -167,10 +168,10 @@ npm install @goodchat/plugin-stripe
 ```
 
 ```ts
-import { github } from "@goodchat/plugin-github";
-import { linear } from "@goodchat/plugin-linear";
+import { github } from "@goodchat/plugins/github";
+import { linear } from "@goodchat/plugins/linear";
 
-export default {
+await createGoodbot({
   name: "dev-bot",
   prompt: "You are an assistant for our engineering team.",
   platforms: ["slack"],
@@ -178,7 +179,7 @@ export default {
     github({ repo: "acme/backend", token: process.env.GITHUB_TOKEN }),
     linear({ team: "ENG", token: process.env.LINEAR_TOKEN }),
   ],
-};
+});
 ```
 
 Now your bot can look up open PRs, check issue statuses, create Linear tickets — without writing a single tool. The plugins register their tools, context, and event handlers automatically.
@@ -205,36 +206,36 @@ plugins: [
 A plugin is just a function that returns a `BotPlugin` object. It can contribute tools, context sources, event handlers, and prompt fragments — all of which get merged into the bot at runtime.
 
 ```ts
-import { definePlugin, tool } from 'goodchat'
-import { z } from 'zodgoodchat
+import { definePlugin, tool } from "goodchat";
+import { z } from "zod";
 
 export const myPlugin = definePlugin((options) => ({
   // Injected into the system prompt automatically
-  promptFragment: `You can look up inventory levels when asked.`,
+  promptFragment: "You can look up inventory levels when asked.",
 
   // Tools registered on the bot
   tools: {
     getInventory: tool({
-      description: 'Get current inventory for a product SKU',
+      description: "Get current inventory for a product SKU",
       parameters: z.object({ sku: z.string() }),
       execute: async ({ sku }) => {
-        return await myApi.inventory.get(sku)
+        return await myApi.inventory.get(sku);
       },
     }),
   },
 
   // Context sources added to the RAG pipeline
-  context: [
-    { type: 'url', src: options.docsUrl },
-  ],
+  context: [{ type: "url", src: options.docsUrl }],
 
   // Event handlers merged with the bot's own
   events: {
     onMemberJoin: async ({ member, thread }) => {
-      await thread.post(`Hey ${member.name}, ask me about stock levels anytime.`)
+      await thread.post(
+        `Hey ${member.name}, ask me about stock levels anytime.`,
+      );
     },
   },
-}))
+}));
 ```
 
 Use it like any other plugin:
@@ -242,12 +243,12 @@ Use it like any other plugin:
 ```ts
 import { myPlugin } from "./plugins/my-plugin";
 
-export default {
+await createGoodbot({
   name: "ops-bot",
   prompt: "...",
   platforms: ["slack"],
   plugins: [myPlugin({ docsUrl: "https://internal.acme.com/inventory" })],
-};
+});
 ```
 
 ### Writing your own adapter
@@ -255,25 +256,25 @@ export default {
 Need a platform not yet supported? Adapters wrap the Vercel Chat SDK and teach `goodchat` how to speak a new platform's language.
 
 ```ts
-import { defineAdapter } from 'goodchat'
+import { defineAdapter } from "goodchat";
 
 export const myPlatform = defineAdapter({
-  name: 'my-platform',
+  name: "my-platform",
 
   // Parse the incoming webhook into goodchat's internal message format
-  parseWebhook(req) goodchat
+  parseWebhook(req) {
     return {
       threadId: req.body.conversation_id,
       userId: req.body.user_id,
       text: req.body.text,
-    }
+    };
   },
 
   // Send a response back to the platform
   async sendMessage({ threadId, text, stream }) {
-    await myPlatformApi.messages.send({ conversation_id: threadId, text })
+    await myPlatformApi.messages.send({ conversation_id: threadId, text });
   },
-})
+});
 ```
 
 Register it in your config:
@@ -281,11 +282,11 @@ Register it in your config:
 ```ts
 import { myPlatform } from "./adapters/my-platform";
 
-export default {
+await createGoodbot({
   name: "my-bot",
   prompt: "...",
   adapters: [myPlatform()],
-};
+});
 ```
 
 ### Middleware — intercept every message
@@ -293,34 +294,34 @@ export default {
 Middleware runs before and after every message cycle. Use it for logging, rate limiting, content filtering, or injecting context dynamically.
 
 ```ts
-import { defineMiddleware } from 'goodchat'
+import { defineMiddleware } from "goodchat";
 
-const rateLimiter = defineMiddleware(goodchat
-  name: 'rate-limiter',
+const rateLimiter = defineMiddleware({
+  name: "rate-limiter",
   before: async ({ message, user, next }) => {
-    const count = await redis.incr(`msg:${user.id}`)
-    if (count > 10) return message.reply('Slow down — try again in a minute.')
-    return next()
+    const count = await redis.incr(`msg:${user.id}`);
+    if (count > 10) return message.reply("Slow down — try again in a minute.");
+    return next();
   },
-})
+});
 
 const logger = defineMiddleware({
-  name: 'logger',
+  name: "logger",
   before: async ({ message, next }) => {
-    console.log(`[${message.platform}] ${message.userId}: ${message.text}`)
-    return next()
+    console.log(`[${message.platform}] ${message.userId}: ${message.text}`);
+    return next();
   },
   after: async ({ message, response }) => {
-    console.log(`[response] ${response.text.slice(0, 80)}...`)
+    console.log(`[response] ${response.text.slice(0, 80)}...`);
   },
-})
+});
 
-export default {
-  name: 'my-bot',
-  prompt: '...',
-  platforms: ['slack'],
+await createGoodbot({
+  name: "my-bot",
+  prompt: "...",
+  platforms: ["slack"],
   middleware: [rateLimiter, logger],
-}
+});
 ```
 
 ### Custom context loaders
@@ -352,14 +353,14 @@ export const config = defineConfig({
   loaders: [notionLoader],
 });
 
-export default {
+await createGoodbot({
   name: "my-bot",
   prompt: "...",
   platforms: ["slack"],
   context: [
     { type: "notion", src: "your-database-id" }, // uses your custom loader
   ],
-};
+});
 ```
 
 ---
@@ -369,14 +370,14 @@ export default {
 Inject runtime data into your prompt using `{{ }}` syntax.
 
 ```ts
-export default {
+await createGoodbot({
   name: "onboarding-bot",
   prompt: `
     You are onboarding {{ user.name }} who joined {{ user.company }} on {{ user.startDate }}.
     Their role is {{ user.role }}. Guide them through their first week.
   `,
   platforms: ["slack"],
-};
+});
 ```
 
 Pass variables via the API when triggering the bot programmatically:
@@ -399,7 +400,7 @@ curl -X POST https://your-instance.com/api/bot/message \
 ### Customer support bot for a SaaS product
 
 ```ts
-export default {
+await createGoodbot({
   name: "support-bot",
   prompt: `
     You are a support assistant for Acme. Help users with product questions.
@@ -414,13 +415,13 @@ export default {
     trigger: "billing issues, account problems, or angry users",
     action: { type: "tag", user: "@support" },
   },
-};
+});
 ```
 
 ### Internal knowledge bot for a team
 
 ```ts
-export default {
+await createGoodbot({
   name: "handbook-bot",
   prompt: `
     You are the internal assistant for our team.
@@ -432,13 +433,13 @@ export default {
     { type: "folder", src: "./notion-export" },
     { type: "url", src: "https://www.notion.so/acme/handbook" },
   ],
-};
+});
 ```
 
 ### Community onboarding bot for Discord
 
 ```ts
-export default {
+await createGoodbot({
   name: "community-bot",
   prompt: "You help new members get oriented in our developer community.",
   platforms: ["discord"],
@@ -453,7 +454,7 @@ export default {
       );
     },
   },
-};
+});
 ```
 
 ---
