@@ -1,18 +1,16 @@
+import type { BotConfig } from "@goodbot/contracts/config/types";
+import type { MessageContext } from "@goodbot/contracts/plugins/types";
 import { createUIMessageStreamResponse } from "ai";
 import { Elysia, t } from "elysia";
-import type { BotConfig } from "../config/models";
-import type { GoodbotExtensions } from "../plugins/models";
-import type { ResponseHandlerService } from "../response-handler/response-handler.service.interface";
+import type { ChatResponseService } from "../chat-response/interface";
 
 interface LocalChatControllerOptions {
   botConfig: BotConfig;
-  extensions?: GoodbotExtensions;
-  responseHandler: ResponseHandlerService;
+  responseHandler: ChatResponseService;
 }
 
 export const localChatController = ({
   botConfig,
-  extensions,
   responseHandler,
 }: LocalChatControllerOptions) => {
   const controller = new Elysia({ prefix: "/local" });
@@ -84,17 +82,17 @@ export const localChatController = ({
         return status(400, { message: "Message is required" });
       }
 
-      const result = await responseHandler.handleMessage(
-        {
-          adapterName: "local",
-          botConfig,
-          platform: "local",
-          threadId,
-          userId,
-        },
-        { text: messageText },
-        extensions
-      );
+      const context: MessageContext = {
+        adapterName: "local",
+        botId: botConfig.id,
+        botName: botConfig.name,
+        platform: "local",
+        text: messageText,
+        threadId,
+        userId,
+      };
+
+      const result = await responseHandler.handleMessage(context);
 
       if (result.isErr()) {
         return status(500, { message: "Failed to generate response" });
@@ -134,17 +132,17 @@ export const localChatController = ({
         return status(400, { message: "Message is required" });
       }
 
-      const result = await responseHandler.handleMessageStream(
-        {
-          adapterName: "local",
-          botConfig,
-          platform: "local",
-          threadId,
-          userId,
-        },
-        { text: messageText },
-        extensions
-      );
+      const context: MessageContext = {
+        adapterName: "local",
+        botId: botConfig.id,
+        botName: botConfig.name,
+        platform: "local",
+        text: messageText,
+        threadId,
+        userId,
+      };
+
+      const result = await responseHandler.handleMessageStream(context);
 
       if (result.isErr()) {
         return status(500, { message: "Failed to generate response" });

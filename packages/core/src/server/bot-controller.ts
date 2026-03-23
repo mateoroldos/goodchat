@@ -1,5 +1,5 @@
+import type { BotConfig } from "@goodbot/contracts/config/types";
 import { Elysia } from "elysia";
-import type { BotConfig } from "../config/models";
 
 export const botController = (botConfig: BotConfig) =>
   new Elysia({ prefix: "/bot" }).get("/", () => ({

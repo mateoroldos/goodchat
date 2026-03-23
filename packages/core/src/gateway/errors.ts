@@ -1,5 +1,5 @@
+import type { Platform } from "@goodbot/contracts/config/types";
 import { TaggedError } from "better-result";
-import type { Platform } from "../config/models";
 
 export class ChatAdapterInitializationError extends TaggedError(
   "ChatAdapterInitializationError"

@@ -1,4 +1,4 @@
-import { createGoodbot } from "@goodbot/core/create-goodbot";
+import { createGoodbot } from "@goodbot/core";
 import { linear } from "@goodbot/plugins/linear";
 
 const isServerless =

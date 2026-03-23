@@ -1,5 +1,5 @@
 {
-  "extends": "@goodbot/config/tsconfig.base.json",
+  "extends": "@goodbot/typescript-config/tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
     "outDir": "dist",

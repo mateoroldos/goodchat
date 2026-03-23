@@ -1,22 +1,43 @@
 {
-  "name": "cli",
+  "name": "create-goodbot",
+  "version": "0.0.0",
+  "private": false,
   "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
-    "goodbot": "src/index.ts"
+    "create-goodbot": "dist/index.mjs"
   },
   "scripts": {
-    "dev": "bun run src/index.ts",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "dev:run": "bun run src/index.ts",
     "check-types": "tsc -b",
     "test": "vitest run"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
   "dependencies": {
     "@clack/prompts": "^0.10.0",
+    "@goodbot/contracts": "workspace:*",
     "@goodbot/core": "workspace:*",
     "@goodbot/plugins": "workspace:*"
   },
   "devDependencies": {
-    "@goodbot/config": "workspace:*",
+    "@goodbot/typescript-config": "workspace:*",
     "@types/bun": "catalog:",
+    "tsdown": "^0.21.4",
     "typescript": "catalog:",
     "vitest": "^4.1.0"
   }

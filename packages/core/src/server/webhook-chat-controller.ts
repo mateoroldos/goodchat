@@ -1,7 +1,7 @@
 import type { DiscordAdapter } from "@chat-adapter/discord";
 import { cron, Patterns } from "@elysiajs/cron";
+import type { BotConfig, Platform } from "@goodbot/contracts/config/types";
 import { Elysia } from "elysia";
-import type { BotConfig, Platform } from "../config/models";
 import type { ChatRuntime } from "../runtime/create-chat-runtime";
 
 export interface WebhookEnv {
@@ -149,61 +149,52 @@ export const webhookChatController = ({
   }
 
   if (hasDiscordBots) {
-    app.get(
-      "/discord/gateway",
-      async ({
-        request,
-        set,
-      }: {
-        request: Request;
-        set: { status?: number };
-      }) => {
-        if (!botConfig.platforms.includes("discord")) {
-          set.status = 404;
-          return { message: "Discord adapter not configured" };
-        }
-
-        const authResult = isCronAuthorized(request, env);
-        if (!authResult.ok) {
-          set.status = authResult.status;
-          return { message: authResult.message };
-        }
-
-        const url = new URL(request.url);
-        const webhookBaseUrl = env.WEBHOOK_FORWARD_URL ?? url.origin;
-        const webhookUrl = buildDiscordWebhookUrl(
-          webhookBaseUrl,
-          url.searchParams.get("webhookUrl")
-        );
-
-        const existingController = gatewayAbortControllers.get(botConfig.id);
-        if (existingController) {
-          existingController.abort();
-        }
-
-        const controller = new AbortController();
-        gatewayAbortControllers.set(botConfig.id, controller);
-
-        setTimeout(() => {
-          const currentController = gatewayAbortControllers.get(botConfig.id);
-          if (currentController === controller) {
-            gatewayAbortControllers.delete(botConfig.id);
-          }
-        }, gatewayListenerDurationMs + 1000);
-
-        const startResult = await startDiscordGatewayListener(
-          webhookUrl,
-          controller.signal
-        );
-
-        if (!startResult.ok) {
-          set.status = startResult.status;
-          return { message: startResult.message };
-        }
-
-        return startResult.response;
+    app.get("/discord/gateway", async ({ request, set }) => {
+      if (!botConfig.platforms.includes("discord")) {
+        set.status = 404;
+        return { message: "Discord adapter not configured" };
       }
-    );
+
+      const authResult = isCronAuthorized(request, env);
+      if (!authResult.ok) {
+        set.status = authResult.status;
+        return { message: authResult.message };
+      }
+
+      const url = new URL(request.url);
+      const webhookBaseUrl = env.WEBHOOK_FORWARD_URL ?? url.origin;
+      const webhookUrl = buildDiscordWebhookUrl(
+        webhookBaseUrl,
+        url.searchParams.get("webhookUrl")
+      );
+
+      const existingController = gatewayAbortControllers.get(botConfig.id);
+      if (existingController) {
+        existingController.abort();
+      }
+
+      const controller = new AbortController();
+      gatewayAbortControllers.set(botConfig.id, controller);
+
+      setTimeout(() => {
+        const currentController = gatewayAbortControllers.get(botConfig.id);
+        if (currentController === controller) {
+          gatewayAbortControllers.delete(botConfig.id);
+        }
+      }, gatewayListenerDurationMs + 1000);
+
+      const startResult = await startDiscordGatewayListener(
+        webhookUrl,
+        controller.signal
+      );
+
+      if (!startResult.ok) {
+        set.status = startResult.status;
+        return { message: startResult.message };
+      }
+
+      return startResult.response;
+    });
   }
 
   const runDiscordGatewayKeepalive = async () => {

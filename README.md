@@ -7,7 +7,7 @@
 Create your bot in `apps/server/src/app.ts` with `createGoodbot`:
 
 ```ts
-import { createGoodbot } from "@goodbot/core/create-goodbot";
+import { createGoodbot } from "@goodbot/core";
 import { linear } from "@goodbot/plugins/linear";
 
 const isServerless =

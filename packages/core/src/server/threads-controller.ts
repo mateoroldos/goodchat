@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import type { MessageStoreService } from "../message-store/message-store.service.interface";
+import type { MessageStoreService } from "../message-store/interface";
 
 const DEFAULT_THREAD_LIMIT = 50;
 
