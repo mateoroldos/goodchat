@@ -1,29 +1,18 @@
 ---
+import { siGithub } from "simple-icons";
 ---
 
-<section id="get-started-section" class="relative overflow-hidden px-6 py-32">
-  <!-- Background glow -->
-  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-    <div
-      class="absolute left-1/2 top-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-15"
-      style="background: radial-gradient(ellipse, oklch(0.65 0.22 62) 0%, transparent 70%);"
-    ></div>
-  </div>
-
-  <div class="relative mx-auto max-w-3xl text-center">
-    <h2 class="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-      Build your first bot<br>
-      <span class="gradient-text">in minutes, not days.</span>
+<section id="get-started-section" class="border-t border-border/40 px-6 py-20">
+  <div class="mx-auto max-w-5xl">
+    <h2 class="text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
+      Build your first bot
     </h2>
-    <p class="mt-6 text-lg text-muted-foreground">
-      Open source. Self-hostable. No vendor lock-in.<br>
-      You own your bots, your data, and your infrastructure.
+    <p class="mt-3 text-sm text-muted-foreground max-w-lg">
+      Open source. Self-hostable. No vendor lock-in. You own your bots, your
+      data, and your infrastructure.
     </p>
 
-    <!-- Feature bullets -->
-    <div
-      class="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground"
-    >
+    <div class="mt-6 flex flex-wrap gap-3 text-xs text-muted-foreground">
       {[
         "TypeScript native",
         "Streaming by default",
@@ -31,8 +20,8 @@
         "MIT licensed",
         "No telemetry",
       ].map((item) => (
-        <div class="flex items-center gap-2">
-          <svg aria-hidden="true" fill="none" height="14" stroke="oklch(0.78 0.185 70)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="14">
+        <div class="flex items-center gap-1.5">
+          <svg aria-hidden="true" fill="none" height="11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="11" class="text-primary">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
           <span>{item}</span>
@@ -40,40 +29,37 @@
       ))}
     </div>
 
-    <!-- Install commands -->
     <div
-      class="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+      class="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center"
     >
-      <div class="code-block flex items-center gap-3 px-5 py-3.5 text-sm">
+      <div class="code-block flex items-center gap-3 px-4 py-2.5 text-xs">
         <span class="text-muted-foreground select-none font-mono">$</span>
         <span class="font-mono text-foreground"
           >npx create-goodchat my-bot</span
         >
       </div>
-      <span class="text-muted-foreground text-sm hidden sm:block">or</span>
-      <div class="code-block flex items-center gap-3 px-5 py-3.5 text-sm">
+      <span class="text-muted-foreground text-xs hidden sm:block">or</span>
+      <div class="code-block flex items-center gap-3 px-4 py-2.5 text-xs">
         <span class="text-muted-foreground select-none font-mono">$</span>
         <span class="font-mono text-foreground">goodchat init my-bot</span>
       </div>
     </div>
 
-    <div class="mt-8 flex items-center justify-center gap-4">
+    <div class="mt-7 flex items-center gap-4">
       <a
         href="https://github.com/emestudio/goodchat"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90"
+        class="flex items-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
       >
         <svg
           aria-hidden="true"
           fill="currentColor"
-          height="16"
+          height="14"
           viewBox="0 0 24 24"
-          width="16"
+          width="14"
         >
-          <path
-            d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.483 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12c0-5.523-4.477-10-10-10Z"
-          ></path>
+          <path d={siGithub.path} />
         </svg>
         Star on GitHub
       </a>
@@ -81,7 +67,7 @@
         href="https://github.com/emestudio/goodchat"
         target="_blank"
         rel="noopener noreferrer"
-        class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        class="text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         Read the docs →
       </a>
@@ -89,38 +75,29 @@
   </div>
 </section>
 
-<footer class="border-t border-white/5 px-6 py-10">
+<footer class="border-t border-border/40 px-6 py-8">
   <div
-    class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row"
+    class="mx-auto flex max-w-5xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"
   >
-    <div class="flex items-center gap-2.5">
-      <div
-        class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10"
+    <div class="flex items-center gap-2">
+      <svg
+        aria-hidden="true"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          aria-hidden="true"
-          fill="none"
-          height="14"
-          viewBox="0 0 24 24"
-          width="14"
-        >
-          <path
-            d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2Z"
-            fill="oklch(0.78 0.185 70)"
-          />
-          <path
-            d="M8 12h.01M12 12h.01M16 12h.01"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
-      </div>
+        <path
+          fill="var(--primary)"
+          fill-rule="evenodd"
+          d="M0 0 H24 V24 H0 Z M11 2 H13 V6 H11 Z M4 6 H20 V19 H4 Z M7 9 H10 V12 H7 Z M14 9 H17 V12 H14 Z M9 15 H15 V16.5 H9 Z"
+        />
+      </svg>
       <span class="text-sm font-medium text-foreground">goodchat</span>
-      <span class="text-sm text-muted-foreground">— MIT License</span>
+      <span class="text-xs text-muted-foreground">— MIT License</span>
     </div>
 
-    <div class="flex items-center gap-6 text-sm text-muted-foreground">
+    <div class="flex items-center gap-5 text-xs text-muted-foreground">
       <a
         href="https://github.com/emestudio/goodchat"
         target="_blank"

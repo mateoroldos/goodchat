@@ -4,6 +4,38 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: "Liberation Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/LiberationMono-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Liberation Mono";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/LiberationMono-Italic.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Liberation Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./fonts/LiberationMono-Bold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Liberation Mono";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./fonts/LiberationMono-BoldItalic.ttf") format("truetype");
+}
+
 /* ─────────────────────────────────────────────────────────────
    Goodbot Design System — "Warm Ink"
    Modern scaffolding, retro warmth.
@@ -25,8 +57,8 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.17 0.03 52);
 
-  /* Primary — amber-ochre */
-  --primary: oklch(0.52 0.2 48);
+  /* Primary — warm amber (close to dark-mode phosphor, readable on cream) */
+  --primary: oklch(0.62 0.2 54);
   --primary-foreground: oklch(0.975 0.012 80);
 
   /* Secondary / Muted / Accent — warm beige */
@@ -45,7 +77,7 @@
   /* Borders & inputs — warm sand */
   --border: oklch(0.87 0.025 74);
   --input: oklch(0.87 0.025 74);
-  --ring: oklch(0.52 0.2 48);
+  --ring: oklch(0.62 0.2 54);
 
   /* Charts — warm retro palette */
   --chart-1: oklch(0.65 0.22 48); /* amber */
@@ -57,12 +89,12 @@
   /* Sidebar */
   --sidebar: oklch(0.955 0.016 78);
   --sidebar-foreground: oklch(0.17 0.03 52);
-  --sidebar-primary: oklch(0.52 0.2 48);
+  --sidebar-primary: oklch(0.62 0.2 54);
   --sidebar-primary-foreground: oklch(0.975 0.012 80);
   --sidebar-accent: oklch(0.92 0.022 78);
   --sidebar-accent-foreground: oklch(0.17 0.03 52);
   --sidebar-border: oklch(0.87 0.025 74);
-  --sidebar-ring: oklch(0.52 0.2 48);
+  --sidebar-ring: oklch(0.62 0.2 54);
 }
 
 .dark {
@@ -160,6 +192,7 @@
   }
 
   body {
+    font-family: "Liberation Mono", "Courier New", monospace;
     font-feature-settings:
       "kern" 1,
       "liga" 1,

@@ -1,91 +1,147 @@
 ---
+import { siGithub } from "simple-icons";
 ---
 
 <nav
-  class="fixed top-0 z-50 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl"
+  class="fixed top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl"
 >
-  <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-    <!-- Logo -->
+  <div class="mx-auto flex max-w-5xl items-center justify-between py-4">
     <a href="/" class="flex items-center gap-2.5 group">
-      <div
-        class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20 transition-all group-hover:bg-primary/20"
+      <svg
+        aria-hidden="true"
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        class="transition-opacity group-hover:opacity-75"
       >
-        <svg
-          aria-hidden="true"
-          fill="none"
-          height="18"
-          viewBox="0 0 24 24"
-          width="18"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2Z"
-            fill="oklch(0.78 0.185 70)"
-          ></path>
-          <path
-            d="M8 12h.01M12 12h.01M16 12h.01"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-          ></path>
-        </svg>
-      </div>
-      <span class="text-base font-semibold tracking-tight text-foreground"
-        >goodchat</span
+        <path
+          fill="var(--primary)"
+          fill-rule="evenodd"
+          d="M0 0H24V24H0Z M11 2H13V6H11Z M4 6H20V19H4Z M7 9H10V12H7Z M14 9H17V12H14Z M9 15H15V16.5H9Z"
+        />
+      </svg>
+      <span class="text-sm font-medium tracking-tight text-foreground"
+        >goodbot</span
       >
     </a>
 
-    <!-- Links -->
     <div class="hidden items-center gap-6 md:flex">
       <a
         href="#features"
-        class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        class="text-xs text-muted-foreground transition-colors hover:text-foreground"
         >Features</a
       >
       <a
         href="#examples"
-        class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        class="text-xs text-muted-foreground transition-colors hover:text-foreground"
         >Examples</a
       >
       <a
         href="#plugins"
-        class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        class="text-xs text-muted-foreground transition-colors hover:text-foreground"
         >Plugins</a
       >
       <a
         href="#deploy"
-        class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        class="text-xs text-muted-foreground transition-colors hover:text-foreground"
         >Deploy</a
       >
     </div>
 
-    <!-- CTAs -->
     <div class="flex items-center gap-3">
+      <button
+        id="theme-toggle"
+        aria-label="Toggle light/dark theme"
+        class="flex h-7 w-7 items-center justify-center rounded-sm border border-border/40 text-muted-foreground transition-colors hover:text-foreground"
+        type="button"
+      >
+        <svg
+          class="theme-sun hidden"
+          aria-hidden="true"
+          fill="none"
+          height="14"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          viewBox="0 0 24 24"
+          width="14"
+        >
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg
+          class="theme-moon hidden"
+          aria-hidden="true"
+          fill="none"
+          height="13"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          viewBox="0 0 24 24"
+          width="13"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+
       <a
         href="https://github.com/emestudio/goodchat"
         target="_blank"
         rel="noopener noreferrer"
-        class="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        class="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
       >
         <svg
           aria-hidden="true"
           fill="currentColor"
-          height="18"
+          height="15"
           viewBox="0 0 24 24"
-          width="18"
+          width="15"
         >
-          <path
-            d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.483 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12c0-5.523-4.477-10-10-10Z"
-          ></path>
+          <path d={siGithub.path} />
         </svg>
         <span class="hidden sm:block">GitHub</span>
       </a>
       <a
-        href="#get-started"
-        class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        href="#get-started-section"
+        class="rounded-sm bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
       >
         Get started
       </a>
     </div>
   </div>
 </nav>
+
+<script>
+  const toggle = document.getElementById("theme-toggle");
+  const html = document.documentElement;
+  const sun = document.querySelector(".theme-sun") as HTMLElement | null;
+  const moon = document.querySelector(".theme-moon") as HTMLElement | null;
+
+  function updateIcons() {
+    const isDark = html.classList.contains("dark");
+    if (sun) {
+      sun.style.display = isDark ? "block" : "none";
+    }
+    if (moon) {
+      moon.style.display = isDark ? "none" : "block";
+    }
+  }
+
+  updateIcons();
+
+  toggle?.addEventListener("click", () => {
+    const isDark = html.classList.toggle("dark");
+    localStorage.theme = isDark ? "dark" : "light";
+    updateIcons();
+  });
+</script>
