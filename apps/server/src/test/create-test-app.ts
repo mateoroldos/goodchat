@@ -1,17 +1,14 @@
-import type { BotConfig } from "@goodbot/core/config/models";
-import { createGoodbot } from "@goodbot/core/create-goodbot";
-import { InMemoryMessageStoreService } from "@goodbot/core/message-store/index";
+import type { BotConfig } from "@goodbot/contracts/config/types";
+import { createGoodbot } from "@goodbot/core";
 import { Elysia } from "elysia";
 
 export const createTestApp = async (bots: BotConfig[] = []) => {
-  const messageStore = new InMemoryMessageStoreService();
   const botConfig = bots[0];
   const app = new Elysia().get("/", () => "OK");
 
   if (botConfig) {
     const goodbot = await createGoodbot({
       ...botConfig,
-      messageStore,
       withDashboard: false,
       isServerless: true,
     });
@@ -19,5 +16,5 @@ export const createTestApp = async (bots: BotConfig[] = []) => {
     app.use(goodbot.app);
   }
 
-  return { app, messageStore };
+  return { app };
 };

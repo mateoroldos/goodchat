@@ -1,119 +1,81 @@
-import { Result } from "better-result";
-import type { BotConfig, Platform } from "../config/models";
-import { DefaultChatGatewayService } from "../gateway/chat-gateway.service";
-import type { ChatGatewayHandlers } from "../gateway/chat-gateway.service.interface";
-import type { MessageStoreService } from "../message-store/message-store.service.interface";
-import type { GoodbotExtensions } from "../plugins/models";
-import { BotInputInvalidError } from "../response-handler/errors";
-import { DefaultResponseGeneratorService } from "../response-handler/response-generator.service";
-import { DefaultResponseHandlerService } from "../response-handler/response-handler.service";
-import { ChatRuntimeInitializationError } from "./errors";
+import type { BotConfig, Platform } from "@goodbot/contracts/config/types";
+import type { MessageContext } from "@goodbot/contracts/plugins/types";
+import { DefaultAiResponseService } from "../ai-response";
+import { DefaultChatResponseService } from "../chat-response";
+import type { ChatResponseService } from "../chat-response/interface";
+import type { GoodbotExtensions } from "../extensions/models";
+import { DefaultChatGatewayService } from "../gateway/index";
+import type {
+  ChatGatewayHandlers,
+  ChatGatewayService,
+} from "../gateway/interface";
+import type { MessageStoreService } from "../message-store/interface";
 
 export interface ChatRuntime {
-  gateway: DefaultChatGatewayService;
-  responseHandler: DefaultResponseHandlerService;
+  gateway: ChatGatewayService;
+  responseHandler: ChatResponseService;
 }
 
 export const createChatRuntime = (
   botConfig: BotConfig,
   messageStore: MessageStoreService,
-  extensions?: GoodbotExtensions
-) => {
-  try {
-    const gateway = new DefaultChatGatewayService({
-      userName: botConfig.name,
-      platforms: botConfig.platforms,
-    });
+  extensions: GoodbotExtensions
+): ChatRuntime => {
+  const aiResponse = new DefaultAiResponseService();
+  const responseHandler = new DefaultChatResponseService({
+    aiResponse,
+    botConfig,
+    extensions,
+    messageStore,
+  });
 
-    const responseGenerator = new DefaultResponseGeneratorService();
-    const responseHandler = new DefaultResponseHandlerService({
-      responseGenerator,
-      messageStore,
-    });
+  const gateway = new DefaultChatGatewayService({
+    userName: botConfig.name,
+    platforms: botConfig.platforms,
+  });
 
-    const handleThreadMessage = createThreadMessageHandler({
-      botConfig,
-      responseHandler,
-      extensions,
-    });
-
-    const handleIncomingMessage: NonNullable<
-      ChatGatewayHandlers["onNewMention"]
-    > = async (thread, message) =>
-      handleThreadMessage(thread, message, { shouldSubscribe: true });
-
-    const handleSubscribedMessage: NonNullable<
-      ChatGatewayHandlers["onSubscribedMessage"]
-    > = async (thread, message) =>
-      handleThreadMessage(thread, message, { shouldSubscribe: false });
-
-    gateway.registerHandlers({
-      onNewMention: handleIncomingMessage,
-      onSubscribedMessage: handleSubscribedMessage,
-    });
-
-    return Result.ok<ChatRuntime, ChatRuntimeInitializationError>({
-      gateway,
-      responseHandler,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to initialize chat runtime";
-    return Result.err(
-      new ChatRuntimeInitializationError(message, undefined, error)
-    );
-  }
-};
-
-const createThreadMessageHandler = (params: {
-  botConfig: BotConfig;
-  responseHandler: DefaultResponseHandlerService;
-  extensions?: GoodbotExtensions;
-}) => {
-  const { botConfig, responseHandler, extensions } = params;
-
-  return async (
+  const handleMessage = async (
     thread: ThreadHandle,
     message: ThreadMessage,
-    options: { shouldSubscribe: boolean }
+    shouldSubscribe: boolean
   ) => {
-    if (options.shouldSubscribe) {
+    if (shouldSubscribe) {
       await thread.subscribe();
     }
 
     const platform = parsePlatform(thread.id);
     if (!platform) {
-      await postErrorMessage(thread);
+      await thread.post(DEFAULT_ERROR_MESSAGE);
       return;
     }
 
-    const result = await responseHandler.handleMessage(
-      {
-        adapterName: platform,
-        botConfig,
-        platform,
-        threadId: thread.id,
-        userId: message.author.userId,
-      },
-      { text: message.text },
-      extensions
-    );
+    const context: MessageContext = {
+      adapterName: platform,
+      botId: botConfig.id,
+      botName: botConfig.name,
+      platform,
+      text: message.text,
+      threadId: thread.id,
+      userId: message.author.userId,
+    };
 
+    const result = await responseHandler.handleMessage(context);
     if (result.isErr()) {
       console.error("Error while handling response:", result.error);
-      if (result.error instanceof BotInputInvalidError) {
-        await postErrorMessage(thread);
-        return;
-      }
-
-      await postErrorMessage(thread);
+      await thread.post(DEFAULT_ERROR_MESSAGE);
       return;
     }
 
     await thread.post(result.value.text);
   };
+
+  gateway.registerHandlers({
+    onNewMention: (thread, message) => handleMessage(thread, message, true),
+    onSubscribedMessage: (thread, message) =>
+      handleMessage(thread, message, false),
+  });
+
+  return { gateway, responseHandler };
 };
 
 const DEFAULT_ERROR_MESSAGE = "Sorry, I ran into an error while responding.";
@@ -129,7 +91,3 @@ type ThreadHandle = Parameters<
 type ThreadMessage = Parameters<
   NonNullable<ChatGatewayHandlers["onNewMention"]>
 >[1];
-
-const postErrorMessage = async (thread: ThreadHandle) => {
-  await thread.post(DEFAULT_ERROR_MESSAGE);
-};

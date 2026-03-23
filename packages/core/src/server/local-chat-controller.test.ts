@@ -1,19 +1,28 @@
+import type { BotConfig } from "@goodbot/contracts/config/types";
 import { createUIMessageStream } from "ai";
 import { Result } from "better-result";
 import { Elysia } from "elysia";
 import { describe, expect, it } from "vitest";
-import type { BotConfig } from "../config/models";
+import type { AiResponseService } from "../ai-response/interface";
+import type { AiCallParams } from "../ai-response/models";
+import { DefaultChatResponseService } from "../chat-response";
+import type { GoodbotExtensions } from "../extensions/models";
 import { InMemoryMessageStoreService } from "../message-store";
-import type { ResponseRequest } from "../response-handler/models";
-import type { ResponseGeneratorService } from "../response-handler/response-generator.service.interface";
-import { DefaultResponseHandlerService } from "../response-handler/response-handler.service";
 import { localChatController } from "./local-chat-controller";
 
+const emptyExtensions: GoodbotExtensions = {
+  afterMessageHooks: [],
+  beforeMessageHooks: [],
+  mcp: [],
+  systemPrompt: "",
+  tools: {},
+};
+
 const createResponseHandler = (chunks: string[]) => {
-  const responseGenerator: ResponseGeneratorService = {
-    generateResponse: (_request: ResponseRequest) =>
+  const aiResponse: AiResponseService = {
+    generate: (_params: AiCallParams) =>
       Promise.resolve(Result.ok({ text: chunks.join("") })),
-    streamResponse: (_request: ResponseRequest) =>
+    stream: (_params: AiCallParams) =>
       Promise.resolve(
         Result.ok({
           uiStream: createUIMessageStream({
@@ -33,9 +42,18 @@ const createResponseHandler = (chunks: string[]) => {
       ),
   };
 
-  return new DefaultResponseHandlerService({
-    responseGenerator,
+  const botConfig: BotConfig = {
+    id: "local-bot",
+    name: "Local Bot",
+    prompt: "Be helpful",
+    platforms: ["local"],
+  };
+
+  return new DefaultChatResponseService({
+    aiResponse,
+    extensions: emptyExtensions,
     messageStore: new InMemoryMessageStoreService(),
+    botConfig,
   });
 };
 

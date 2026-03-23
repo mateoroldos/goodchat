@@ -1,10 +1,34 @@
 {
   "name": "@goodbot/core",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "check-types": "tsc -b"
+  },
   "exports": {
-    "./*": "./src/*.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.mjs",
+      "require": "./dist/types.cjs"
+    }
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.30",
@@ -19,11 +43,15 @@
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/openapi": "^1.4.14",
     "@elysiajs/static": "^1.4.7",
+    "@goodbot/contracts": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "ai": "^6.0.116",
     "better-result": "^2.7.0",
     "chat": "^4.20.0",
     "elysia": "^1.4.28",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "tsdown": "^0.21.4"
   }
 }

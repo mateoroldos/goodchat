@@ -1,6 +1,6 @@
 import { Result } from "better-result";
 import { ThreadLimitInvalidError as ThreadLimitInvalidErrorClass } from "./errors";
-import type { MessageStoreService } from "./message-store.service.interface";
+import type { MessageStoreService } from "./interface";
 import type { MessageEntry } from "./models";
 
 export class InMemoryMessageStoreService implements MessageStoreService {
@@ -25,4 +25,4 @@ export class InMemoryMessageStoreService implements MessageStoreService {
   }
 }
 
-export type { MessageStoreService } from "./message-store.service.interface";
+export type { MessageStoreService } from "./interface";

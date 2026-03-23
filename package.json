@@ -15,7 +15,11 @@
   },
   "type": "module",
   "scripts": {
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
     "dev": "turbo dev",
+    "dev:apps": "turbo dev --filter=./apps/*",
+    "dev:packages": "turbo dev --filter=./packages/*",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:web": "turbo -F web dev",
@@ -24,12 +28,14 @@
     "check:knip": "bunx --bun knip",
     "check:all": "bun run check && bun run check-types && bun run check:knip",
     "fix": "ultracite fix",
+    "release": "bun run build && changeset publish --provenance",
     "test": "vitest run",
     "test:watch": "vitest",
     "ruler:apply": "bunx @intellectronica/ruler@latest apply --local-only"
   },
   "devDependencies": {
-    "@goodbot/config": "workspace:*",
+    "@changesets/cli": "^2.30.0",
+    "@goodbot/typescript-config": "workspace:*",
     "@types/bun": "^1.3.10",
     "lefthook": "latest",
     "turbo": "^2.8.17",

@@ -1,0 +1,82 @@
+{
+  "name": "@goodbot/contracts",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "files": [
+    "dist/**"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "check-types": "tsc -b"
+  },
+  "exports": {
+    "./hooks/models": {
+      "types": "./dist/hooks/models.d.ts",
+      "import": "./dist/hooks/models.mjs",
+      "require": "./dist/hooks/models.cjs"
+    },
+    "./hooks/types": {
+      "types": "./dist/hooks/types.d.ts",
+      "import": "./dist/hooks/types.mjs",
+      "require": "./dist/hooks/types.cjs"
+    },
+    "./capabilities/models": {
+      "types": "./dist/capabilities/models.d.ts",
+      "import": "./dist/capabilities/models.mjs",
+      "require": "./dist/capabilities/models.cjs"
+    },
+    "./capabilities/types": {
+      "types": "./dist/capabilities/types.d.ts",
+      "import": "./dist/capabilities/types.mjs",
+      "require": "./dist/capabilities/types.cjs"
+    },
+    "./config/models": {
+      "types": "./dist/config/models.d.ts",
+      "import": "./dist/config/models.mjs",
+      "require": "./dist/config/models.cjs"
+    },
+    "./config/types": {
+      "types": "./dist/config/types.d.ts",
+      "import": "./dist/config/types.mjs",
+      "require": "./dist/config/types.cjs"
+    },
+    "./config/messages": {
+      "types": "./dist/messages/types.d.ts",
+      "import": "./dist/messages/types.mjs",
+      "require": "./dist/messages/types.cjs"
+    },
+    "./config/utils": {
+      "types": "./dist/config/utils.d.ts",
+      "import": "./dist/config/utils.mjs",
+      "require": "./dist/config/utils.cjs"
+    },
+    "./plugins/define": {
+      "types": "./dist/plugins/define.d.ts",
+      "import": "./dist/plugins/define.mjs",
+      "require": "./dist/plugins/define.cjs"
+    },
+    "./plugins/models": {
+      "types": "./dist/plugins/models.d.ts",
+      "import": "./dist/plugins/models.mjs",
+      "require": "./dist/plugins/models.cjs"
+    },
+    "./plugins/types": {
+      "types": "./dist/plugins/types.d.ts",
+      "import": "./dist/plugins/types.mjs",
+      "require": "./dist/plugins/types.cjs"
+    }
+  },
+  "dependencies": {
+    "ai": "^6.0.116",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "tsdown": "^0.21.4"
+  }
+}

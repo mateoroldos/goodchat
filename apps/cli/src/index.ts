@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import {
@@ -12,7 +11,8 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
-import { CHAT_PLATFORMS, deriveBotId } from "@goodbot/core/config/models";
+import { CHAT_PLATFORMS } from "@goodbot/contracts/config/models";
+import { deriveBotId } from "@goodbot/contracts/config/utils";
 import {
   createProjectFiles,
   type GeneratorConfig,

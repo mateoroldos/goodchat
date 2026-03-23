@@ -176,9 +176,7 @@ export const renderEnvFile = (variables: string[]): string => {
 };
 
 export const renderAppFile = (config: GeneratorConfig): string => {
-  const imports = [
-    'import { createGoodbot } from "@goodbot/core/create-goodbot";',
-  ];
+  const imports = ['import { createGoodbot } from "@goodbot/core";'];
   const plugins = config.plugins ?? [];
   if (plugins.includes("linear")) {
     imports.push('import { linear } from "@goodbot/plugins/linear";');

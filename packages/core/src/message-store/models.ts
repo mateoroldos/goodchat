@@ -1,4 +1,4 @@
-import type { Platform } from "../config/models";
+import type { Platform } from "@goodbot/contracts/config/types";
 
 export interface MessageEntry {
   adapterName: string;

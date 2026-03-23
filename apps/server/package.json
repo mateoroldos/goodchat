@@ -17,7 +17,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@goodbot/config": "workspace:*",
+    "@goodbot/typescript-config": "workspace:*",
+    "@goodbot/contracts": "workspace:*",
     "@goodbot/plugins": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.16.5",

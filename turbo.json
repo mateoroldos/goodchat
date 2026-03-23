@@ -7,16 +7,25 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".svelte-kit/**", "build/**"]
     },
+    "build:types": {
+      "dependsOn": ["^build:types"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**"]
+    },
     "lint": {
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^build", "^check-types"]
     },
     "test": {
       "dependsOn": ["^test"]
     },
     "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:build": {
       "cache": false,
       "persistent": true
     }
