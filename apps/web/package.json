@@ -11,6 +11,9 @@
     "check-types": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
+  "dependencies": {
+    "@goodchat/styles": "workspace:*"
+  },
   "devDependencies": {
     "@ai-sdk/svelte": "^4.0.134",
     "@elysiajs/eden": "^1.4.8",

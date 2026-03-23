@@ -1,0 +1,215 @@
+@import "tailwindcss";
+
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   Goodbot Design System — "Warm Ink"
+   Modern scaffolding, retro warmth.
+   Neutrals run amber-warm (not cold blue-gray).
+   Primary is phosphor amber — recalls CRT glow.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* Geometry */
+  --radius: 0.5rem;
+
+  /* Surfaces — warm cream, not cold white */
+  --background: oklch(0.975 0.012 80);
+  --foreground: oklch(0.17 0.03 52);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.17 0.03 52);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.17 0.03 52);
+
+  /* Primary — amber-ochre */
+  --primary: oklch(0.52 0.2 48);
+  --primary-foreground: oklch(0.975 0.012 80);
+
+  /* Secondary / Muted / Accent — warm beige */
+  --secondary: oklch(0.935 0.02 78);
+  --secondary-foreground: oklch(0.17 0.03 52);
+
+  --muted: oklch(0.935 0.02 78);
+  --muted-foreground: oklch(0.5 0.04 62);
+
+  --accent: oklch(0.935 0.02 78);
+  --accent-foreground: oklch(0.17 0.03 52);
+
+  /* Semantic */
+  --destructive: oklch(0.56 0.23 26);
+
+  /* Borders & inputs — warm sand */
+  --border: oklch(0.87 0.025 74);
+  --input: oklch(0.87 0.025 74);
+  --ring: oklch(0.52 0.2 48);
+
+  /* Charts — warm retro palette */
+  --chart-1: oklch(0.65 0.22 48); /* amber */
+  --chart-2: oklch(0.6 0.17 155); /* phosphor teal */
+  --chart-3: oklch(0.55 0.165 268); /* muted indigo */
+  --chart-4: oklch(0.73 0.19 85); /* warm gold */
+  --chart-5: oklch(0.6 0.215 22); /* terracotta */
+
+  /* Sidebar */
+  --sidebar: oklch(0.955 0.016 78);
+  --sidebar-foreground: oklch(0.17 0.03 52);
+  --sidebar-primary: oklch(0.52 0.2 48);
+  --sidebar-primary-foreground: oklch(0.975 0.012 80);
+  --sidebar-accent: oklch(0.92 0.022 78);
+  --sidebar-accent-foreground: oklch(0.17 0.03 52);
+  --sidebar-border: oklch(0.87 0.025 74);
+  --sidebar-ring: oklch(0.52 0.2 48);
+}
+
+.dark {
+  /* Surfaces — deep warm charcoal, not cold slate */
+  --background: oklch(0.13 0.022 54);
+  --foreground: oklch(0.935 0.018 78);
+
+  --card: oklch(0.18 0.024 54);
+  --card-foreground: oklch(0.935 0.018 78);
+
+  --popover: oklch(0.18 0.024 54);
+  --popover-foreground: oklch(0.935 0.018 78);
+
+  /* Primary — phosphor amber, glows against the dark */
+  --primary: oklch(0.78 0.185 70);
+  --primary-foreground: oklch(0.13 0.022 54);
+
+  /* Secondary / Muted / Accent — warm lifted layers */
+  --secondary: oklch(0.215 0.026 56);
+  --secondary-foreground: oklch(0.935 0.018 78);
+
+  --muted: oklch(0.215 0.026 56);
+  --muted-foreground: oklch(0.6 0.04 68);
+
+  --accent: oklch(0.215 0.026 56);
+  --accent-foreground: oklch(0.935 0.018 78);
+
+  /* Semantic */
+  --destructive: oklch(0.65 0.21 24);
+
+  /* Borders — warm translucent whites */
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.78 0.185 70);
+
+  /* Charts — phosphor glow palette */
+  --chart-1: oklch(0.78 0.185 70); /* phosphor amber */
+  --chart-2: oklch(0.72 0.185 152); /* phosphor green */
+  --chart-3: oklch(0.65 0.205 295); /* electric violet */
+  --chart-4: oklch(0.76 0.18 52); /* golden */
+  --chart-5: oklch(0.68 0.21 22); /* warm coral */
+
+  /* Sidebar */
+  --sidebar: oklch(0.17 0.023 54);
+  --sidebar-foreground: oklch(0.935 0.018 78);
+  --sidebar-primary: oklch(0.78 0.185 70);
+  --sidebar-primary-foreground: oklch(0.13 0.022 54);
+  --sidebar-accent: oklch(0.215 0.026 56);
+  --sidebar-accent-foreground: oklch(0.935 0.018 78);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.78 0.185 70);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1,
+      "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    @apply bg-background text-foreground;
+  }
+
+  /* Warm amber text selection */
+  ::selection {
+    color: inherit;
+    background-color: oklch(0.52 0.2 48 / 20%);
+  }
+
+  .dark ::selection {
+    color: inherit;
+    background-color: oklch(0.78 0.185 70 / 25%);
+  }
+
+  /* Warm focus rings — inherit amber primary */
+  :focus-visible {
+    outline-color: var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar — warm tinted, minimal */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.72 0.025 74);
+    border-radius: 999px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.28 0.022 56);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.52 0.2 48 / 70%);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.78 0.185 70 / 60%);
+  }
+}
