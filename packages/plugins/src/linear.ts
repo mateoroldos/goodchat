@@ -1,4 +1,4 @@
-import { definePlugin } from "@goodchat/core/plugins/define";
+import { definePlugin } from "@goodbot/core/plugins/define";
 import { z } from "zod";
 
 export const linear = definePlugin({

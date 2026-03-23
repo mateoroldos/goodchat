@@ -1,5 +1,5 @@
 {
-  "name": "@goodchat/plugins",
+  "name": "@goodbot/plugins",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "@goodchat/core": "workspace:*",
+    "@goodbot/core": "workspace:*",
     "ai": "^6.0.116",
     "zod": "catalog:"
   }

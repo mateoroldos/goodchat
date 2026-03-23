@@ -1,4 +1,4 @@
-@import "@goodchat/styles/index.css";
+@import "@goodbot/styles/index.css";
 
 /* ── Landing surface tokens — dark (default) ── */
 :root {
@@ -73,24 +73,24 @@
 }
 
 /* ─── Syntax highlight — light override ─────────────────────── */
-:not(.dark) .token-keyword {
+:root:not(.dark) .token-keyword {
   color: oklch(0.5 0.2 48);
 }
-:not(.dark) .token-string {
+:root:not(.dark) .token-string {
   color: oklch(0.42 0.16 140);
 }
-:not(.dark) .token-comment {
+:root:not(.dark) .token-comment {
   color: oklch(0.55 0.04 68);
 }
-:not(.dark) .token-function {
+:root:not(.dark) .token-function {
   color: oklch(0.46 0.18 30);
 }
-:not(.dark) .token-property {
+:root:not(.dark) .token-property {
   color: oklch(0.38 0.1 52);
 }
-:not(.dark) .token-value {
+:root:not(.dark) .token-value {
   color: oklch(0.5 0.18 22);
 }
-:not(.dark) .token-punctuation {
+:root:not(.dark) .token-punctuation {
   color: oklch(0.5 0.04 62);
 }

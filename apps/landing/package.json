@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@astrojs/svelte": "^8.0.3",
-    "@goodchat/styles": "workspace:*",
+    "@goodbot/styles": "workspace:*",
     "@tailwindcss/vite": "^4.2.2",
     "astro": "^6.0.8",
     "simple-icons": "^13.0.0",

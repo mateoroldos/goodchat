@@ -1,8 +1,8 @@
-import type { BotConfig, Platform } from "@goodchat/core/config/models";
+import type { BotConfig, Platform } from "@goodbot/core/config/models";
 import type {
   BotGenerationError,
   BotInputInvalidError,
-} from "@goodchat/core/response-handler/errors";
+} from "@goodbot/core/response-handler/errors";
 import type { UIMessageChunk } from "ai";
 import type { Result } from "better-result";
 import type { GoodbotExtensions } from "../plugins/models";

@@ -1,6 +1,6 @@
-import type { BotConfig } from "@goodchat/core/config/models";
-import { createGoodbot } from "@goodchat/core/create-goodbot";
-import { InMemoryMessageStoreService } from "@goodchat/core/message-store/index";
+import type { BotConfig } from "@goodbot/core/config/models";
+import { createGoodbot } from "@goodbot/core/create-goodbot";
+import { InMemoryMessageStoreService } from "@goodbot/core/message-store/index";
 import { Elysia } from "elysia";
 
 export const createTestApp = async (bots: BotConfig[] = []) => {

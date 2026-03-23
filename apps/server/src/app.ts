@@ -1,5 +1,5 @@
-import { createGoodbot } from "@goodchat/core/create-goodbot";
-import { linear } from "@goodchat/plugins/linear";
+import { createGoodbot } from "@goodbot/core/create-goodbot";
+import { linear } from "@goodbot/plugins/linear";
 
 const isServerless =
   process.env.SERVERLESS === "true" || process.env.VERCEL === "1";

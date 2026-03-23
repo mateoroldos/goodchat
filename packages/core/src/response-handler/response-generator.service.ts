@@ -172,7 +172,7 @@ const createRuntimeTools = async (
   for (const server of mcpServers) {
     const client = await createMCPClient({
       transport: createMcpTransport(server),
-      name: `goodchat:${server.name}`,
+      name: `goodbot:${server.name}`,
     });
     console.log("MCP Server Initialized:", server);
     mcpClients.push(client);

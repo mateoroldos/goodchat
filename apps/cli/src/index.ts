@@ -12,7 +12,7 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
-import { CHAT_PLATFORMS, deriveBotId } from "@goodchat/core/config/models";
+import { CHAT_PLATFORMS, deriveBotId } from "@goodbot/core/config/models";
 import {
   createProjectFiles,
   type GeneratorConfig,

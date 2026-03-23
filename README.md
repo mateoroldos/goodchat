@@ -1,14 +1,14 @@
-# goodchat
+# goodbot
 
-`goodchat` is a minimalistic framework for building and deploying AI-powered chatbots across Slack, Discord, Microsoft Teams, and Google Chat — from a single bot module.
+`goodbot` is a minimalistic framework for building and deploying AI-powered chatbots across Slack, Discord, Microsoft Teams, and Google Chat — from a single bot module.
 
 ## How to use
 
 Create your bot in `apps/server/src/app.ts` with `createGoodbot`:
 
 ```ts
-import { createGoodbot } from "@goodchat/core/create-goodbot";
-import { linear } from "@goodchat/plugins/linear";
+import { createGoodbot } from "@goodbot/core/create-goodbot";
+import { linear } from "@goodbot/plugins/linear";
 
 const isServerless =
   process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
@@ -33,7 +33,7 @@ Goodchat runs one bot per server. Changes require a rebuild and redeploy.
 Then run:
 
 ```bash
-goodchat dev
+goodbot dev
 ```
 
 Your bot is live. Connect it to Slack or Discord in the dashboard at `http://localhost:3000` with one click — no webhook URLs, no API key copying.
@@ -44,7 +44,7 @@ Your bot is live. Connect it to Slack or Discord in the dashboard at `http://loc
 
 ### One config. Every platform
 
-Write your bot logic once. `goodchat` handles the adapter layer, webhook routing, and message formatting for each platform automatically.
+Write your bot logic once. `goodbot` handles the adapter layer, webhook routing, and message formatting for each platform automatically.
 
 ```ts
 await createGoodbot({
@@ -94,7 +94,7 @@ await createGoodbot({
 Give your bot the ability to look things up, check statuses, or call your APIs in real time.
 
 ```ts
-import { tool } from "goodchat";
+import { tool } from "goodbot";
 import { z } from "zod";
 
 await createGoodbot({
@@ -162,14 +162,14 @@ await createGoodbot({
 Plugins are pre-built, shareable bundles of tools, context loaders, event handlers, and prompt fragments. Install one and your bot instantly gains new capabilities.
 
 ```bash
-npm install @goodchat/plugin-github
-npm install @goodchat/plugin-linear
-npm install @goodchat/plugin-stripe
+npm install @goodbot/plugin-github
+npm install @goodbot/plugin-linear
+npm install @goodbot/plugin-stripe
 ```
 
 ```ts
-import { github } from "@goodchat/plugins/github";
-import { linear } from "@goodchat/plugins/linear";
+import { github } from "@goodbot/plugins/github";
+import { linear } from "@goodbot/plugins/linear";
 
 await createGoodbot({
   name: "dev-bot",
@@ -199,14 +199,14 @@ plugins: [
 
 ---
 
-## Extending goodchat
+## Extending goodbot
 
 ### Writing your own plugin
 
 A plugin is just a function that returns a `BotPlugin` object. It can contribute tools, context sources, event handlers, and prompt fragments — all of which get merged into the bot at runtime.
 
 ```ts
-import { definePlugin, tool } from "goodchat";
+import { definePlugin, tool } from "goodbot";
 import { z } from "zod";
 
 export const myPlugin = definePlugin((options) => ({
@@ -253,15 +253,15 @@ await createGoodbot({
 
 ### Writing your own adapter
 
-Need a platform not yet supported? Adapters wrap the Vercel Chat SDK and teach `goodchat` how to speak a new platform's language.
+Need a platform not yet supported? Adapters wrap the Vercel Chat SDK and teach `goodbot` how to speak a new platform's language.
 
 ```ts
-import { defineAdapter } from "goodchat";
+import { defineAdapter } from "goodbot";
 
 export const myPlatform = defineAdapter({
   name: "my-platform",
 
-  // Parse the incoming webhook into goodchat's internal message format
+  // Parse the incoming webhook into goodbot's internal message format
   parseWebhook(req) {
     return {
       threadId: req.body.conversation_id,
@@ -294,7 +294,7 @@ await createGoodbot({
 Middleware runs before and after every message cycle. Use it for logging, rate limiting, content filtering, or injecting context dynamically.
 
 ```ts
-import { defineMiddleware } from "goodchat";
+import { defineMiddleware } from "goodbot";
 
 const rateLimiter = defineMiddleware({
   name: "rate-limiter",
@@ -329,7 +329,7 @@ await createGoodbot({
 Need to pull context from a source not built in? Define your own loader.
 
 ```ts
-import { defineContextLoader } from "goodchat";
+import { defineContextLoader } from "goodbot";
 
 const notionLoader = defineContextLoader({
   type: "notion",
@@ -347,7 +347,7 @@ Register it globally so any bot in your project can use it:
 
 ```ts
 // apps/server/src/app.ts
-import { defineConfig } from "goodchat";
+import { defineConfig } from "goodbot";
 
 export const config = defineConfig({
   loaders: [notionLoader],
@@ -461,7 +461,7 @@ await createGoodbot({
 
 ## Dashboard
 
-Not a developer? Run `goodchat dev` and open `http://localhost:3000`.
+Not a developer? Run `goodbot dev` and open `http://localhost:3000`.
 
 The dashboard lets you configure your bot, attach context, connect platforms via OAuth, and read conversation threads. Changes require a rebuild and redeploy.
 
@@ -472,52 +472,52 @@ The dashboard lets you configure your bot, attach context, connect platforms via
 Every bot is ready to deploy the moment you define it.
 
 ```bash
-goodchat build
-goodchat start
+goodbot build
+goodbot start
 ```
 
 Or deploy to your own infrastructure with Docker:
 
 ```bash
-docker run -p 3000:3000 -v $(pwd):/app goodchat/goodchat
+docker run -p 3000:3000 -v $(pwd):/app goodbot/goodbot
 ```
 
 ````
 
-For a managed cloud deployment with zero setup, use [goodchat.dev](https://goodchat.dev).
+For a managed cloud deployment with zero setup, use [goodbot.dev](https://goodbot.dev).
 
 ---
 
 ## CLI
 
 ```bash
-goodchat init <name>     # Scaffold a new bot project
-goodchat dev             # Start local dev server with hot reload
-goodchat build           # Build for production
-goodchat start           # Start production server
-goodchat threads <name>  # Stream live conversation threads
-goodchat deploy          # Deploy to goodchat.dev
+goodbot init <name>     # Scaffold a new bot project
+goodbot dev             # Start local dev server with hot reload
+goodbot build           # Build for production
+goodbot start           # Start production server
+goodbot threads <name>  # Stream live conversation threads
+goodbot deploy          # Deploy to goodbot.dev
 ````
 
 ---
 
 ## Self-hosting
 
-`goodchat` is fully self-hostable. You own your data, your prompts, and your infrastructure. No telemetry, no vendor lock-in.
+`goodbot` is fully self-hostable. You own your data, your prompts, and your infrastructure. No telemetry, no vendor lock-in.
 
 ```bash
-git clone https://github.com/your-org/goodchat
+git clone https://github.com/your-org/goodbot
 cp .env.example .env      # Add your LLM API key and platform credentials
 docker-compose up
 ```
 
-The cloud version at [goodchat.dev](https://goodchat.dev) is the same codebase — just hosted for you.
+The cloud version at [goodbot.dev](https://goodbot.dev) is the same codebase — just hosted for you.
 
 ---
 
 ## Philosophy
 
-Most bot builders make you choose between simplicity and power. `goodchat` doesn't.
+Most bot builders make you choose between simplicity and power. `goodbot` doesn't.
 
 The bot package is the product. Everything — prompts, platforms, context, tools, events — lives in one place and is readable by anyone on your team, technical or not. The complexity of multi-platform deployment, webhook routing, and streaming lives in the framework layer so you never have to see it.
 
@@ -530,7 +530,7 @@ The bot package is the product. Everything — prompts, platforms, context, tool
 Use the Dockerfile from the repo root:
 
 ```bash
-docker build -f apps/server/Dockerfile -t goodchat-server .
+docker build -f apps/server/Dockerfile -t goodbot-server .
 ```
 
 Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerfile` and build context set to the repo root. The build uses Turborepo filters for `server` and `web`, and the server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY` and any adapter credentials). `CORS_ORIGIN` is optional and only needed if your UI is on a different origin.
@@ -540,10 +540,10 @@ Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerf
 Build and run the server image locally or on any container host:
 
 ```bash
-docker build -f apps/server/Dockerfile -t goodchat-server .
+docker build -f apps/server/Dockerfile -t goodbot-server .
 docker run -p 3000:3000 \
   -e OPENAI_API_KEY=... \
-  goodchat-server
+  goodbot-server
 ```
 
 The Docker build runs `bun run build` so `apps/web/build` is produced and served by the API.

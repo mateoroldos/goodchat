@@ -177,11 +177,11 @@ export const renderEnvFile = (variables: string[]): string => {
 
 export const renderAppFile = (config: GeneratorConfig): string => {
   const imports = [
-    'import { createGoodbot } from "@goodchat/core/create-goodbot";',
+    'import { createGoodbot } from "@goodbot/core/create-goodbot";',
   ];
   const plugins = config.plugins ?? [];
   if (plugins.includes("linear")) {
-    imports.push('import { linear } from "@goodchat/plugins/linear";');
+    imports.push('import { linear } from "@goodbot/plugins/linear";');
   }
 
   const entries: string[] = [
@@ -248,7 +248,7 @@ export const renderPackageJson = (input: {
   usesPlugins: boolean;
 }): string => {
   const dependencies: Record<string, string> = {
-    "@goodchat/core": PUBLISHED_CORE_VERSION,
+    "@goodbot/core": PUBLISHED_CORE_VERSION,
     "@t3-oss/env-core": "^0.13.1",
     dotenv: "^17.2.2",
     elysia: "^1.4.28",
@@ -256,7 +256,7 @@ export const renderPackageJson = (input: {
   };
 
   if (input.usesPlugins) {
-    dependencies["@goodchat/plugins"] = PUBLISHED_PLUGINS_VERSION;
+    dependencies["@goodbot/plugins"] = PUBLISHED_PLUGINS_VERSION;
   }
 
   const devDependencies: Record<string, string> = {

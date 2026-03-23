@@ -10,15 +10,15 @@
     "start": "bun run dist/index.mjs"
   },
   "dependencies": {
-    "@goodchat/core": "workspace:*",
+    "@goodbot/core": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "dotenv": "catalog:",
     "elysia": "^1.4.21",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@goodchat/config": "workspace:*",
-    "@goodchat/plugins": "workspace:*",
+    "@goodbot/config": "workspace:*",
+    "@goodbot/plugins": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.16.5",
     "typescript": "catalog:"

@@ -1,9 +1,9 @@
-import type { Platform } from "@goodchat/core/config/models";
-import type { MessageStoreService } from "@goodchat/core/message-store/message-store.service.interface";
-import type { MessageEntry } from "@goodchat/core/message-store/models";
-import { BotInputInvalidError } from "@goodchat/core/response-handler/errors";
-import type { IncomingMessage } from "@goodchat/core/response-handler/models";
-import type { ResponseGeneratorService } from "@goodchat/core/response-handler/response-generator.service.interface";
+import type { Platform } from "@goodbot/core/config/models";
+import type { MessageStoreService } from "@goodbot/core/message-store/message-store.service.interface";
+import type { MessageEntry } from "@goodbot/core/message-store/models";
+import { BotInputInvalidError } from "@goodbot/core/response-handler/errors";
+import type { IncomingMessage } from "@goodbot/core/response-handler/models";
+import type { ResponseGeneratorService } from "@goodbot/core/response-handler/response-generator.service.interface";
 import { readUIMessageStream } from "ai";
 import { Result } from "better-result";
 import type { GoodbotExtensions } from "../plugins/models";
