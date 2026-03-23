@@ -1,0 +1,23 @@
+{
+  "name": "cli",
+  "type": "module",
+  "bin": {
+    "goodbot": "src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "check-types": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0",
+    "@goodchat/core": "workspace:*",
+    "@goodchat/plugins": "workspace:*"
+  },
+  "devDependencies": {
+    "@goodchat/config": "workspace:*",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "^4.1.0"
+  }
+}
