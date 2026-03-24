@@ -22,9 +22,9 @@
   let expanded = $state(true);
 
   const webhookUrl = $derived(
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/webhook/discord`
-      : "/api/webhook/discord"
+    typeof window === "undefined"
+      ? "/api/webhook/discord"
+      : `${window.location.origin}/api/webhook/discord`
   );
 
   const DISCORD_PORTAL_URL = "https://discord.com/developers/applications";

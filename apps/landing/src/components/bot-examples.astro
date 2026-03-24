@@ -245,7 +245,7 @@ const examples = [
   <span class="token-punctuation">]</span><span class="token-punctuation">,</span>
 <span class="token-punctuation">&#125;)</span><span class="token-punctuation">;</span>`,
   },
-];
+] as const;
 
 const avatarColors: Record<string, string> = {
   orange: "bg-chart-1/20 text-chart-1",
@@ -295,7 +295,7 @@ const avatarColors: Record<string, string> = {
       </div>
 
       {examples.map((ex, i) => (
-        <div class={`example-panel ${i !== 0 ? "hidden" : ""}`} data-panel-idx={i}>
+        <div class={`example-panel ${i === 0 ? "" : "hidden"}`} data-panel-idx={i}>
           <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 px-4 py-3">
             <div>
               <p class="text-xs font-medium text-foreground">{ex.label}</p>
