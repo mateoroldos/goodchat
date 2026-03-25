@@ -1,5 +1,5 @@
 {
-  "extends": "@goodbot/typescript-config/tsconfig.base.json",
+  "extends": "@goodchat/typescript-config/tsconfig.base.json",
   "compilerOptions": {
     "strictNullChecks": true
   }

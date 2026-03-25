@@ -1,19 +1,19 @@
-# goodbot
+# goodchat
 
-`goodbot` is a minimalistic framework for building and deploying AI-powered chatbots across Slack, Discord, Microsoft Teams, and Google Chat — from a single bot module.
+`goodchat` is a minimalistic framework for building and deploying AI-powered chatbots across Slack, Discord, Microsoft Teams, and Google Chat — from a single bot module.
 
 ## How to use
 
-Create your bot in `apps/server/src/app.ts` with `createGoodbot`:
+Create your bot in `apps/server/src/app.ts` with `createGoodchat`:
 
 ```ts
-import { createGoodbot } from "@goodbot/core";
-import { linear } from "@goodbot/plugins/linear";
+import { createGoodchat } from "@goodchat/core";
+import { linear } from "@goodchat/plugins/linear";
 
 const isServerless =
   process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
 
-const { app } = await createGoodbot({
+const { app } = await createGoodchat({
   name: "Linear Assistant",
   prompt:
     "You are a Linear assistant. Respond briefly with what I have on Linear.",
@@ -33,7 +33,7 @@ Goodchat runs one bot per server. Changes require a rebuild and redeploy.
 Then run:
 
 ```bash
-goodbot dev
+goodchat dev
 ```
 
 Your bot is live. Connect it to Slack or Discord in the dashboard at `http://localhost:3000` with one click — no webhook URLs, no API key copying.
@@ -44,10 +44,10 @@ Your bot is live. Connect it to Slack or Discord in the dashboard at `http://loc
 
 ### One config. Every platform
 
-Write your bot logic once. `goodbot` handles the adapter layer, webhook routing, and message formatting for each platform automatically.
+Write your bot logic once. `goodchat` handles the adapter layer, webhook routing, and message formatting for each platform automatically.
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "support-bot",
   prompt: "You are a support assistant. Answer questions about our product.",
   platforms: ["slack", "discord", "teams", "google-chat"],
@@ -61,7 +61,7 @@ Deploy once. Works everywhere.
 Attach files, URLs, or folders as context. Your bot will use them to answer questions.
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "docs-bot",
   prompt:
     "You are a documentation assistant. Answer only based on the provided docs.",
@@ -81,7 +81,7 @@ Context is chunked, embedded, and retrieved automatically. It re-indexes wheneve
 Responses stream in real time across every connected platform. Users see the bot typing progressively — no waiting for a complete reply.
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "my-bot",
   prompt: "...",
   platforms: ["slack"],
@@ -94,10 +94,10 @@ await createGoodbot({
 Give your bot the ability to look things up, check statuses, or call your APIs in real time.
 
 ```ts
-import { tool } from "goodbot";
+import { tool } from "goodchat";
 import { z } from "zod";
 
-await createGoodbot({
+await createGoodchat({
   name: "support-bot",
   prompt: "You are a support assistant. You can look up order statuses.",
   platforms: ["slack"],
@@ -119,7 +119,7 @@ await createGoodbot({
 Define when the bot should stop and bring a human in.
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "support-bot",
   prompt: "...",
   platforms: ["slack"],
@@ -138,7 +138,7 @@ The bot will gracefully hand off the conversation instead of guessing.
 Go beyond responding to messages. React to reactions, new members joining, threads being created, and more.
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "community-bot",
   prompt: "...",
   platforms: ["discord"],
@@ -162,16 +162,16 @@ await createGoodbot({
 Plugins are pre-built, shareable bundles of tools, context loaders, event handlers, and prompt fragments. Install one and your bot instantly gains new capabilities.
 
 ```bash
-npm install @goodbot/plugin-github
-npm install @goodbot/plugin-linear
-npm install @goodbot/plugin-stripe
+npm install @goodchat/plugin-github
+npm install @goodchat/plugin-linear
+npm install @goodchat/plugin-stripe
 ```
 
 ```ts
-import { github } from "@goodbot/plugins/github";
-import { linear } from "@goodbot/plugins/linear";
+import { github } from "@goodchat/plugins/github";
+import { linear } from "@goodchat/plugins/linear";
 
-await createGoodbot({
+await createGoodchat({
   name: "dev-bot",
   prompt: "You are an assistant for our engineering team.",
   platforms: ["slack"],
@@ -199,14 +199,14 @@ plugins: [
 
 ---
 
-## Extending goodbot
+## Extending goodchat
 
 ### Writing your own plugin
 
 A plugin is just a function that returns a `BotPlugin` object. It can contribute tools, context sources, event handlers, and prompt fragments — all of which get merged into the bot at runtime.
 
 ```ts
-import { definePlugin, tool } from "goodbot";
+import { definePlugin, tool } from "goodchat";
 import { z } from "zod";
 
 export const myPlugin = definePlugin((options) => ({
@@ -243,7 +243,7 @@ Use it like any other plugin:
 ```ts
 import { myPlugin } from "./plugins/my-plugin";
 
-await createGoodbot({
+await createGoodchat({
   name: "ops-bot",
   prompt: "...",
   platforms: ["slack"],
@@ -253,15 +253,15 @@ await createGoodbot({
 
 ### Writing your own adapter
 
-Need a platform not yet supported? Adapters wrap the Vercel Chat SDK and teach `goodbot` how to speak a new platform's language.
+Need a platform not yet supported? Adapters wrap the Vercel Chat SDK and teach `goodchat` how to speak a new platform's language.
 
 ```ts
-import { defineAdapter } from "goodbot";
+import { defineAdapter } from "goodchat";
 
 export const myPlatform = defineAdapter({
   name: "my-platform",
 
-  // Parse the incoming webhook into goodbot's internal message format
+  // Parse the incoming webhook into goodchat's internal message format
   parseWebhook(req) {
     return {
       threadId: req.body.conversation_id,
@@ -282,7 +282,7 @@ Register it in your config:
 ```ts
 import { myPlatform } from "./adapters/my-platform";
 
-await createGoodbot({
+await createGoodchat({
   name: "my-bot",
   prompt: "...",
   adapters: [myPlatform()],
@@ -294,7 +294,7 @@ await createGoodbot({
 Middleware runs before and after every message cycle. Use it for logging, rate limiting, content filtering, or injecting context dynamically.
 
 ```ts
-import { defineMiddleware } from "goodbot";
+import { defineMiddleware } from "goodchat";
 
 const rateLimiter = defineMiddleware({
   name: "rate-limiter",
@@ -316,7 +316,7 @@ const logger = defineMiddleware({
   },
 });
 
-await createGoodbot({
+await createGoodchat({
   name: "my-bot",
   prompt: "...",
   platforms: ["slack"],
@@ -329,7 +329,7 @@ await createGoodbot({
 Need to pull context from a source not built in? Define your own loader.
 
 ```ts
-import { defineContextLoader } from "goodbot";
+import { defineContextLoader } from "goodchat";
 
 const notionLoader = defineContextLoader({
   type: "notion",
@@ -347,13 +347,13 @@ Register it globally so any bot in your project can use it:
 
 ```ts
 // apps/server/src/app.ts
-import { defineConfig } from "goodbot";
+import { defineConfig } from "goodchat";
 
 export const config = defineConfig({
   loaders: [notionLoader],
 });
 
-await createGoodbot({
+await createGoodchat({
   name: "my-bot",
   prompt: "...",
   platforms: ["slack"],
@@ -370,7 +370,7 @@ await createGoodbot({
 Inject runtime data into your prompt using `{{ }}` syntax.
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "onboarding-bot",
   prompt: `
     You are onboarding {{ user.name }} who joined {{ user.company }} on {{ user.startDate }}.
@@ -400,7 +400,7 @@ curl -X POST https://your-instance.com/api/bot/message \
 ### Customer support bot for a SaaS product
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "support-bot",
   prompt: `
     You are a support assistant for Acme. Help users with product questions.
@@ -421,7 +421,7 @@ await createGoodbot({
 ### Internal knowledge bot for a team
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "handbook-bot",
   prompt: `
     You are the internal assistant for our team.
@@ -439,7 +439,7 @@ await createGoodbot({
 ### Community onboarding bot for Discord
 
 ```ts
-await createGoodbot({
+await createGoodchat({
   name: "community-bot",
   prompt: "You help new members get oriented in our developer community.",
   platforms: ["discord"],
@@ -461,7 +461,7 @@ await createGoodbot({
 
 ## Dashboard
 
-Not a developer? Run `goodbot dev` and open `http://localhost:3000`.
+Not a developer? Run `goodchat dev` and open `http://localhost:3000`.
 
 The dashboard lets you configure your bot, attach context, connect platforms via OAuth, and read conversation threads. Changes require a rebuild and redeploy.
 
@@ -472,52 +472,52 @@ The dashboard lets you configure your bot, attach context, connect platforms via
 Every bot is ready to deploy the moment you define it.
 
 ```bash
-goodbot build
-goodbot start
+goodchat build
+goodchat start
 ```
 
 Or deploy to your own infrastructure with Docker:
 
 ```bash
-docker run -p 3000:3000 -v $(pwd):/app goodbot/goodbot
+docker run -p 3000:3000 -v $(pwd):/app goodchat/goodchat
 ```
 
 ````
 
-For a managed cloud deployment with zero setup, use [goodbot.dev](https://goodbot.dev).
+For a managed cloud deployment with zero setup, use [goodchat.dev](https://goodchat.dev).
 
 ---
 
 ## CLI
 
 ```bash
-goodbot init <name>     # Scaffold a new bot project
-goodbot dev             # Start local dev server with hot reload
-goodbot build           # Build for production
-goodbot start           # Start production server
-goodbot threads <name>  # Stream live conversation threads
-goodbot deploy          # Deploy to goodbot.dev
+goodchat init <name>     # Scaffold a new bot project
+goodchat dev             # Start local dev server with hot reload
+goodchat build           # Build for production
+goodchat start           # Start production server
+goodchat threads <name>  # Stream live conversation threads
+goodchat deploy          # Deploy to goodchat.dev
 ````
 
 ---
 
 ## Self-hosting
 
-`goodbot` is fully self-hostable. You own your data, your prompts, and your infrastructure. No telemetry, no vendor lock-in.
+`goodchat` is fully self-hostable. You own your data, your prompts, and your infrastructure. No telemetry, no vendor lock-in.
 
 ```bash
-git clone https://github.com/your-org/goodbot
+git clone https://github.com/your-org/goodchat
 cp .env.example .env      # Add your LLM API key and platform credentials
 docker-compose up
 ```
 
-The cloud version at [goodbot.dev](https://goodbot.dev) is the same codebase — just hosted for you.
+The cloud version at [goodchat.dev](https://goodchat.dev) is the same codebase — just hosted for you.
 
 ---
 
 ## Philosophy
 
-Most bot builders make you choose between simplicity and power. `goodbot` doesn't.
+Most bot builders make you choose between simplicity and power. `goodchat` doesn't.
 
 The bot package is the product. Everything — prompts, platforms, context, tools, events — lives in one place and is readable by anyone on your team, technical or not. The complexity of multi-platform deployment, webhook routing, and streaming lives in the framework layer so you never have to see it.
 
@@ -530,7 +530,7 @@ The bot package is the product. Everything — prompts, platforms, context, tool
 Use the Dockerfile from the repo root:
 
 ```bash
-docker build -f apps/server/Dockerfile -t goodbot-server .
+docker build -f apps/server/Dockerfile -t goodchat-server .
 ```
 
 Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerfile` and build context set to the repo root. The build uses Turborepo filters for `server` and `web`, and the server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY` and any adapter credentials). `CORS_ORIGIN` is optional and only needed if your UI is on a different origin.
@@ -540,10 +540,10 @@ Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerf
 Build and run the server image locally or on any container host:
 
 ```bash
-docker build -f apps/server/Dockerfile -t goodbot-server .
+docker build -f apps/server/Dockerfile -t goodchat-server .
 docker run -p 3000:3000 \
   -e OPENAI_API_KEY=... \
-  goodbot-server
+  goodchat-server
 ```
 
 The Docker build runs `bun run build` so `apps/web/build` is produced and served by the API.

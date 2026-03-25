@@ -176,10 +176,10 @@ export const renderEnvFile = (variables: string[]): string => {
 };
 
 export const renderAppFile = (config: GeneratorConfig): string => {
-  const imports = ['import { createGoodbot } from "@goodbot/core";'];
+  const imports = ['import { createGoodchat } from "@goodchat/core";'];
   const plugins = config.plugins ?? [];
   if (plugins.includes("linear")) {
-    imports.push('import { linear } from "@goodbot/plugins/linear";');
+    imports.push('import { linear } from "@goodchat/plugins/linear";');
   }
 
   const entries: string[] = [
@@ -212,7 +212,7 @@ export const renderAppFile = (config: GeneratorConfig): string => {
 const isServerless =
   process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
 
-const { app, api } = await createGoodbot({
+const { app, api } = await createGoodchat({
 ${entries.join("\n")}
 });
 
@@ -246,7 +246,7 @@ export const renderPackageJson = (input: {
   usesPlugins: boolean;
 }): string => {
   const dependencies: Record<string, string> = {
-    "@goodbot/core": PUBLISHED_CORE_VERSION,
+    "@goodchat/core": PUBLISHED_CORE_VERSION,
     "@t3-oss/env-core": "^0.13.1",
     dotenv: "^17.2.2",
     elysia: "^1.4.28",
@@ -254,7 +254,7 @@ export const renderPackageJson = (input: {
   };
 
   if (input.usesPlugins) {
-    dependencies["@goodbot/plugins"] = PUBLISHED_PLUGINS_VERSION;
+    dependencies["@goodchat/plugins"] = PUBLISHED_PLUGINS_VERSION;
   }
 
   const devDependencies: Record<string, string> = {

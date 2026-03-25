@@ -1,4 +1,4 @@
-import type { MCPServerConfig } from "@goodbot/contracts/capabilities/types";
+import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type { Tool, UIMessageChunk } from "ai";
 
 export interface AiCallParams {

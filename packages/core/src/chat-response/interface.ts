@@ -1,4 +1,4 @@
-import type { MessageContext } from "@goodbot/contracts/plugins/types";
+import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import type { UIMessageChunk } from "ai";
 import type { Result } from "better-result";
 import type {
