@@ -1,5 +1,13 @@
 # @goodchat/plugins
 
+## 0.0.3
+
+### Patch Changes
+
+- fc5ae17: Fix packages build
+- Updated dependencies [fc5ae17]
+  - @goodchat/contracts@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes

@@ -5,20 +5,20 @@
     "": {
       "name": "goodchat",
       "devDependencies": {
-        "@biomejs/biome": "^2.4.8",
+        "@biomejs/biome": "^2.4.9",
         "@changesets/cli": "^2.30.0",
         "@goodchat/typescript-config": "workspace:*",
-        "@types/bun": "^1.3.10",
+        "@types/bun": "^1.3.11",
         "lefthook": "latest",
-        "turbo": "^2.8.17",
+        "turbo": "^2.8.20",
         "typescript": "^5.9.3",
         "ultracite": "7.2.4",
-        "vitest": "^4.1.0",
+        "vitest": "^4.1.1",
       },
     },
     "apps/cli": {
       "name": "@goodchat/create",
-      "version": "0.0.3",
+      "version": "0.0.4",
       "bin": {
         "create-goodchat": "dist/index.mjs",
       },
@@ -105,7 +105,7 @@
     },
     "packages/contracts": {
       "name": "@goodchat/contracts",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "dependencies": {
         "ai": "^6.0.116",
         "zod": "catalog:",
@@ -116,7 +116,7 @@
     },
     "packages/core": {
       "name": "@goodchat/core",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.30",
         "@ai-sdk/openai": "^3.0.41",
@@ -144,7 +144,7 @@
     },
     "packages/plugins": {
       "name": "@goodchat/plugins",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "dependencies": {
         "@goodchat/contracts": "workspace:*",
         "ai": "^6.0.116",
