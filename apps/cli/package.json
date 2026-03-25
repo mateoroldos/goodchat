@@ -29,12 +29,12 @@
     }
   },
   "dependencies": {
-    "@clack/prompts": "^0.10.0",
-    "@goodchat/contracts": "workspace:*",
-    "@goodchat/core": "workspace:*",
-    "@goodchat/plugins": "workspace:*"
+    "@clack/prompts": "^0.10.0"
   },
   "devDependencies": {
+    "@goodchat/contracts": "workspace:*",
+    "@goodchat/core": "workspace:*",
+    "@goodchat/plugins": "workspace:*",
     "@goodchat/typescript-config": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.21.4",
