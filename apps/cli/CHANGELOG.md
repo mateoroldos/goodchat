@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.2
+
+### Patch Changes
+
+- deb2212: Bundle internal deps
+
 ## 0.0.1
 
 ### Patch Changes
