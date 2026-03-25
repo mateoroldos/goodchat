@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.3
+
+### Patch Changes
+
+- 20c12df: Fix publish script for correct workspace and catalgo resolution
+
 ## 0.0.2
 
 ### Patch Changes
