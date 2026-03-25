@@ -1,5 +1,11 @@
 # @goodchat/core
 
+## 0.0.4
+
+### Patch Changes
+
+- 4ef48ad: Bundle web dashboard assets with @goodchat/core and resolve packaged build path by default, with a clear fallback when assets are missing.
+
 ## 0.0.3
 
 ### Patch Changes
