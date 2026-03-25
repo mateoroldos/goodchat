@@ -28,7 +28,7 @@
     "check:knip": "bunx --bun knip",
     "check:all": "bun run check && bun run check-types && bun run check:knip",
     "ci:version": "changeset version && bun update",
-    "ci:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish || true); done && changeset tag",
+    "ci:publish": "for dir in packages/* apps/cli; do (cd \"$dir\" && bun publish || true); done && changeset tag",
     "fix": "ultracite fix",
     "release": "bun run build && bun run ci:publish",
     "test": "vitest run",
