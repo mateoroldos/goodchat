@@ -12,4 +12,3 @@ if (!isServerless) {
 }
 
 export default serverApp;
-export type { App } from "./app";

@@ -179,3 +179,5 @@ export const createGoodbot = async (options: GoodbotOptionsInput) => {
 
   return { app, api, chatRuntime };
 };
+
+export type GoodbotApi = Awaited<ReturnType<typeof createGoodbot>>["api"];

@@ -1,9 +1,9 @@
 import { treaty } from "@elysiajs/eden";
-import type { App } from "../../../server/src/app";
+import type { GoodbotApi } from "@goodbot/core";
 
 const getBaseUrl = () =>
   typeof window === "undefined" ? "" : `${window.location.origin}`;
 
-export const eden = treaty<App>(getBaseUrl(), {
+export const eden = treaty<GoodbotApi>(getBaseUrl(), {
   fetcher: fetch,
 });

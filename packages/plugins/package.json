@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./dist/linear.cjs",
   "module": "./dist/linear.mjs",
-  "types": "./dist/linear.d.ts",
+  "types": "./dist/linear.d.mts",
   "files": [
     "dist/**"
   ],
@@ -20,7 +20,7 @@
   },
   "exports": {
     "./linear": {
-      "types": "./dist/linear.d.ts",
+      "types": "./dist/linear.d.mts",
       "import": "./dist/linear.mjs",
       "require": "./dist/linear.cjs"
     },

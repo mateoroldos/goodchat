@@ -54,6 +54,7 @@
       "name": "server",
       "dependencies": {
         "@goodbot/core": "workspace:*",
+        "@goodbot/plugins": "workspace:*",
         "@t3-oss/env-core": "^0.13.1",
         "dotenv": "catalog:",
         "elysia": "^1.4.21",
@@ -61,7 +62,6 @@
       },
       "devDependencies": {
         "@goodbot/contracts": "workspace:*",
-        "@goodbot/plugins": "workspace:*",
         "@goodbot/typescript-config": "workspace:*",
         "@types/bun": "catalog:",
         "tsdown": "^0.16.5",
@@ -77,6 +77,7 @@
       "devDependencies": {
         "@ai-sdk/svelte": "^4.0.134",
         "@elysiajs/eden": "^1.4.8",
+        "@goodbot/core": "workspace:*",
         "@internationalized/date": "^3.12.0",
         "@lucide/svelte": "^0.577.0",
         "@shikijs/themes": "^4.0.2",
