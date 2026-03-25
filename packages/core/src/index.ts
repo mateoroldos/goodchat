@@ -94,10 +94,9 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
   const rootDir = join(coreDir, "../../..");
   const packagedWebBuildPath = join(coreDir, "web");
   const workspaceWebBuildPath = join(rootDir, "apps/web/build");
-  const defaultWebBuildPath = existsSync(packagedWebBuildPath)
+  const webBuildPath = existsSync(packagedWebBuildPath)
     ? packagedWebBuildPath
     : workspaceWebBuildPath;
-  const webBuildPath = process.env.WEB_BUILD_PATH ?? defaultWebBuildPath;
 
   const botConfig: BotConfig = {
     id: id ?? deriveBotId(name),
@@ -183,7 +182,7 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
       app.get("/", ({ set }) => {
         set.status = 404;
         set.headers["content-type"] = "text/plain; charset=utf-8";
-        return "Dashboard build not found. Set WEB_BUILD_PATH or rebuild the web app.";
+        return "Dashboard build not found. Rebuild the web app.";
       });
     }
   }
