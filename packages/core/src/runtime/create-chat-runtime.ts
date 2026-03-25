@@ -1,9 +1,9 @@
-import type { BotConfig, Platform } from "@goodbot/contracts/config/types";
-import type { MessageContext } from "@goodbot/contracts/plugins/types";
+import type { BotConfig, Platform } from "@goodchat/contracts/config/types";
+import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import { DefaultAiResponseService } from "../ai-response";
 import { DefaultChatResponseService } from "../chat-response";
 import type { ChatResponseService } from "../chat-response/interface";
-import type { GoodbotExtensions } from "../extensions/models";
+import type { GoodchatExtensions } from "../extensions/models";
 import { DefaultChatGatewayService } from "../gateway/index";
 import type {
   ChatGatewayHandlers,
@@ -19,7 +19,7 @@ export interface ChatRuntime {
 export const createChatRuntime = (
   botConfig: BotConfig,
   messageStore: MessageStoreService,
-  extensions: GoodbotExtensions
+  extensions: GoodchatExtensions
 ): ChatRuntime => {
   const aiResponse = new DefaultAiResponseService();
   const responseHandler = new DefaultChatResponseService({

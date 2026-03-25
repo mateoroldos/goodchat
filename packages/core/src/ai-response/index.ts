@@ -1,7 +1,7 @@
 import { createMCPClient } from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
 import { openai } from "@ai-sdk/openai";
-import type { MCPServerConfig } from "@goodbot/contracts/capabilities/types";
+import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type { Tool } from "ai";
 import { generateText, stepCountIs, streamText } from "ai";
 import { Result } from "better-result";
@@ -115,7 +115,7 @@ const buildTools = async (
   for (const server of mcpServers) {
     const client = await createMCPClient({
       transport: createMcpTransport(server),
-      name: `goodbot:${server.name}`,
+      name: `goodchat:${server.name}`,
     });
     mcpClients.push(client);
     const tools = (await client.tools()) as Record<string, Tool>;

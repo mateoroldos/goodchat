@@ -1,6 +1,6 @@
 import type { DiscordAdapter } from "@chat-adapter/discord";
 import { cron, Patterns } from "@elysiajs/cron";
-import type { BotConfig, Platform } from "@goodbot/contracts/config/types";
+import type { BotConfig, Platform } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
 import type { ChatRuntime } from "../runtime/create-chat-runtime";
 

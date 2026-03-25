@@ -4,8 +4,8 @@ import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { createRedisState } from "@chat-adapter/state-redis";
 import { createTeamsAdapter } from "@chat-adapter/teams";
-import { CHAT_PLATFORMS } from "@goodbot/contracts/config/models";
-import type { Platform } from "@goodbot/contracts/config/types";
+import { CHAT_PLATFORMS } from "@goodchat/contracts/config/models";
+import type { Platform } from "@goodchat/contracts/config/types";
 import type { Adapter } from "chat";
 import { Chat } from "chat";
 import {

@@ -1,23 +1,23 @@
-import type { MCPServerConfig } from "@goodbot/contracts/capabilities/types";
+import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type {
-  GoodbotHooks,
-  GoodbotPlugin,
-} from "@goodbot/contracts/plugins/types";
+  GoodchatHooks,
+  GoodchatPlugin,
+} from "@goodchat/contracts/plugins/types";
 import type { Tool } from "ai";
-import type { GoodbotExtensions } from "./models";
+import type { GoodchatExtensions } from "./models";
 
 interface BaseExtensions {
-  hooks?: GoodbotHooks;
+  hooks?: GoodchatHooks;
   mcp?: MCPServerConfig[];
   systemPrompt?: string;
   tools?: Record<string, Tool>;
 }
 
 export const mergePlugins = (
-  plugins: GoodbotPlugin[],
+  plugins: GoodchatPlugin[],
   base: BaseExtensions = {}
-): GoodbotExtensions => {
-  const extensions: GoodbotExtensions = {
+): GoodchatExtensions => {
+  const extensions: GoodchatExtensions = {
     afterMessageHooks: [],
     beforeMessageHooks: [],
     mcp: [...(base.mcp ?? [])],

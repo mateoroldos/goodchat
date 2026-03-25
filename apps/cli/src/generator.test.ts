@@ -51,9 +51,9 @@ describe("generator helpers", () => {
 
   it("creates core project files", () => {
     const files = createProjectFiles({
-      projectName: "goodbot-app",
+      projectName: "goodchat-app",
       config: {
-        name: "goodbot",
+        name: "goodchat",
         prompt: "Be helpful",
         platforms: ["local"],
         withDashboard: true,

@@ -1,4 +1,4 @@
-import type { BotConfig } from "@goodbot/contracts/config/types";
+import type { BotConfig } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
 
 export const botController = (botConfig: BotConfig) =>

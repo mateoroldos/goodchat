@@ -1,9 +1,9 @@
-import type { BotConfig } from "@goodbot/contracts/config/types";
+import type { BotConfig } from "@goodchat/contracts/config/types";
 import type { UIMessageChunk } from "ai";
 import { readUIMessageStream } from "ai";
 import { Result } from "better-result";
 import type { AiResponseService } from "../ai-response/interface";
-import type { GoodbotExtensions } from "../extensions/models";
+import type { GoodchatExtensions } from "../extensions/models";
 import type { MessageStoreService } from "../message-store/interface";
 import type { MessageEntry } from "../message-store/models";
 import type { MessageContext } from "../types";
@@ -16,14 +16,14 @@ import type { ChatResponseService } from "./interface";
 interface ChatResponseDependencies {
   aiResponse: AiResponseService;
   botConfig: BotConfig;
-  extensions: GoodbotExtensions;
+  extensions: GoodchatExtensions;
   messageStore: MessageStoreService;
 }
 
 export class DefaultChatResponseService implements ChatResponseService {
   readonly #aiResponse: AiResponseService;
   readonly #botConfig: BotConfig;
-  readonly #extensions: GoodbotExtensions;
+  readonly #extensions: GoodchatExtensions;
   readonly #messageStore: MessageStoreService;
 
   constructor({

@@ -1,7 +1,7 @@
 import z from "zod";
 import { mcpServerSchema, toolSchema } from "../capabilities/models";
-import { goodbotHooksSchema } from "../hooks/models";
-import type { GoodbotPluginDefinition } from "./types";
+import { goodchatHooksSchema } from "../hooks/models";
+import type { GoodchatPluginDefinition } from "./types";
 
 const zodSchemaSchema = z.custom<z.ZodObject<z.ZodRawShape>>(
   (value) =>
@@ -11,16 +11,16 @@ const zodSchemaSchema = z.custom<z.ZodObject<z.ZodRawShape>>(
   }
 );
 
-export const goodbotPluginSchema = z.object({
-  hooks: goodbotHooksSchema.optional(),
+export const goodchatPluginSchema = z.object({
+  hooks: goodchatHooksSchema.optional(),
   mcp: z.array(mcpServerSchema).optional(),
   name: z.string().min(1, "Plugin name is required"),
   systemPrompt: z.string().optional(),
   tools: z.record(z.string(), toolSchema).optional(),
 });
 
-export const goodbotPluginDefinitionSchema = z.object({
-  create: z.custom<GoodbotPluginDefinition["create"]>(
+export const goodchatPluginDefinitionSchema = z.object({
+  create: z.custom<GoodchatPluginDefinition["create"]>(
     (value) => typeof value === "function",
     {
       message: "Expected a function",
@@ -30,4 +30,4 @@ export const goodbotPluginDefinitionSchema = z.object({
   name: z.string().min(1, "Plugin name is required"),
 });
 
-export type GoodbotPluginSchemaInput = z.infer<typeof goodbotPluginSchema>;
+export type GoodchatPluginSchemaInput = z.infer<typeof goodchatPluginSchema>;

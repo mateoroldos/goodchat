@@ -1,5 +1,5 @@
 {
-  "name": "create-goodbot",
+  "name": "create-goodchat",
   "version": "0.0.0",
   "private": false,
   "type": "module",
@@ -13,7 +13,7 @@
     "access": "public"
   },
   "bin": {
-    "create-goodbot": "dist/index.mjs"
+    "create-goodchat": "dist/index.mjs"
   },
   "scripts": {
     "build": "tsdown",
@@ -30,12 +30,12 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.10.0",
-    "@goodbot/contracts": "workspace:*",
-    "@goodbot/core": "workspace:*",
-    "@goodbot/plugins": "workspace:*"
+    "@goodchat/contracts": "workspace:*",
+    "@goodchat/core": "workspace:*",
+    "@goodchat/plugins": "workspace:*"
   },
   "devDependencies": {
-    "@goodbot/typescript-config": "workspace:*",
+    "@goodchat/typescript-config": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.21.4",
     "typescript": "catalog:",

@@ -1,8 +1,8 @@
 ---
-"@goodbot/contracts": patch
-"@goodbot/plugins": patch
-"@goodbot/core": patch
-"create-goodbot": patch
+"@goodchat/contracts": patch
+"@goodchat/plugins": patch
+"@goodchat/core": patch
+"create-goodchat": patch
 ---
 
 Initial release

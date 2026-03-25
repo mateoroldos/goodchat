@@ -1,5 +1,5 @@
-import type { BotConfig } from "@goodbot/contracts/config/types";
-import type { MessageContext } from "@goodbot/contracts/plugins/types";
+import type { BotConfig } from "@goodchat/contracts/config/types";
+import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import { createUIMessageStreamResponse } from "ai";
 import { Elysia, t } from "elysia";
 import type { ChatResponseService } from "../chat-response/interface";
