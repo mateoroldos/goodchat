@@ -1,5 +1,5 @@
 {
-  "name": "@goodbot/core",
+  "name": "@goodchat/core",
   "version": "0.0.0",
   "private": false,
   "type": "module",
@@ -43,7 +43,7 @@
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/openapi": "^1.4.14",
     "@elysiajs/static": "^1.4.7",
-    "@goodbot/contracts": "workspace:*",
+    "@goodchat/contracts": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "ai": "^6.0.116",
     "better-result": "^2.7.0",

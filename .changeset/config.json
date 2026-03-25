@@ -11,7 +11,7 @@
     "web",
     "server",
     "landing",
-    "@goodbot/styles",
-    "@goodbot/typescript-config"
+    "@goodchat/styles",
+    "@goodchat/typescript-config"
   ]
 }

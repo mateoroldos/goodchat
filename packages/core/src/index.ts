@@ -7,17 +7,17 @@ import { staticPlugin } from "@elysiajs/static";
 import {
   mcpServerSchema,
   toolSchema,
-} from "@goodbot/contracts/capabilities/models";
-import { botConfigSchema } from "@goodbot/contracts/config/models";
-import type { BotConfig } from "@goodbot/contracts/config/types";
-import { deriveBotId } from "@goodbot/contracts/config/utils";
-import { goodbotHooksSchema } from "@goodbot/contracts/hooks/models";
+} from "@goodchat/contracts/capabilities/models";
+import { botConfigSchema } from "@goodchat/contracts/config/models";
+import type { BotConfig } from "@goodchat/contracts/config/types";
+import { deriveBotId } from "@goodchat/contracts/config/utils";
+import { goodchatHooksSchema } from "@goodchat/contracts/hooks/models";
 import {
-  goodbotPluginDefinitionSchema,
-  goodbotPluginSchema,
-} from "@goodbot/contracts/plugins/models";
-import type { GoodbotPlugin } from "@goodbot/contracts/plugins/types";
-import { isPluginDefinition } from "@goodbot/contracts/plugins/types";
+  goodchatPluginDefinitionSchema,
+  goodchatPluginSchema,
+} from "@goodchat/contracts/plugins/models";
+import type { GoodchatPlugin } from "@goodchat/contracts/plugins/types";
+import { isPluginDefinition } from "@goodchat/contracts/plugins/types";
 import { Elysia } from "elysia";
 import z from "zod";
 import { validatePluginEnv } from "./extensions/env";
@@ -37,9 +37,9 @@ const corsOriginSchema = z.custom<string | ((request: Request) => boolean)>(
   }
 );
 
-export const goodbotOptionsSchema = botConfigSchema.extend({
+export const goodchatOptionsSchema = botConfigSchema.extend({
   corsOrigin: corsOriginSchema.optional(),
-  hooks: goodbotHooksSchema.optional(),
+  hooks: goodchatHooksSchema.optional(),
   id: z.string().min(1, "Bot id is required").optional(),
   isServerless: z.boolean().optional(),
   mcp: z.array(mcpServerSchema).optional(),
@@ -47,14 +47,14 @@ export const goodbotOptionsSchema = botConfigSchema.extend({
   name: z.string().min(1, "Bot name is required"),
   platforms: botConfigSchema.shape.platforms,
   plugins: z
-    .array(z.union([goodbotPluginDefinitionSchema, goodbotPluginSchema]))
+    .array(z.union([goodchatPluginDefinitionSchema, goodchatPluginSchema]))
     .optional(),
   prompt: z.string().min(1, "Bot prompt is required"),
   tools: z.record(z.string(), toolSchema).optional(),
   withDashboard: z.boolean().optional(),
 });
 
-export type GoodbotOptionsInput = z.infer<typeof goodbotOptionsSchema>;
+export type GoodchatOptionsInput = z.infer<typeof goodchatOptionsSchema>;
 
 const sameOriginCors = (request: Request) => {
   const origin = request.headers.get("origin");
@@ -74,7 +74,7 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
-export const createGoodbot = async (options: GoodbotOptionsInput) => {
+export const createGoodchat = async (options: GoodchatOptionsInput) => {
   const {
     name,
     prompt,
@@ -88,7 +88,7 @@ export const createGoodbot = async (options: GoodbotOptionsInput) => {
     mcp,
     withDashboard = true,
     isServerless = false,
-  } = goodbotOptionsSchema.parse(options);
+  } = goodchatOptionsSchema.parse(options);
   const coreDir = dirname(fileURLToPath(import.meta.url));
   const rootDir = join(coreDir, "../../..");
   const webBuildPath =
@@ -101,7 +101,7 @@ export const createGoodbot = async (options: GoodbotOptionsInput) => {
     platforms,
   };
 
-  const resolvedPlugins: GoodbotPlugin[] = plugins.map((p) => {
+  const resolvedPlugins: GoodchatPlugin[] = plugins.map((p) => {
     if (!isPluginDefinition(p)) {
       return p;
     }
@@ -180,4 +180,4 @@ export const createGoodbot = async (options: GoodbotOptionsInput) => {
   return { app, api, chatRuntime };
 };
 
-export type GoodbotApi = Awaited<ReturnType<typeof createGoodbot>>["api"];
+export type GoodchatApi = Awaited<ReturnType<typeof createGoodchat>>["api"];

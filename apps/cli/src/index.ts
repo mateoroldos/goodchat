@@ -11,8 +11,8 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
-import { CHAT_PLATFORMS } from "@goodbot/contracts/config/models";
-import { deriveBotId } from "@goodbot/contracts/config/utils";
+import { CHAT_PLATFORMS } from "@goodchat/contracts/config/models";
+import { deriveBotId } from "@goodchat/contracts/config/utils";
 import {
   createProjectFiles,
   type GeneratorConfig,
@@ -216,12 +216,12 @@ const promptMcpServers = async (): Promise<McpServerConfig[]> => {
 };
 
 const run = async (): Promise<void> => {
-  intro("Goodbot generator");
+  intro("Goodchat generator");
 
   const projectName = handleCancel(
     await text({
       message: "Project name",
-      initialValue: "goodbot-app",
+      initialValue: "goodchat-app",
       validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
     })
   );

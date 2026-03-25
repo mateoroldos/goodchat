@@ -14,7 +14,7 @@ export interface BotResponse {
   text: string;
 }
 
-export interface GoodbotHooks {
+export interface GoodchatHooks {
   afterMessage?: (
     message: MessageContext,
     response: BotResponse

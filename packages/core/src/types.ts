@@ -2,16 +2,16 @@ export type {
   MCPServerConfig,
   MCPTransportConfig,
   ToolConfig,
-} from "@goodbot/contracts/capabilities/types";
+} from "@goodchat/contracts/capabilities/types";
 export type {
   BotConfig,
   BotConfigInput,
   Platform,
-} from "@goodbot/contracts/config/types";
+} from "@goodchat/contracts/config/types";
 export type {
   BotResponse,
-  GoodbotHooks,
-  GoodbotPlugin,
-  GoodbotPluginDefinition,
+  GoodchatHooks,
+  GoodchatPlugin,
+  GoodchatPluginDefinition,
   MessageContext,
-} from "@goodbot/contracts/plugins/types";
+} from "@goodchat/contracts/plugins/types";

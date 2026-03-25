@@ -1,4 +1,4 @@
-import type { BotConfig } from "@goodbot/contracts/config/types";
+import type { BotConfig } from "@goodchat/contracts/config/types";
 import { createUIMessageStream } from "ai";
 import { Result } from "better-result";
 import { Elysia } from "elysia";
@@ -6,11 +6,11 @@ import { describe, expect, it } from "vitest";
 import type { AiResponseService } from "../ai-response/interface";
 import type { AiCallParams } from "../ai-response/models";
 import { DefaultChatResponseService } from "../chat-response";
-import type { GoodbotExtensions } from "../extensions/models";
+import type { GoodchatExtensions } from "../extensions/models";
 import { InMemoryMessageStoreService } from "../message-store";
 import { localChatController } from "./local-chat-controller";
 
-const emptyExtensions: GoodbotExtensions = {
+const emptyExtensions: GoodchatExtensions = {
   afterMessageHooks: [],
   beforeMessageHooks: [],
   mcp: [],

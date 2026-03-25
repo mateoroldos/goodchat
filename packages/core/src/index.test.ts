@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createGoodbot } from "./index";
+import { createGoodchat } from "./index";
 
-describe("createGoodbot", () => {
+describe("createGoodchat", () => {
   it("rejects empty bot names", async () => {
     await expect(
-      createGoodbot({
+      createGoodchat({
         name: "",
         prompt: "Be helpful",
         platforms: ["local"],
@@ -16,7 +16,7 @@ describe("createGoodbot", () => {
 
   it("rejects plugins without a name", async () => {
     await expect(
-      createGoodbot({
+      createGoodchat({
         name: "Valid",
         prompt: "Be helpful",
         platforms: ["local"],

@@ -1,5 +1,5 @@
-import type { BotConfig } from "@goodbot/contracts/config/types";
-import { createGoodbot } from "@goodbot/core";
+import type { BotConfig } from "@goodchat/contracts/config/types";
+import { createGoodchat } from "@goodchat/core";
 import { Elysia } from "elysia";
 
 export const createTestApp = async (bots: BotConfig[] = []) => {
@@ -7,13 +7,13 @@ export const createTestApp = async (bots: BotConfig[] = []) => {
   const app = new Elysia().get("/", () => "OK");
 
   if (botConfig) {
-    const goodbot = await createGoodbot({
+    const goodchat = await createGoodchat({
       ...botConfig,
       withDashboard: false,
       isServerless: true,
     });
 
-    app.use(goodbot.app);
+    app.use(goodchat.app);
   }
 
   return { app };

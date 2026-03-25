@@ -1,7 +1,7 @@
 import z from "zod";
-import type { GoodbotHooks } from "./types";
+import type { GoodchatHooks } from "./types";
 
-const afterMessageSchema = z.custom<NonNullable<GoodbotHooks["afterMessage"]>>(
+const afterMessageSchema = z.custom<NonNullable<GoodchatHooks["afterMessage"]>>(
   (value) => typeof value === "function",
   {
     message: "Expected a function",
@@ -9,14 +9,14 @@ const afterMessageSchema = z.custom<NonNullable<GoodbotHooks["afterMessage"]>>(
 );
 
 const beforeMessageSchema = z.custom<
-  NonNullable<GoodbotHooks["beforeMessage"]>
+  NonNullable<GoodchatHooks["beforeMessage"]>
 >((value) => typeof value === "function", {
   message: "Expected a function",
 });
 
-export const goodbotHooksSchema = z.object({
+export const goodchatHooksSchema = z.object({
   afterMessage: afterMessageSchema.optional(),
   beforeMessage: beforeMessageSchema.optional(),
 });
 
-export type GoodbotHooksSchemaInput = z.infer<typeof goodbotHooksSchema>;
+export type GoodchatHooksSchemaInput = z.infer<typeof goodchatHooksSchema>;

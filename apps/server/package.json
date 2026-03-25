@@ -1,5 +1,6 @@
 {
   "name": "server",
+  "private": true,
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
@@ -10,16 +11,16 @@
     "start": "bun run dist/index.mjs"
   },
   "dependencies": {
-    "@goodbot/core": "workspace:*",
-    "@goodbot/plugins": "workspace:*",
+    "@goodchat/core": "workspace:*",
+    "@goodchat/plugins": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "dotenv": "catalog:",
     "elysia": "^1.4.21",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@goodbot/typescript-config": "workspace:*",
-    "@goodbot/contracts": "workspace:*",
+    "@goodchat/typescript-config": "workspace:*",
+    "@goodchat/contracts": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.16.5",
     "typescript": "catalog:"

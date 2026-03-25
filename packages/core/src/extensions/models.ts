@@ -1,10 +1,10 @@
-import type { MCPServerConfig } from "@goodbot/contracts/capabilities/types";
-import type { GoodbotHooks } from "@goodbot/contracts/plugins/types";
+import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
+import type { GoodchatHooks } from "@goodchat/contracts/plugins/types";
 import type { Tool } from "ai";
 
-export interface GoodbotExtensions {
-  afterMessageHooks: NonNullable<GoodbotHooks["afterMessage"]>[];
-  beforeMessageHooks: NonNullable<GoodbotHooks["beforeMessage"]>[];
+export interface GoodchatExtensions {
+  afterMessageHooks: NonNullable<GoodchatHooks["afterMessage"]>[];
+  beforeMessageHooks: NonNullable<GoodchatHooks["beforeMessage"]>[];
   mcp: MCPServerConfig[];
   systemPrompt: string;
   tools: Record<string, Tool>;
