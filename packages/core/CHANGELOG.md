@@ -1,5 +1,13 @@
 # @goodchat/core
 
+## 0.0.2
+
+### Patch Changes
+
+- 20c12df: Fix publish script for correct workspace and catalgo resolution
+- Updated dependencies [20c12df]
+  - @goodchat/contracts@0.0.2
+
 ## 0.0.1
 
 ### Patch Changes
