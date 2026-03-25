@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.4
+
+### Patch Changes
+
+- fc5ae17: Fix packages build
+
 ## 0.0.3
 
 ### Patch Changes
