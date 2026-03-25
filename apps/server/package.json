@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@goodbot/core": "workspace:*",
+    "@goodbot/plugins": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "dotenv": "catalog:",
     "elysia": "^1.4.21",
@@ -19,7 +20,6 @@
   "devDependencies": {
     "@goodbot/typescript-config": "workspace:*",
     "@goodbot/contracts": "workspace:*",
-    "@goodbot/plugins": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.16.5",
     "typescript": "catalog:"
