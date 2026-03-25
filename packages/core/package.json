@@ -16,7 +16,8 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "check-types": "tsc -b"
+    "check-types": "tsc -b",
+    "prepack": "bunx turbo build --filter=web --filter=@goodchat/core && bun ../../scripts/copy-web-assets.mjs"
   },
   "exports": {
     ".": {

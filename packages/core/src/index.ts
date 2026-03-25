@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -91,12 +90,8 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     isServerless = false,
   } = goodchatOptionsSchema.parse(options);
   const coreDir = dirname(fileURLToPath(import.meta.url));
-  const rootDir = join(coreDir, "../../..");
   const packagedWebBuildPath = join(coreDir, "web");
-  const workspaceWebBuildPath = join(rootDir, "apps/web/build");
-  const webBuildPath = existsSync(packagedWebBuildPath)
-    ? packagedWebBuildPath
-    : workspaceWebBuildPath;
+  const webBuildPath = packagedWebBuildPath;
 
   const botConfig: BotConfig = {
     id: id ?? deriveBotId(name),
@@ -175,15 +170,7 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
         return webIndexHtml;
       });
     } catch (error) {
-      if (webhookEnv.NODE_ENV === "production") {
-        throw error;
-      }
-
-      app.get("/", ({ set }) => {
-        set.status = 404;
-        set.headers["content-type"] = "text/plain; charset=utf-8";
-        return "Dashboard build not found. Rebuild the web app.";
-      });
+      throw new Error("Dashboard build not found at found.", { cause: error });
     }
   }
 
