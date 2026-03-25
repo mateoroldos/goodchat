@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -91,8 +92,12 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
   } = goodchatOptionsSchema.parse(options);
   const coreDir = dirname(fileURLToPath(import.meta.url));
   const rootDir = join(coreDir, "../../..");
-  const webBuildPath =
-    process.env.WEB_BUILD_PATH ?? join(rootDir, "apps/web/build");
+  const packagedWebBuildPath = join(coreDir, "web");
+  const workspaceWebBuildPath = join(rootDir, "apps/web/build");
+  const defaultWebBuildPath = existsSync(packagedWebBuildPath)
+    ? packagedWebBuildPath
+    : workspaceWebBuildPath;
+  const webBuildPath = process.env.WEB_BUILD_PATH ?? defaultWebBuildPath;
 
   const botConfig: BotConfig = {
     id: id ?? deriveBotId(name),
@@ -174,6 +179,12 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
       if (webhookEnv.NODE_ENV === "production") {
         throw error;
       }
+
+      app.get("/", ({ set }) => {
+        set.status = 404;
+        set.headers["content-type"] = "text/plain; charset=utf-8";
+        return "Dashboard build not found. Set WEB_BUILD_PATH or rebuild the web app.";
+      });
     }
   }
 
