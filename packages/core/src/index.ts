@@ -14,13 +14,17 @@ import { deriveBotId } from "@goodchat/contracts/config/utils";
 import { goodchatHooksSchema } from "@goodchat/contracts/hooks/models";
 import {
   goodchatPluginDefinitionSchema,
+  goodchatPluginFactorySchema,
   goodchatPluginSchema,
 } from "@goodchat/contracts/plugins/models";
 import type { GoodchatPlugin } from "@goodchat/contracts/plugins/types";
-import { isPluginDefinition } from "@goodchat/contracts/plugins/types";
+import {
+  isPluginDefinition,
+  isPluginFactory,
+} from "@goodchat/contracts/plugins/types";
 import { Elysia } from "elysia";
 import z from "zod";
-import { validatePluginEnv } from "./extensions/env";
+import { validatePluginEnv, validatePluginParams } from "./extensions/env";
 import { mergePlugins } from "./extensions/merge";
 import { InMemoryMessageStoreService } from "./message-store/index";
 import type { MessageStoreService } from "./message-store/interface";
@@ -47,7 +51,13 @@ export const goodchatOptionsSchema = botConfigSchema.extend({
   name: z.string().min(1, "Bot name is required"),
   platforms: botConfigSchema.shape.platforms,
   plugins: z
-    .array(z.union([goodchatPluginDefinitionSchema, goodchatPluginSchema]))
+    .array(
+      z.union([
+        goodchatPluginDefinitionSchema,
+        goodchatPluginFactorySchema,
+        goodchatPluginSchema,
+      ])
+    )
     .optional(),
   prompt: z.string().min(1, "Bot prompt is required"),
   tools: z.record(z.string(), toolSchema).optional(),
@@ -101,11 +111,34 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
   };
 
   const resolvedPlugins: GoodchatPlugin[] = plugins.map((p) => {
-    if (!isPluginDefinition(p)) {
-      return p;
+    const pluginDefinition = isPluginFactory(p) ? p() : p;
+    if (!isPluginDefinition(pluginDefinition)) {
+      return pluginDefinition;
     }
-    const env = p.env ? validatePluginEnv(p.name, p.env) : ({} as never);
-    return { name: p.name, ...p.create(env) };
+    const env = pluginDefinition.env
+      ? validatePluginEnv(pluginDefinition.name, pluginDefinition.env)
+      : ({} as never);
+    if (pluginDefinition.paramsSchema) {
+      if (pluginDefinition.params === undefined) {
+        throw new Error(
+          `Plugin "${pluginDefinition.name}" params are required. Check the plugin configuration values.`
+        );
+      }
+      const params = validatePluginParams(
+        pluginDefinition.name,
+        pluginDefinition.paramsSchema,
+        pluginDefinition.params
+      );
+      return {
+        name: pluginDefinition.name,
+        ...pluginDefinition.create(env, params),
+      };
+    }
+
+    return {
+      name: pluginDefinition.name,
+      ...pluginDefinition.create(env, undefined),
+    };
   });
 
   const extensions = mergePlugins(resolvedPlugins, { hooks, mcp, tools });
