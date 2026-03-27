@@ -115,6 +115,7 @@ export class DefaultChatResponseService implements ChatResponseService {
       userMessage: context.text,
       tools: this.#extensions.tools,
       mcp: this.#extensions.mcp,
+      modelId: this.#botConfig.modelId,
     };
   }
 

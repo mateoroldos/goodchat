@@ -1,6 +1,5 @@
 import { createMCPClient } from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
-import { openai } from "@ai-sdk/openai";
 import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type { Tool } from "ai";
 import { generateText, stepCountIs, streamText } from "ai";
@@ -9,7 +8,7 @@ import { AiResponseGenerationError } from "./errors";
 import type { AiResponseService } from "./interface";
 import type { AiCallParams } from "./models";
 
-const DEFAULT_MODEL_ID = "gpt-4.1-nano";
+const DEFAULT_MODEL_ID = "openai/gpt-4.1-nano";
 const TOOL_USE_MAX_STEPS = 8;
 
 interface AiProviderFunctions {
@@ -87,7 +86,7 @@ export class DefaultAiResponseService implements AiResponseService {
   async #prepareCall(params: AiCallParams) {
     const { tools, closeMcpClients } = await buildTools(params);
     return {
-      model: openai(params.modelId ?? DEFAULT_MODEL_ID),
+      model: params.modelId ?? DEFAULT_MODEL_ID,
       system: params.systemPrompt,
       prompt: params.userMessage,
       tools: Object.keys(tools).length > 0 ? tools : undefined,

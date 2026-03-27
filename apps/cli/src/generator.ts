@@ -22,6 +22,7 @@ export interface GeneratorConfig {
   id?: string;
   isServerless: boolean;
   mcp?: McpServerConfig[];
+  modelId?: string;
   name: string;
   platforms: Platform[];
   plugins?: string[];
@@ -194,6 +195,10 @@ export const renderAppFile = (config: GeneratorConfig): string => {
 
   if (plugins.length > 0) {
     entries.push(`  plugins: [${plugins.join(", ")}],`);
+  }
+
+  if (config.modelId) {
+    entries.push(`  modelId: ${JSON.stringify(config.modelId)},`);
   }
 
   if (config.mcp && config.mcp.length > 0) {

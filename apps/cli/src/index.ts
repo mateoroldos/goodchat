@@ -21,6 +21,38 @@ import {
   type Platform,
 } from "./generator";
 
+const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+\/[\w.-]+$/i;
+const MODEL_OPTIONS = [
+  {
+    label: "OpenAI GPT-4.1 Mini",
+    value: "openai/gpt-4.1-mini",
+  },
+  {
+    label: "OpenAI GPT-4.1",
+    value: "openai/gpt-4.1",
+  },
+  {
+    label: "Anthropic Claude Sonnet 4.6",
+    value: "anthropic/claude-sonnet-4.6",
+  },
+  {
+    label: "Google Gemini 2.5 Flash",
+    value: "google/gemini-2.5-flash",
+  },
+  {
+    label: "Google Gemini 2.5 Pro",
+    value: "google/gemini-2.5-pro",
+  },
+  {
+    label: "Custom (enter provider/model)",
+    value: "custom",
+  },
+  {
+    label: "Use default (openai/gpt-4.1-nano)",
+    value: "default",
+  },
+];
+
 const handleCancel = <T>(value: T | symbol): T => {
   if (isCancel(value)) {
     cancel("Setup cancelled.");
@@ -253,6 +285,30 @@ const run = async (): Promise<void> => {
     })
   );
 
+  const modelSelection = handleCancel(
+    await select({
+      message: "Select model (provider/model)",
+      options: MODEL_OPTIONS,
+      initialValue: "default",
+    })
+  );
+
+  let modelId: string | undefined;
+  if (modelSelection === "custom") {
+    modelId = handleCancel(
+      await text({
+        message: "Model id (provider/model)",
+        placeholder: "openai/gpt-4.1-nano",
+        validate: (value) =>
+          LLM_MODEL_ID_REGEX.test(value.trim())
+            ? undefined
+            : "Use provider/model format",
+      })
+    );
+  } else if (modelSelection !== "default") {
+    modelId = modelSelection as string;
+  }
+
   const platforms = handleCancel(
     await multiselect({
       message: "Select platforms",
@@ -315,6 +371,7 @@ const run = async (): Promise<void> => {
     isServerless,
     id,
     plugins,
+    modelId,
     mcp: mcp.length > 0 ? mcp : undefined,
   };
 
