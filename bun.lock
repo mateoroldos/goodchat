@@ -18,7 +18,7 @@
     },
     "apps/cli": {
       "name": "@goodchat/create",
-      "version": "0.0.5",
+      "version": "0.0.6",
       "bin": {
         "create-goodchat": "dist/index.mjs",
       },
@@ -108,7 +108,7 @@
     },
     "packages/contracts": {
       "name": "@goodchat/contracts",
-      "version": "0.0.4",
+      "version": "0.0.5",
       "dependencies": {
         "ai": "^6.0.116",
         "zod": "catalog:",
@@ -119,7 +119,7 @@
     },
     "packages/core": {
       "name": "@goodchat/core",
-      "version": "0.0.5",
+      "version": "0.0.6",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.64",
         "@ai-sdk/google": "^3.0.53",
@@ -149,7 +149,7 @@
     },
     "packages/plugins": {
       "name": "@goodchat/plugins",
-      "version": "0.0.4",
+      "version": "0.0.5",
       "dependencies": {
         "@goodchat/contracts": "workspace:*",
         "ai": "^6.0.116",
