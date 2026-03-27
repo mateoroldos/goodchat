@@ -10,14 +10,17 @@ export const CHAT_PLATFORMS = [
 
 export const platformSchema = z.enum(CHAT_PLATFORMS);
 
-const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+\/[\w.-]+$/i;
+const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+[/:][\w.-]+$/i;
 
 export const botConfigSchema = z.object({
   name: z.string().min(1, "Bot name is required"),
   prompt: z.string().min(1, "Bot prompt is required"),
   platforms: z.array(platformSchema).min(1, "Platform is required"),
-  modelId: z
+  model: z
     .string()
-    .regex(LLM_MODEL_ID_REGEX, "Model must be in provider/model format")
+    .regex(
+      LLM_MODEL_ID_REGEX,
+      "Model must be in provider/model or provider:model format"
+    )
     .optional(),
 });

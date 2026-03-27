@@ -7,5 +7,5 @@ export const botController = (botConfig: BotConfig) =>
     name: botConfig.name,
     prompt: botConfig.prompt,
     platforms: botConfig.platforms,
-    modelId: botConfig.modelId,
+    model: botConfig.model,
   }));

@@ -1,5 +1,8 @@
+import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
+import { openai } from "@ai-sdk/openai";
 import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type { Tool } from "ai";
 import { generateText, stepCountIs, streamText } from "ai";
@@ -9,6 +12,7 @@ import type { AiResponseService } from "./interface";
 import type { AiCallParams } from "./models";
 
 const DEFAULT_MODEL_ID = "openai/gpt-4.1-nano";
+const DIRECT_MODEL_ID_REGEX = /^[a-z0-9-]+:[\w.-]+$/i;
 const TOOL_USE_MAX_STEPS = 8;
 
 interface AiProviderFunctions {
@@ -86,7 +90,7 @@ export class DefaultAiResponseService implements AiResponseService {
   async #prepareCall(params: AiCallParams) {
     const { tools, closeMcpClients } = await buildTools(params);
     return {
-      model: params.modelId ?? DEFAULT_MODEL_ID,
+      model: resolveModel(params.model ?? DEFAULT_MODEL_ID),
       system: params.systemPrompt,
       prompt: params.userMessage,
       tools: Object.keys(tools).length > 0 ? tools : undefined,
@@ -94,6 +98,29 @@ export class DefaultAiResponseService implements AiResponseService {
     };
   }
 }
+
+const resolveModel = (modelId: string) => {
+  if (!DIRECT_MODEL_ID_REGEX.test(modelId)) {
+    return modelId;
+  }
+
+  const separatorIndex = modelId.indexOf(":");
+  const provider = modelId.slice(0, separatorIndex).toLowerCase();
+  const modelName = modelId.slice(separatorIndex + 1);
+
+  switch (provider) {
+    case "openai":
+      return openai(modelName);
+    case "anthropic":
+      return anthropic(modelName);
+    case "google":
+      return google(modelName);
+    default:
+      throw new Error(
+        `Direct provider "${provider}" is not supported. Use provider/model for gateway models or provider:model for supported direct providers.`
+      );
+  }
+};
 
 const buildTools = async (
   params: AiCallParams

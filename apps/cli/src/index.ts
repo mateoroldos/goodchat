@@ -20,7 +20,7 @@ import {
   type Platform,
 } from "./generator";
 
-const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+\/[\w.-]+$/i;
+const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+[/:][\w.-]+$/i;
 const MODEL_OPTIONS = [
   {
     label: "OpenAI GPT-4.1 Mini",
@@ -43,11 +43,11 @@ const MODEL_OPTIONS = [
     value: "google/gemini-2.5-pro",
   },
   {
-    label: "Custom (enter provider/model)",
+    label: "Custom (AI Gateway / or direct :)",
     value: "custom",
   },
   {
-    label: "Use default (openai/gpt-4.1-nano)",
+    label: "Use default (openai/gpt-4.1-nano via AI Gateway)",
     value: "default",
   },
 ];
@@ -289,26 +289,28 @@ const run = async (): Promise<void> => {
 
   const modelSelection = handleCancel(
     await select({
-      message: "Select model (provider/model)",
+      message:
+        "Select model (provider/model for AI Gateway, provider:model for direct)",
       options: MODEL_OPTIONS,
       initialValue: "default",
     })
   );
 
-  let modelId: string | undefined;
+  let model: string | undefined;
   if (modelSelection === "custom") {
-    modelId = handleCancel(
+    model = handleCancel(
       await text({
-        message: "Model id (provider/model)",
-        placeholder: "openai/gpt-4.1-nano",
+        message:
+          "Model id (provider/model = AI Gateway, provider:model = direct)",
+        placeholder: "openai/gpt-4.1-nano or openai:gpt-5.2-nano",
         validate: (value) =>
           LLM_MODEL_ID_REGEX.test(value.trim())
             ? undefined
-            : "Use provider/model format",
+            : "Use provider/model (gateway) or provider:model (direct)",
       })
     );
   } else if (modelSelection !== "default") {
-    modelId = modelSelection as string;
+    model = modelSelection as string;
   }
 
   const platforms = handleCancel(
@@ -351,7 +353,7 @@ const run = async (): Promise<void> => {
     isServerless,
     id,
     plugins,
-    modelId,
+    model,
     mcp: mcp.length > 0 ? mcp : undefined,
   };
 

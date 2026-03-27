@@ -3,7 +3,7 @@ import type { Tool, UIMessageChunk } from "ai";
 
 export interface AiCallParams {
   mcp?: MCPServerConfig[];
-  modelId?: string;
+  model?: string;
   systemPrompt: string;
   tools?: Record<string, Tool>;
   userMessage: string;
