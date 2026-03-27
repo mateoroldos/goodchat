@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 export type Platform = "local" | "slack" | "discord" | "teams" | "gchat";
 
 export type McpTransport =
@@ -111,8 +115,49 @@ const ENV_DEFAULTS: Record<string, string> = {
   CORS_ORIGIN: "http://localhost:3000",
 };
 
-const PUBLISHED_CORE_VERSION = "^0.0.1";
-const PUBLISHED_PLUGINS_VERSION = "^0.0.1";
+const WORKSPACE_ROOT = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "../../.."
+);
+
+const readWorkspaceVersion = (packageRelativePath: string): string | null => {
+  try {
+    const filePath = resolve(WORKSPACE_ROOT, packageRelativePath);
+    const content = readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(content) as { version?: unknown };
+    if (
+      typeof parsed.version !== "string" ||
+      parsed.version.trim().length === 0
+    ) {
+      return null;
+    }
+    return parsed.version;
+  } catch {
+    return null;
+  }
+};
+
+const formatPublishedVersion = (
+  version: string | null,
+  fallback: string
+): string => {
+  if (!version) {
+    return fallback;
+  }
+  if (version.startsWith("^") || version.startsWith("~")) {
+    return version;
+  }
+  return `^${version}`;
+};
+
+const PUBLISHED_CORE_VERSION = formatPublishedVersion(
+  readWorkspaceVersion("packages/core/package.json"),
+  "^0.0.1"
+);
+const PUBLISHED_PLUGINS_VERSION = formatPublishedVersion(
+  readWorkspaceVersion("packages/plugins/package.json"),
+  "^0.0.1"
+);
 
 const unique = (items: string[]): string[] => {
   const seen = new Set<string>();
