@@ -1,5 +1,11 @@
 import { createEnv } from "@t3-oss/env-core";
-import type { ZodObject, output as ZodOutput, ZodRawShape } from "zod";
+import type {
+  input as ZodInput,
+  ZodObject,
+  output as ZodOutput,
+  ZodRawShape,
+  ZodTypeAny,
+} from "zod";
 
 export const validatePluginEnv = <TShape extends ZodRawShape>(
   pluginName: string,
@@ -19,4 +25,19 @@ export const validatePluginEnv = <TShape extends ZodRawShape>(
       { cause: error }
     );
   }
+};
+
+export const validatePluginParams = <TSchema extends ZodTypeAny>(
+  pluginName: string,
+  paramsSchema: TSchema,
+  params: ZodInput<TSchema>
+): ZodOutput<TSchema> => {
+  const parsed = paramsSchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error(
+      `Plugin "${pluginName}" params validation failed. Check the plugin configuration values.`,
+      { cause: parsed.error }
+    );
+  }
+  return parsed.data;
 };

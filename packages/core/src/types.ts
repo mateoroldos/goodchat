@@ -13,5 +13,6 @@ export type {
   GoodchatHooks,
   GoodchatPlugin,
   GoodchatPluginDefinition,
+  GoodchatPluginFactory,
   MessageContext,
 } from "@goodchat/contracts/plugins/types";

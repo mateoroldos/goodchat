@@ -10,14 +10,17 @@ export const linear = definePlugin({
       .describe("Linear Personal API Key or OAuth token"),
   }),
 
-  create: (env) => {
+  paramsSchema: z.object({
+    team: z.string().min(1, "Team is required"),
+  }),
+
+  create: (env, params) => {
     const authorization = env.LINEAR_API_TOKEN.startsWith("Bearer ")
       ? env.LINEAR_API_TOKEN
       : `Bearer ${env.LINEAR_API_TOKEN}`;
 
     return {
-      systemPrompt:
-        "You have access to Linear via MCP tools. Use them to create, search, and update issues when users mention bugs, tasks, or feature requests.",
+      systemPrompt: `You have access to Linear via MCP tools for team "${params.team}". Use them to create, search, and update issues when users mention bugs, tasks, or feature requests.`,
       mcp: [
         {
           name: "linear",
