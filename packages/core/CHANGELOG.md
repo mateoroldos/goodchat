@@ -1,5 +1,15 @@
 # @goodchat/core
 
+## 0.0.5
+
+### Patch Changes
+
+- 285e43f: Add configurable AI model IDs with validation, gateway-backed defaults, and CLI model selection.
+- 250f762: Add typed plugin params support with runtime validation and require Linear plugin team param.
+- Updated dependencies [285e43f]
+- Updated dependencies [250f762]
+  - @goodchat/contracts@0.0.4
+
 ## 0.0.4
 
 ### Patch Changes

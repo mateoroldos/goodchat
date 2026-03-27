@@ -1,5 +1,12 @@
 # @goodchat/create
 
+## 0.0.5
+
+### Patch Changes
+
+- 285e43f: Add configurable AI model IDs with validation, gateway-backed defaults, and CLI model selection.
+- 2d09def: Better scaffolding flow
+
 ## 0.0.4
 
 ### Patch Changes
