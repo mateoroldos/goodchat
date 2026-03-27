@@ -1,5 +1,11 @@
 # @goodchat/core
 
+## 0.0.7
+
+### Patch Changes
+
+- 952f575: Better env management in core and cli
+
 ## 0.0.6
 
 ### Patch Changes

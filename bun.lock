@@ -18,7 +18,7 @@
     },
     "apps/cli": {
       "name": "@goodchat/create",
-      "version": "0.0.6",
+      "version": "0.0.7",
       "bin": {
         "create-goodchat": "dist/index.mjs",
       },
@@ -118,7 +118,7 @@
     },
     "packages/core": {
       "name": "@goodchat/core",
-      "version": "0.0.6",
+      "version": "0.0.7",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.64",
         "@ai-sdk/google": "^3.0.53",
