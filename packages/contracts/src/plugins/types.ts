@@ -23,12 +23,12 @@ export interface GoodchatPlugin {
   tools?: Record<string, Tool>;
 }
 
-interface GoodchatPluginDefinitionBase<TShape extends ZodRawShape> {
+export interface GoodchatPluginDefinitionBase<TShape extends ZodRawShape> {
   env?: ZodObject<TShape>;
   name: string;
 }
 
-type GoodchatPluginDefinitionNoParams<TShape extends ZodRawShape> =
+export type GoodchatPluginDefinitionNoParams<TShape extends ZodRawShape> =
   GoodchatPluginDefinitionBase<TShape> & {
     create: (
       env: ZodOutput<ZodObject<TShape>>,
@@ -38,7 +38,7 @@ type GoodchatPluginDefinitionNoParams<TShape extends ZodRawShape> =
     paramsSchema?: undefined;
   };
 
-type GoodchatPluginDefinitionWithParams<
+export type GoodchatPluginDefinitionWithParams<
   TShape extends ZodRawShape,
   TParamsSchema extends ZodTypeAny,
 > = GoodchatPluginDefinitionBase<TShape> & {
