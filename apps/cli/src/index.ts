@@ -12,10 +12,11 @@ import {
 } from "@clack/prompts";
 import { CHAT_PLATFORMS } from "@goodchat/contracts/config/models";
 import { deriveBotId } from "@goodchat/contracts/config/utils";
+import { type Provider, resolveProviderFromModelId } from "./env-metadata";
 import {
   createProjectFiles,
   type GeneratorConfig,
-  getEnvVariables,
+  getEnvMetadataForConfig,
   type McpServerConfig,
   type Platform,
 } from "./generator";
@@ -256,7 +257,7 @@ const printBanner = (): void => {
 };
 
 const run = async (): Promise<void> => {
-  await printBanner();
+  printBanner();
 
   const botName = handleCancel(
     await text({
@@ -313,6 +314,13 @@ const run = async (): Promise<void> => {
     model = modelSelection as string;
   }
 
+  let provider: Provider | null = null;
+  if (modelSelection === "default") {
+    provider = "gateway";
+  } else {
+    provider = resolveProviderFromModelId(model);
+  }
+
   const platforms = handleCancel(
     await multiselect({
       message: "Select platforms",
@@ -357,15 +365,16 @@ const run = async (): Promise<void> => {
     mcp: mcp.length > 0 ? mcp : undefined,
   };
 
-  const envVariables = getEnvVariables({
+  const envMetadata = getEnvMetadataForConfig({
     platforms: platforms as Platform[],
     plugins,
+    provider,
   });
 
   const files = createProjectFiles({
     projectName,
     config,
-    envVariables,
+    envMetadata,
   });
 
   const writer = spinner();
@@ -373,7 +382,9 @@ const run = async (): Promise<void> => {
   await writeFiles(targetDir, files);
   writer.stop("Project created");
 
-  outro(`Done. Next:\n  cd ${targetDirInput}\n  bun install\n  bun run dev`);
+  outro(
+    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run dev`
+  );
 };
 
 await run();

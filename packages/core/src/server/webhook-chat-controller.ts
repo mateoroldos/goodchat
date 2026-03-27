@@ -6,7 +6,6 @@ import type { ChatRuntime } from "../runtime/create-chat-runtime";
 
 export interface WebhookEnv {
   CRON_SECRET?: string;
-  NODE_ENV?: string;
   WEBHOOK_FORWARD_URL?: string;
 }
 
@@ -23,12 +22,6 @@ const getCronSecret = (request: Request) => {
 };
 
 const isCronAuthorized = (request: Request, env: WebhookEnv) => {
-  const requiresSecret =
-    env.NODE_ENV === "production" || Boolean(env.CRON_SECRET);
-  if (!requiresSecret) {
-    return { ok: true as const };
-  }
-
   if (!env.CRON_SECRET) {
     return {
       ok: false as const,

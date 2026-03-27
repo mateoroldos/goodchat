@@ -149,7 +149,6 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
   const webhookEnv = {
     CRON_SECRET: process.env.CRON_SECRET,
     WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
-    NODE_ENV: process.env.NODE_ENV,
   };
 
   const store = messageStore ?? new InMemoryMessageStoreService();

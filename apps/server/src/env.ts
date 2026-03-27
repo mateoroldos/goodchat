@@ -6,7 +6,6 @@ export const env = createEnv({
   server: {
     OPENAI_API_KEY: z.string().min(1, "OpenAI API key is required"),
     WEBHOOK_FORWARD_URL: z.string().url().optional(),
-    CORS_ORIGIN: z.string().url().optional(),
     REDIS_URL: z.string().url().optional(),
     SLACK_BOT_TOKEN: z.string().optional(),
     SLACK_SIGNING_SECRET: z.string().optional(),
@@ -26,9 +25,6 @@ export const env = createEnv({
     GOOGLE_CHAT_PUBSUB_TOPIC: z.string().optional(),
     GOOGLE_CHAT_IMPERSONATE_USER: z.string().optional(),
     SERVERLESS: z.enum(["true", "false"]).optional(),
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

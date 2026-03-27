@@ -1,6 +1,12 @@
+import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  type EnvVariableMeta,
+  getEnvMetadata,
+  type Provider,
+} from "./env-metadata";
 
 export type Platform = "local" | "slack" | "discord" | "teams" | "gchat";
 
@@ -41,79 +47,9 @@ export interface ProjectFile {
 
 export interface ProjectTemplateInput {
   config: GeneratorConfig;
-  envVariables: string[];
+  envMetadata: EnvVariableMeta[];
   projectName: string;
 }
-
-const BASE_ENV_VARIABLES = [
-  "OPENAI_API_KEY",
-  "WEBHOOK_FORWARD_URL",
-  "CORS_ORIGIN",
-  "REDIS_URL",
-  "CRON_SECRET",
-  "SERVERLESS",
-  "NODE_ENV",
-];
-
-const PLATFORM_ENV_VARIABLES: Record<Platform, string[]> = {
-  local: [],
-  slack: [
-    "SLACK_BOT_TOKEN",
-    "SLACK_SIGNING_SECRET",
-    "SLACK_CLIENT_ID",
-    "SLACK_CLIENT_SECRET",
-    "SLACK_ENCRYPTION_KEY",
-  ],
-  discord: [
-    "DISCORD_BOT_TOKEN",
-    "DISCORD_PUBLIC_KEY",
-    "DISCORD_APPLICATION_ID",
-    "DISCORD_MENTION_ROLE_IDS",
-  ],
-  teams: ["TEAMS_APP_ID", "TEAMS_APP_PASSWORD", "TEAMS_APP_TENANT_ID"],
-  gchat: [
-    "GOOGLE_CHAT_CREDENTIALS",
-    "GOOGLE_CHAT_USE_ADC",
-    "GOOGLE_CHAT_PUBSUB_TOPIC",
-    "GOOGLE_CHAT_IMPERSONATE_USER",
-  ],
-};
-
-const PLUGIN_ENV_VARIABLES: Record<string, string[]> = {
-  linear: ["LINEAR_API_TOKEN"],
-};
-
-const ENV_SCHEMA_LINES: Record<string, string> = {
-  OPENAI_API_KEY: 'z.string().min(1, "OpenAI API key is required")',
-  WEBHOOK_FORWARD_URL: "z.string().url().optional()",
-  CORS_ORIGIN: "z.string().url().optional()",
-  REDIS_URL: "z.string().url().optional()",
-  SLACK_BOT_TOKEN: "z.string().optional()",
-  SLACK_SIGNING_SECRET: "z.string().optional()",
-  SLACK_CLIENT_ID: "z.string().optional()",
-  SLACK_CLIENT_SECRET: "z.string().optional()",
-  SLACK_ENCRYPTION_KEY: "z.string().optional()",
-  DISCORD_BOT_TOKEN: "z.string().optional()",
-  DISCORD_PUBLIC_KEY: "z.string().optional()",
-  DISCORD_APPLICATION_ID: "z.string().optional()",
-  DISCORD_MENTION_ROLE_IDS: "z.string().optional()",
-  CRON_SECRET: "z.string().optional()",
-  TEAMS_APP_ID: "z.string().optional()",
-  TEAMS_APP_PASSWORD: "z.string().optional()",
-  TEAMS_APP_TENANT_ID: "z.string().optional()",
-  GOOGLE_CHAT_CREDENTIALS: "z.string().optional()",
-  GOOGLE_CHAT_USE_ADC: "z.string().optional()",
-  GOOGLE_CHAT_PUBSUB_TOPIC: "z.string().optional()",
-  GOOGLE_CHAT_IMPERSONATE_USER: "z.string().optional()",
-  SERVERLESS: 'z.enum(["true", "false"]).optional()',
-  NODE_ENV:
-    'z.enum(["development", "production", "test"]).default("development")',
-  LINEAR_API_TOKEN: "z.string().optional()",
-};
-
-const ENV_DEFAULTS: Record<string, string> = {
-  CORS_ORIGIN: "http://localhost:3000",
-};
 
 const WORKSPACE_ROOT = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
@@ -159,42 +95,23 @@ const PUBLISHED_PLUGINS_VERSION = formatPublishedVersion(
   "^0.0.1"
 );
 
-const unique = (items: string[]): string[] => {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const item of items) {
-    if (seen.has(item)) {
-      continue;
-    }
-    seen.add(item);
-    result.push(item);
-  }
-  return result;
-};
-
-export const getEnvVariables = (input: {
+export const getEnvMetadataForConfig = (input: {
   platforms: Platform[];
   plugins?: string[];
-}): string[] => {
-  const platformVariables = input.platforms.flatMap(
-    (platform) => PLATFORM_ENV_VARIABLES[platform]
-  );
-  const pluginVariables = (input.plugins ?? []).flatMap(
-    (plugin) => PLUGIN_ENV_VARIABLES[plugin] ?? []
-  );
-
-  return unique([
-    ...BASE_ENV_VARIABLES,
-    ...platformVariables,
-    ...pluginVariables,
-  ]);
+  provider?: Provider | null;
+}): EnvVariableMeta[] => {
+  return getEnvMetadata({
+    platforms: input.platforms,
+    plugins: input.plugins,
+    provider: input.provider,
+  });
 };
 
-export const renderEnvSchemaFile = (variables: string[]): string => {
-  const entries = variables
-    .map((variable) => {
-      const schema = ENV_SCHEMA_LINES[variable] ?? "z.string().optional()";
-      return `    ${variable}: ${schema},`;
+export const renderEnvSchemaFile = (metadata: EnvVariableMeta[]): string => {
+  const entries = metadata
+    .map((meta) => {
+      const schema = meta.schema ?? "z.string().optional()";
+      return `    ${meta.key}: ${schema},`;
     })
     .join("\n");
 
@@ -212,13 +129,61 @@ ${entries}
 `;
 };
 
-export const renderEnvFile = (variables: string[]): string => {
-  return variables
-    .map((variable) => {
-      const defaultValue = ENV_DEFAULTS[variable] ?? "";
-      return `${variable}="${defaultValue}"`;
-    })
-    .join("\n");
+const applyPlatformSpacing = (
+  lines: string[],
+  meta: EnvVariableMeta,
+  lastPlatformGroup: string | undefined
+): string | undefined => {
+  const platformGroup = meta.platforms?.[0];
+  if (!platformGroup) {
+    return lastPlatformGroup;
+  }
+  if (lastPlatformGroup && platformGroup !== lastPlatformGroup) {
+    lines.push("");
+  }
+  return platformGroup;
+};
+
+export const renderEnvFile = (metadata: EnvVariableMeta[]): string => {
+  const secretOverrides = new Map<string, string>();
+  const cronMeta = metadata.find((item) => item.key === "CRON_SECRET");
+  if (cronMeta && !cronMeta.defaultValue) {
+    secretOverrides.set("CRON_SECRET", randomBytes(24).toString("hex"));
+  }
+
+  const lines: string[] = [];
+  let lastCategory: string | undefined;
+  let lastPlatformGroup: string | undefined;
+
+  for (const meta of metadata) {
+    const category = meta.category ?? "core";
+
+    if (category !== lastCategory) {
+      if (lines.length > 0) {
+        lines.push("");
+      }
+      lines.push(`# ${category[0]?.toUpperCase()}${category.slice(1)}`);
+      lastCategory = category;
+      lastPlatformGroup = undefined;
+    }
+
+    if (category === "platform") {
+      lastPlatformGroup = applyPlatformSpacing(lines, meta, lastPlatformGroup);
+    }
+
+    if (meta?.description) {
+      lines.push(`# ${meta.description}`);
+    }
+    if (meta?.docsUrl) {
+      lines.push(`# Docs: ${meta.docsUrl}`);
+    }
+
+    const defaultValue =
+      secretOverrides.get(meta.key) ?? meta.defaultValue ?? "";
+    lines.push(`${meta.key}="${defaultValue}"`);
+  }
+
+  return `${lines.join("\n")}\n`;
 };
 
 export const renderAppFile = (config: GeneratorConfig): string => {
@@ -389,15 +354,11 @@ export const createProjectFiles = (
     },
     {
       path: "src/env.ts",
-      content: renderEnvSchemaFile(input.envVariables),
+      content: renderEnvSchemaFile(input.envMetadata),
     },
     {
       path: ".env",
-      content: renderEnvFile(input.envVariables),
-    },
-    {
-      path: ".env.example",
-      content: renderEnvFile(input.envVariables),
+      content: renderEnvFile(input.envMetadata),
     },
     {
       path: ".gitignore",

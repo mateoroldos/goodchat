@@ -1,24 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   createProjectFiles,
-  getEnvVariables,
+  getEnvMetadataForConfig,
   type ProjectFile,
   renderAppFile,
   renderEnvSchemaFile,
 } from "./generator";
 
 describe("generator helpers", () => {
-  it("includes platform and plugin env keys", () => {
-    const variables = getEnvVariables({
+  it("includes platform env keys", () => {
+    const variables = getEnvMetadataForConfig({
       platforms: ["local", "discord"],
       plugins: ["linear"],
-    });
+    }).map((meta) => meta.key);
 
-    expect(variables[0]).toBe("OPENAI_API_KEY");
     expect(variables).toContain("DISCORD_BOT_TOKEN");
     expect(variables).toContain("DISCORD_PUBLIC_KEY");
     expect(variables).toContain("DISCORD_APPLICATION_ID");
-    expect(variables).toContain("LINEAR_API_TOKEN");
   });
 
   it("renders app config with plugins and mcp", () => {
@@ -45,7 +43,18 @@ describe("generator helpers", () => {
   });
 
   it("renders env schema for provided variables", () => {
-    const result = renderEnvSchemaFile(["OPENAI_API_KEY", "DISCORD_BOT_TOKEN"]);
+    const result = renderEnvSchemaFile([
+      {
+        key: "OPENAI_API_KEY",
+        description: "OpenAI API key",
+        category: "provider",
+      },
+      {
+        key: "DISCORD_BOT_TOKEN",
+        description: "Discord bot token",
+        category: "platform",
+      },
+    ]);
 
     expect(result).toContain("OPENAI_API_KEY");
     expect(result).toContain("DISCORD_BOT_TOKEN");
@@ -61,7 +70,13 @@ describe("generator helpers", () => {
         withDashboard: true,
         isServerless: false,
       },
-      envVariables: ["OPENAI_API_KEY"],
+      envMetadata: [
+        {
+          key: "OPENAI_API_KEY",
+          description: "OpenAI API key",
+          category: "provider",
+        },
+      ],
     });
 
     const filePaths = files.map((file: ProjectFile) => file.path);
