@@ -43,6 +43,7 @@ export const goodchatOptionsSchema = botConfigSchema.extend({
   id: z.string().min(1, "Bot id is required").optional(),
   isServerless: z.boolean().optional(),
   mcp: z.array(mcpServerSchema).optional(),
+  modelId: botConfigSchema.shape.modelId.optional(),
   messageStore: z.custom<MessageStoreService>().optional(),
   name: z.string().min(1, "Bot name is required"),
   platforms: botConfigSchema.shape.platforms,
@@ -86,6 +87,7 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     tools,
     hooks,
     mcp,
+    modelId,
     withDashboard = true,
     isServerless = false,
   } = goodchatOptionsSchema.parse(options);
@@ -98,6 +100,7 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     name,
     prompt,
     platforms,
+    modelId,
   };
 
   const resolvedPlugins: GoodchatPlugin[] = plugins.map((p) => {

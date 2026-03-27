@@ -28,6 +28,7 @@ describe("generator helpers", () => {
       platforms: ["local", "slack"],
       withDashboard: true,
       isServerless: false,
+      modelId: "openai/gpt-4.1-mini",
       plugins: ["linear"],
       mcp: [
         {
@@ -40,6 +41,7 @@ describe("generator helpers", () => {
     expect(result).toContain("plugins: [linear]");
     expect(result).toContain("mcp:");
     expect(result).toContain("https://mcp.notion");
+    expect(result).toContain('modelId: "openai/gpt-4.1-mini"');
   });
 
   it("renders env schema for provided variables", () => {
