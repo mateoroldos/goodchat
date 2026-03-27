@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.6
+
+### Patch Changes
+
+- 79d44d1: Custom model setup
+
 ## 0.0.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @goodchat/contracts
 
+## 0.0.5
+
+### Patch Changes
+
+- 79d44d1: Custom model setup
+
 ## 0.0.4
 
 ### Patch Changes

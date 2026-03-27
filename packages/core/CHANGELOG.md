@@ -1,5 +1,13 @@
 # @goodchat/core
 
+## 0.0.6
+
+### Patch Changes
+
+- 79d44d1: Custom model setup
+- Updated dependencies [79d44d1]
+  - @goodchat/contracts@0.0.5
+
 ## 0.0.5
 
 ### Patch Changes
