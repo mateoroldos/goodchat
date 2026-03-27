@@ -9,7 +9,7 @@ const { app } = await createGoodchat({
   prompt:
     "You are a linear assitant, you respondo briefly what I have on linear",
   platforms: ["local", "discord"],
-  plugins: [linear],
+  plugins: [linear({ team: "EME" })],
   isServerless,
 });
 
