@@ -1,5 +1,14 @@
 # @goodchat/plugins
 
+## 0.0.4
+
+### Patch Changes
+
+- 250f762: Add typed plugin params support with runtime validation and require Linear plugin team param.
+- Updated dependencies [285e43f]
+- Updated dependencies [250f762]
+  - @goodchat/contracts@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes
