@@ -3,7 +3,6 @@ import { dirname, join, resolve } from "node:path";
 import {
   cancel,
   confirm,
-  intro,
   isCancel,
   multiselect,
   outro,
@@ -215,35 +214,38 @@ const promptMcpServers = async (): Promise<McpServerConfig[]> => {
   return servers;
 };
 
-const run = async (): Promise<void> => {
-  intro("Goodchat generator");
+// ── Primary color ─────────────────────────────────────────────────────────-
+// oklch(0.78 0.185 70) ≈ rgb(255, 163, 10)
+const FG_AMB = "\x1b[38;2;255;163;10m";
+const RST = "\x1b[0m";
 
-  const projectName = handleCancel(
+const printBanner = (): void => {
+  process.stdout.write(`\n${FG_AMB}Welcome to goodchat${RST}\n\n`);
+};
+
+const run = async (): Promise<void> => {
+  await printBanner();
+
+  const botName = handleCancel(
     await text({
-      message: "Project name",
-      initialValue: "goodchat-app",
+      message: "Bot name",
+      placeholder: "Walter",
       validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
     })
   );
 
+  const projectName = deriveBotId(botName);
+
   const targetDirInput = handleCancel(
     await text({
       message: "Target directory",
-      initialValue: `./${deriveBotId(projectName)}`,
+      initialValue: `./${projectName}`,
       validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
     })
   );
 
   const targetDir = resolve(process.cwd(), targetDirInput);
   await ensureEmptyDir(targetDir);
-
-  const botName = handleCancel(
-    await text({
-      message: "Bot name",
-      initialValue: projectName,
-      validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
-    })
-  );
 
   const prompt = handleCancel(
     await text({
@@ -267,35 +269,13 @@ const run = async (): Promise<void> => {
 
   const withDashboard = handleCancel(
     await confirm({
-      message: "Include the dashboard?",
+      message: "Include bot website?",
       initialValue: true,
     })
   );
 
-  const isServerless = handleCancel(
-    await confirm({
-      message: "Serverless runtime?",
-      initialValue: false,
-    })
-  );
-
-  const wantsCustomId = handleCancel(
-    await confirm({
-      message: "Set a custom bot id?",
-      initialValue: false,
-    })
-  );
-
-  let id: string | undefined;
-  if (wantsCustomId) {
-    id = handleCancel(
-      await text({
-        message: "Bot id",
-        initialValue: deriveBotId(botName),
-        validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
-      })
-    );
-  }
+  const isServerless = false;
+  const id = undefined;
 
   const plugins = handleCancel(
     await multiselect({
@@ -324,7 +304,7 @@ const run = async (): Promise<void> => {
   });
 
   const files = createProjectFiles({
-    projectName: deriveBotId(projectName),
+    projectName,
     config,
     envVariables,
   });
