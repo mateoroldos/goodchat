@@ -252,13 +252,13 @@ Each initializer should return the same `Database` interface and provide `ensure
 - [x] Add Drizzle schema definition files and explicit schema entry at `packages/core/src/schema/schema.ts`.
 - [x] Add schema contract tests and database interface type tests.
 - [x] Scaffold adapter packages and drizzle folder structure for postgres/sqlite/mysql.
-- [ ] Implement SQLite adapter client, repositories, and schema version check.
-- [ ] Implement Postgres adapter client, repositories, and schema version check.
-- [ ] Implement MySQL adapter client, repositories, and schema version check.
-- [ ] Define and enforce `goodchat_meta` row strategy (single-row id, insert policy, error messages).
-- [ ] Wire `createGoodchat` to require `database` and remove message store usage.
-- [ ] Update runtime/controllers/services to use `database.threads` and `database.messages`.
-- [ ] Add startup schema check `database.ensureSchemaVersion()`.
+- [x] Implement SQLite adapter client, repositories, and schema version check.
+- [x] Implement Postgres adapter client, repositories, and schema version check.
+- [x] Implement MySQL adapter client, repositories, and schema version check.
+- [x] Define and enforce `goodchat_meta` row strategy (single-row id, insert policy, error messages).
+- [x] Wire `createGoodchat` to require `database` and remove message store usage.
+- [x] Update runtime/controllers/services to use `database.threads` and `database.messages`.
+- [x] Add startup schema check `database.ensureSchemaVersion()`.
 - [ ] Add migrations documentation and consumer `drizzle.config.ts` guidance.
 - [ ] Update CLI scaffold to prompt for DB choice and emit `drizzle.config.ts`.
 - [ ] Update docs/examples and run `check` + `check-types`.

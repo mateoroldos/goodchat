@@ -1,11 +1,15 @@
 import type { BotConfig } from "@goodchat/contracts/config/types";
+import type { Database } from "@goodchat/contracts/database/interface";
+import type { MessageCreate } from "@goodchat/contracts/database/message";
+import type {
+  ThreadCreate,
+  ThreadUpdate,
+} from "@goodchat/contracts/database/thread";
 import type { UIMessageChunk } from "ai";
 import { readUIMessageStream } from "ai";
 import { Result } from "better-result";
 import type { AiResponseService } from "../ai-response/interface";
 import type { GoodchatExtensions } from "../extensions/models";
-import type { MessageStoreService } from "../message-store/interface";
-import type { MessageEntry } from "../message-store/models";
 import type { MessageContext } from "../types";
 import {
   ChatResponseGenerationError,
@@ -16,26 +20,26 @@ import type { ChatResponseService } from "./interface";
 interface ChatResponseDependencies {
   aiResponse: AiResponseService;
   botConfig: BotConfig;
+  database: Database;
   extensions: GoodchatExtensions;
-  messageStore: MessageStoreService;
 }
 
 export class DefaultChatResponseService implements ChatResponseService {
   readonly #aiResponse: AiResponseService;
   readonly #botConfig: BotConfig;
+  readonly #database: Database;
   readonly #extensions: GoodchatExtensions;
-  readonly #messageStore: MessageStoreService;
 
   constructor({
     aiResponse,
     botConfig,
+    database,
     extensions,
-    messageStore,
   }: ChatResponseDependencies) {
     this.#aiResponse = aiResponse;
     this.#botConfig = botConfig;
+    this.#database = database;
     this.#extensions = extensions;
-    this.#messageStore = messageStore;
   }
 
   async handleMessage(context: MessageContext) {
@@ -67,10 +71,14 @@ export class DefaultChatResponseService implements ChatResponseService {
       await hook(context, botResponse.value);
     }
 
-    const entry = this.#createMessageEntry(context, botResponse.value.text);
-    this.#messageStore.appendThread(entry);
+    this.#persistResponse(context, botResponse.value.text).catch((error) => {
+      console.error("Failed to persist chat response", error);
+    });
 
-    return Result.ok({ text: botResponse.value.text, threadEntryId: entry.id });
+    return Result.ok({
+      text: botResponse.value.text,
+      threadEntryId: context.threadId,
+    });
   }
 
   async handleMessageStream(context: MessageContext) {
@@ -138,26 +146,66 @@ export class DefaultChatResponseService implements ChatResponseService {
       await hook(context, { text: responseText });
     }
 
-    this.#messageStore.appendThread(
-      this.#createMessageEntry(context, responseText)
-    );
+    await this.#persistResponse(context, responseText);
   }
 
-  #createMessageEntry(
-    context: MessageContext,
-    responseText: string
-  ): MessageEntry {
-    return {
-      adapterName: context.adapterName,
-      botId: this.#botConfig.id,
-      botName: this.#botConfig.name,
-      id: crypto.randomUUID(),
-      platform: context.platform,
-      responseText,
-      text: context.text,
-      threadId: context.threadId,
-      timestamp: new Date().toISOString(),
-      userId: context.userId,
-    };
+  async #persistResponse(context: MessageContext, responseText: string) {
+    const timestamp = new Date().toISOString();
+    await this.#database.transaction(async (database: Database) => {
+      const threadId = context.threadId;
+      const existingThread = await database.threads.getById(threadId);
+      if (existingThread) {
+        const patch: ThreadUpdate = {
+          adapterName: context.adapterName,
+          botName: context.botName,
+          lastActivityAt: timestamp,
+          platform: context.platform,
+          responseText,
+          text: context.text,
+          threadId: context.threadId,
+          updatedAt: timestamp,
+          userId: context.userId,
+        };
+        await database.threads.update(threadId, patch);
+      } else {
+        const thread: ThreadCreate = {
+          adapterName: context.adapterName,
+          botId: context.botId,
+          botName: context.botName,
+          createdAt: timestamp,
+          id: threadId,
+          lastActivityAt: timestamp,
+          platform: context.platform,
+          responseText,
+          text: context.text,
+          threadId: context.threadId,
+          updatedAt: timestamp,
+          userId: context.userId,
+        };
+        await database.threads.create(thread);
+      }
+
+      const userMessage: MessageCreate = {
+        adapterName: context.adapterName,
+        createdAt: timestamp,
+        id: crypto.randomUUID(),
+        role: "user",
+        text: context.text,
+        threadId,
+        userId: context.userId,
+      };
+      await database.messages.create(userMessage);
+
+      const assistantMessage: MessageCreate = {
+        adapterName: context.adapterName,
+        createdAt: timestamp,
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: responseText,
+        threadId,
+        userId: context.botId,
+      };
+      await database.messages.create(assistantMessage);
+    });
   }
 }

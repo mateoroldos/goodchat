@@ -508,10 +508,40 @@ goodchat deploy          # Deploy to goodchat.dev
 ```bash
 git clone https://github.com/your-org/goodchat
 cp .env.example .env      # Add your LLM API key and platform credentials
-docker-compose up
+docker compose up
 ```
 
 The cloud version at [goodchat.dev](https://goodchat.dev) is the same codebase — just hosted for you.
+
+---
+
+## Testing database adapters locally
+
+Integration tests manage the Docker lifecycle and default to local URLs if you do not provide env vars:
+
+- `POSTGRES_TEST_URL=postgres://goodchat:goodchat@localhost:5432/postgres`
+- `MYSQL_TEST_URL=mysql://root:goodchat@localhost:3306/mysql`
+
+Run the integration suite:
+
+```bash
+bun run test:integration
+```
+
+Override the database URLs if needed:
+
+```bash
+POSTGRES_TEST_URL=postgres://goodchat:goodchat@localhost:5432/postgres \
+MYSQL_TEST_URL=mysql://root:goodchat@localhost:3306/mysql \
+bun run test:integration
+```
+
+Manual control is still available:
+
+```bash
+bun run test:db:up
+bun run test:db:down
+```
 
 ---
 

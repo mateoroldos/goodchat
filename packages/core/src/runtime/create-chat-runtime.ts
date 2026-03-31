@@ -1,4 +1,5 @@
 import type { BotConfig, Platform } from "@goodchat/contracts/config/types";
+import type { Database } from "@goodchat/contracts/database/interface";
 import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import { DefaultAiResponseService } from "../ai-response";
 import { DefaultChatResponseService } from "../chat-response";
@@ -9,7 +10,6 @@ import type {
   ChatGatewayHandlers,
   ChatGatewayService,
 } from "../gateway/interface";
-import type { MessageStoreService } from "../message-store/interface";
 
 export interface ChatRuntime {
   gateway: ChatGatewayService;
@@ -18,15 +18,15 @@ export interface ChatRuntime {
 
 export const createChatRuntime = (
   botConfig: BotConfig,
-  messageStore: MessageStoreService,
+  database: Database,
   extensions: GoodchatExtensions
 ): ChatRuntime => {
   const aiResponse = new DefaultAiResponseService();
   const responseHandler = new DefaultChatResponseService({
     aiResponse,
     botConfig,
+    database,
     extensions,
-    messageStore,
   });
 
   const gateway = new DefaultChatGatewayService({
