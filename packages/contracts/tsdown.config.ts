@@ -13,6 +13,9 @@ export default defineConfig({
     "plugins/define": "./src/plugins/define.ts",
     "plugins/models": "./src/plugins/models.ts",
     "plugins/types": "./src/plugins/types.ts",
+    "database/thread": "./src/database/thread.ts",
+    "database/message": "./src/database/message.ts",
+    "database/interface": "./src/database/interface.ts",
   },
   format: ["esm", "cjs"],
   dts: {

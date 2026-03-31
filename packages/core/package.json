@@ -29,6 +29,11 @@
       "types": "./dist/types.d.mts",
       "import": "./dist/types.mjs",
       "require": "./dist/types.cjs"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.mts",
+      "import": "./dist/schema.mjs",
+      "require": "./dist/schema.cjs"
     }
   },
   "dependencies": {
@@ -51,6 +56,7 @@
     "ai": "^6.0.116",
     "better-result": "^2.7.0",
     "chat": "^4.20.0",
+    "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.28",
     "zod": "catalog:"
   },
