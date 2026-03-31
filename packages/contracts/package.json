@@ -70,6 +70,21 @@
       "types": "./dist/plugins/types.d.ts",
       "import": "./dist/plugins/types.mjs",
       "require": "./dist/plugins/types.cjs"
+    },
+    "./database/thread": {
+      "types": "./dist/database/thread.d.ts",
+      "import": "./dist/database/thread.mjs",
+      "require": "./dist/database/thread.cjs"
+    },
+    "./database/message": {
+      "types": "./dist/database/message.d.ts",
+      "import": "./dist/database/message.mjs",
+      "require": "./dist/database/message.cjs"
+    },
+    "./database/interface": {
+      "types": "./dist/database/interface.d.ts",
+      "import": "./dist/database/interface.mjs",
+      "require": "./dist/database/interface.cjs"
     }
   },
   "dependencies": {

@@ -18,8 +18,8 @@ Design and implement a Drizzle-first persistence layer for Goodchat that treats 
 ### Core Concepts
 
 - **Schema location**: `@goodchat/core` owns Drizzle tables and the schema version constant, exposed at `@goodchat/core/schema` via an explicit `schema.ts` entry file (no barrel files). Adapters must import this schema (no duplication).
-- **Domain contracts**: Runtime types live in `@goodchat/contracts` and are consumed by core and adapters. Core does not define domain shapes.
-- **Persistence layer**: A small interface that core uses for data access (threads, messages, and future models).
+- **Domain contracts**: Runtime types and the `Database` interface live in `@goodchat/contracts` and are consumed by core and adapters. Core does not define domain shapes.
+- **Persistence layer**: A small interface in `@goodchat/contracts` that core uses for data access (threads, messages, and future models).
 - **Dialect initializers**: Thin packages/functions that create a Drizzle DB instance for a given database (Postgres, SQLite) and implement the database interface.
 - **Schema version table**: `goodchat_meta` stored in consumer DB to track applied schema version.
 
@@ -86,7 +86,7 @@ await createGoodchat({
 ### Goodchat Options
 
 - Replace `messageStore` service with a single `database` option. You can fully remove the `messageStore` code. No backwards compatibility is required.
-- `database` must satisfy the core database interface.
+- `database` must satisfy the contracts database interface.
 - Migration lifecycle is owned by the consumer application. Goodchat does not run migrations automatically.
 
 ## Database Interface
@@ -245,12 +245,30 @@ Each initializer should return the same `Database` interface and provide `ensure
 
 ## Implementation Plan
 
+## Todo List
+
+- [x] Add contracts database types under `packages/contracts/src/database/` and expose them via package exports.
+- [x] Add contracts database interface in `packages/contracts/src/database/interface.ts` and export it.
+- [x] Add Drizzle schema definition files and explicit schema entry at `packages/core/src/schema/schema.ts`.
+- [x] Add schema contract tests and database interface type tests.
+- [x] Scaffold adapter packages and drizzle folder structure for postgres/sqlite/mysql.
+- [ ] Implement SQLite adapter client, repositories, and schema version check.
+- [ ] Implement Postgres adapter client, repositories, and schema version check.
+- [ ] Implement MySQL adapter client, repositories, and schema version check.
+- [ ] Define and enforce `goodchat_meta` row strategy (single-row id, insert policy, error messages).
+- [ ] Wire `createGoodchat` to require `database` and remove message store usage.
+- [ ] Update runtime/controllers/services to use `database.threads` and `database.messages`.
+- [ ] Add startup schema check `database.ensureSchemaVersion()`.
+- [ ] Add migrations documentation and consumer `drizzle.config.ts` guidance.
+- [ ] Update CLI scaffold to prompt for DB choice and emit `drizzle.config.ts`.
+- [ ] Update docs/examples and run `check` + `check-types`.
+
 ### Phase 1: Database Interface and Schema
 
 1. Add Drizzle tables and `SCHEMA_VERSION` under `packages/core/src/schema/`.
 2. Expose schema for tooling at `@goodchat/core/schema` via `packages/core/src/schema/schema.ts` (no barrel files).
-3. Add `packages/core/src/database/interface.ts` with the `Database` interface using domain models.
-4. Add domain model types in `packages/contracts/src/` (e.g. `thread.ts`, `message.ts`).
+3. Add `packages/contracts/src/database/interface.ts` with the `Database` interface using domain models.
+4. Add domain model types in `packages/contracts/src/database/` (e.g. `thread.ts`, `message.ts`).
 
 ### Phase 2: Persistence Usage in Core
 
@@ -301,12 +319,12 @@ Each initializer should return the same `Database` interface and provide `ensure
 packages/
   contracts/
     src/
-      thread.ts
-      message.ts
-  core/
-    src/
       database/
         interface.ts
+        thread.ts
+        message.ts
+  core/
+    src/
       services/
         thread-service.ts
         message-service.ts
