@@ -1,5 +1,5 @@
+import type { Database } from "@goodchat/contracts/database/interface";
 import { Elysia, t } from "elysia";
-import type { MessageStoreService } from "../message-store/interface";
 
 const DEFAULT_THREAD_LIMIT = 50;
 
@@ -13,36 +13,30 @@ const logApiError = (requestId: string, error: Error): void => {
   console.error(`[${requestId}]`, error);
 };
 
-export const threadsController = (messageStore: MessageStoreService) =>
+export const threadsController = (database: Database, botId: string) =>
   new Elysia({ prefix: "/threads" }).get(
     "/",
-    ({ query, status }) => {
-      const result = messageStore.listThreads(query.limit);
-
-      if (result.isErr()) {
-        const error = result.error;
+    async ({ query, status }) => {
+      try {
+        return await database.threads.list({
+          botId,
+          limit: query.limit,
+          sort: "desc",
+        });
+      } catch (error) {
         const requestId = createRequestId();
-
-        logApiError(requestId, error);
-
-        switch (error.code) {
-          case "THREAD_LIMIT_INVALID":
-            return status(422, {
-              code: error.code,
-              message: "Thread limit must be a non-negative number.",
-              requestId,
-            });
-
-          default:
-            return status(500, {
-              code: "THREADS_UNKNOWN",
-              message: "Unexpected error while loading threads.",
-              requestId,
-            });
-        }
+        logApiError(
+          requestId,
+          error instanceof Error
+            ? error
+            : new Error("Unknown thread list error")
+        );
+        return status(500, {
+          code: "THREADS_UNKNOWN",
+          message: "Unexpected error while loading threads.",
+          requestId,
+        });
       }
-
-      return result.value;
     },
     {
       query: threadQueryModel,

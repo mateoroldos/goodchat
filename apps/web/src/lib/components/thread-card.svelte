@@ -9,6 +9,7 @@
 
   const { thread }: Props = $props();
 
+  const activityTimestamp = $derived(thread.lastActivityAt ?? thread.createdAt);
   const formattedTime = $derived.by(() => {
     try {
       return new Intl.DateTimeFormat("en", {
@@ -16,9 +17,9 @@
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-      }).format(new Date(thread.timestamp));
+      }).format(new Date(activityTimestamp));
     } catch {
-      return thread.timestamp;
+      return activityTimestamp;
     }
   });
 </script>

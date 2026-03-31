@@ -1,0 +1,30 @@
+CREATE TABLE `goodchat_meta` (
+	`id` text PRIMARY KEY NOT NULL,
+	`schema_version` text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `goodchat_messages` (
+	`id` text PRIMARY KEY NOT NULL,
+	`thread_id` text NOT NULL,
+	`role` text,
+	`text` text NOT NULL,
+	`created_at` text NOT NULL,
+	`metadata` text,
+	`user_id` text NOT NULL,
+	`adapter_name` text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `goodchat_threads` (
+	`id` text PRIMARY KEY NOT NULL,
+	`bot_id` text NOT NULL,
+	`bot_name` text NOT NULL,
+	`platform` text NOT NULL,
+	`adapter_name` text NOT NULL,
+	`thread_id` text NOT NULL,
+	`user_id` text NOT NULL,
+	`text` text NOT NULL,
+	`response_text` text NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	`last_activity_at` text NOT NULL
+);

@@ -11,6 +11,7 @@ import {
 import { botConfigSchema } from "@goodchat/contracts/config/models";
 import type { BotConfig } from "@goodchat/contracts/config/types";
 import { deriveBotId } from "@goodchat/contracts/config/utils";
+import type { Database } from "@goodchat/contracts/database/interface";
 import { goodchatHooksSchema } from "@goodchat/contracts/hooks/models";
 import {
   goodchatPluginDefinitionSchema,
@@ -26,8 +27,6 @@ import { Elysia } from "elysia";
 import z from "zod";
 import { validatePluginEnv, validatePluginParams } from "./extensions/env";
 import { mergePlugins } from "./extensions/merge";
-import { InMemoryMessageStoreService } from "./message-store/index";
-import type { MessageStoreService } from "./message-store/interface";
 import { createChatRuntime } from "./runtime/create-chat-runtime";
 import { botController } from "./server/bot-controller";
 import { localChatController } from "./server/local-chat-controller";
@@ -48,7 +47,7 @@ export const goodchatOptionsSchema = botConfigSchema.extend({
   isServerless: z.boolean().optional(),
   mcp: z.array(mcpServerSchema).optional(),
   model: botConfigSchema.shape.model.optional(),
-  messageStore: z.custom<MessageStoreService>().optional(),
+  database: z.custom<Database>(),
   name: z.string().min(1, "Bot name is required"),
   platforms: botConfigSchema.shape.platforms,
   plugins: z
@@ -91,7 +90,7 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     prompt,
     platforms,
     id,
-    messageStore,
+    database,
     corsOrigin,
     plugins = [],
     tools,
@@ -151,8 +150,8 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
   };
 
-  const store = messageStore ?? new InMemoryMessageStoreService();
-  const chatRuntime = createChatRuntime(botConfig, store, extensions);
+  await database.ensureSchemaVersion();
+  const chatRuntime = createChatRuntime(botConfig, database, extensions);
   await chatRuntime.gateway.initialize();
 
   const app = new Elysia()
@@ -166,7 +165,7 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
 
   const api = new Elysia({ prefix: "/api" })
     .use(botController(botConfig))
-    .use(threadsController(store))
+    .use(threadsController(database, botConfig.id))
     .use(
       webhookChatController({
         botConfig,
