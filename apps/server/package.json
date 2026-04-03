@@ -11,6 +11,7 @@
     "start": "bun run dist/index.mjs"
   },
   "dependencies": {
+    "@goodchat/adapter-sqlite": "workspace:*",
     "@goodchat/core": "workspace:*",
     "@goodchat/plugins": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",

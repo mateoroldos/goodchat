@@ -1,7 +1,5 @@
 import type { Database } from "@goodchat/contracts/database/interface";
-import { postgresSchema } from "@goodchat/core/schema";
-import { neon } from "@neondatabase/serverless";
-import { createPool as createVercelPool } from "@vercel/postgres";
+import { sql } from "@vercel/postgres";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
 import { drizzle as drizzlePostgresJs } from "drizzle-orm/postgres-js";
@@ -17,18 +15,49 @@ export type PostgresDriver =
   | "@neondatabase/serverless"
   | "@vercel/postgres";
 
-export interface PostgresAdapterOptions {
-  client?: unknown;
+type PostgresJsClient = ReturnType<typeof postgres>;
+type NodePgClient = Pool;
+
+interface BasePostgresAdapterOptions {
   connectionString: string;
   debugLogs?: boolean;
-  driver?: PostgresDriver;
 }
+
+export type PostgresAdapterOptions =
+  | (BasePostgresAdapterOptions & {
+      driver?: "postgres-js";
+      client?: PostgresJsClient;
+    })
+  | (BasePostgresAdapterOptions & { driver: "pg"; client?: NodePgClient })
+  | (BasePostgresAdapterOptions & {
+      driver: "@neondatabase/serverless";
+    })
+  | (BasePostgresAdapterOptions & {
+      driver: "@vercel/postgres";
+    });
+
+type PostgresJsTransaction = Parameters<
+  Parameters<ReturnType<typeof drizzlePostgresJs>["transaction"]>[0]
+>[0];
+type NodePgTransaction = Parameters<
+  Parameters<ReturnType<typeof drizzleNodePg>["transaction"]>[0]
+>[0];
+type NeonTransaction = Parameters<
+  Parameters<ReturnType<typeof drizzleNeon>["transaction"]>[0]
+>[0];
+type VercelTransaction = Parameters<
+  Parameters<ReturnType<typeof drizzleVercel>["transaction"]>[0]
+>[0];
 
 export type PostgresDatabase =
   | ReturnType<typeof drizzlePostgresJs>
   | ReturnType<typeof drizzleNodePg>
   | ReturnType<typeof drizzleNeon>
-  | ReturnType<typeof drizzleVercel>;
+  | ReturnType<typeof drizzleVercel>
+  | PostgresJsTransaction
+  | NodePgTransaction
+  | NeonTransaction
+  | VercelTransaction;
 
 type TransactionRunner = <T>(
   fn: (database: Database) => Promise<T>
@@ -49,8 +78,7 @@ const createDatabaseInterface = (
 export const createPostgresDatabase = (
   options: PostgresAdapterOptions
 ): Database => {
-  const driver = options.driver ?? "postgres-js";
-  const database = createDriverDatabase(driver, options);
+  const database = createDriverDatabase(options);
   const transactionRunner: TransactionRunner = (fn) =>
     database.transaction((transaction) =>
       fn(createDatabaseInterface(transaction, transactionRunner))
@@ -60,31 +88,25 @@ export const createPostgresDatabase = (
 };
 
 const createDriverDatabase = (
-  driver: PostgresDriver,
   options: PostgresAdapterOptions
 ): PostgresDatabase => {
   const drizzleConfig = {
     logger: options.debugLogs,
-    schema: postgresSchema,
   };
 
-  if (driver === "pg") {
+  if (options.driver === "pg") {
     const client =
       options.client ??
       new Pool({ connectionString: options.connectionString });
     return drizzleNodePg(client, drizzleConfig);
   }
 
-  if (driver === "@neondatabase/serverless") {
-    const client = options.client ?? neon(options.connectionString);
-    return drizzleNeon(client, drizzleConfig);
+  if (options.driver === "@neondatabase/serverless") {
+    return drizzleNeon(options.connectionString, drizzleConfig);
   }
 
-  if (driver === "@vercel/postgres") {
-    const client =
-      options.client ??
-      createVercelPool({ connectionString: options.connectionString });
-    return drizzleVercel(client, drizzleConfig);
+  if (options.driver === "@vercel/postgres") {
+    return drizzleVercel(sql, drizzleConfig);
   }
 
   const client = options.client ?? postgres(options.connectionString);

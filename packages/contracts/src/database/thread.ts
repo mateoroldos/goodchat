@@ -1,3 +1,5 @@
+import type { Platform } from "../config/types";
+
 export interface Thread {
   adapterName: string;
   botId: string;
@@ -5,7 +7,7 @@ export interface Thread {
   createdAt: string;
   id: string;
   lastActivityAt: string;
-  platform: string;
+  platform: Platform;
   responseText: string;
   text: string;
   threadId: string;

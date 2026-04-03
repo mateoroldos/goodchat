@@ -41,7 +41,7 @@ export const ensureSchemaVersion = async (
 ): Promise<void> => {
   try {
     const row = await database
-      .select({ schemaVersion: sqliteSchema.goodchatMeta.schemaVersion })
+      .select()
       .from(sqliteSchema.goodchatMeta)
       .where(eq(sqliteSchema.goodchatMeta.id, META_ROW_ID))
       .get();
