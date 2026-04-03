@@ -21,17 +21,22 @@ export type ChatStatus = "submitted" | "streaming" | "error" | "idle";
 export class AttachmentsContext {
 	files = $state<FileWithId[]>([]);
 	fileInputRef = $state<HTMLInputElement | null>(null);
+	accept?: string;
+	multiple?: boolean;
 
 	constructor(
-		private accept?: string,
-		private multiple?: boolean,
+		accept?: string,
+		multiple?: boolean,
 		private maxFiles?: number,
 		private maxFileSize?: number,
 		private onError?: (err: {
 			code: "max_files" | "max_file_size" | "accept";
 			message: string;
 		}) => void
-	) {}
+	) {
+		this.accept = accept;
+		this.multiple = multiple;
+	}
 
 	openFileDialog = () => {
 		this.fileInputRef?.click();

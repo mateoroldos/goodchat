@@ -36,6 +36,4 @@
   );
 </script>
 
-<Badge class={cn("text-[11px]", styles, props.class)} variant="outline">
-  {label}
-</Badge>
+<Badge class={cn(styles, props.class)} variant="outline"> {label} </Badge>

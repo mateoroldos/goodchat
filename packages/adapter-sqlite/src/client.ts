@@ -1,6 +1,5 @@
 import { Database as BunSqliteDatabase } from "bun:sqlite";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { sqliteSchema } from "@goodchat/core/schema";
 import type { drizzle as drizzleBetterSqlite } from "drizzle-orm/better-sqlite3";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { createSqliteRepositories } from "./repository";
@@ -49,7 +48,6 @@ export const createSqliteDatabase = (
   const client = options.client ?? new BunSqliteDatabase(options.path);
   const database = drizzle(client, {
     logger: options.debugLogs,
-    schema: sqliteSchema,
   });
   const transactionRunner: TransactionRunner = (fn) =>
     database.transaction((transaction) => {

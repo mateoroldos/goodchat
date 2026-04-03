@@ -18,6 +18,7 @@ export class MessageBranchClass {
 	currentBranch = $state(0);
 	branches = $state<Snippet[]>([]);
 	private _branchCount = $state(0);
+	onBranchChange?: (branchIndex: number) => void;
 
 	constructor(defaultBranch: number = 0) {
 		this.currentBranch = defaultBranch;
@@ -37,16 +38,26 @@ export class MessageBranchClass {
 		this._branchCount = count;
 	}
 
+	setCurrentBranch(branchIndex: number, shouldNotify: boolean = true) {
+		if (this.currentBranch === branchIndex) {
+			return;
+		}
+		this.currentBranch = branchIndex;
+		if (shouldNotify) {
+			this.onBranchChange?.(branchIndex);
+		}
+	}
+
 	goToPrevious() {
 		const total = this.totalBranches;
 		const newBranch = this.currentBranch > 0 ? this.currentBranch - 1 : total - 1;
-		this.currentBranch = newBranch;
+		this.setCurrentBranch(newBranch);
 	}
 
 	goToNext() {
 		const total = this.totalBranches;
 		const newBranch = this.currentBranch < total - 1 ? this.currentBranch + 1 : 0;
-		this.currentBranch = newBranch;
+		this.setCurrentBranch(newBranch);
 	}
 }
 
