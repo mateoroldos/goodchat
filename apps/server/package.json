@@ -14,14 +14,16 @@
     "@goodchat/adapter-sqlite": "workspace:*",
     "@goodchat/core": "workspace:*",
     "@goodchat/plugins": "workspace:*",
+    "@libsql/client": "^0.17.2",
     "@t3-oss/env-core": "^0.13.1",
     "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.21",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@goodchat/typescript-config": "workspace:*",
     "@goodchat/contracts": "workspace:*",
+    "@goodchat/typescript-config": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.16.5",
     "typescript": "catalog:"
