@@ -34,6 +34,7 @@
     "test": "bun run test:unit && bun run test:integration",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:unit:watch": "vitest --config vitest.unit.config.ts",
+    "test:integration:sqlite": "bun test packages/adapter-sqlite/tests/integration",
     "test:integration": "node scripts/run-integration-tests.mjs",
     "test:migrations": "bunx turbo build --filter=@goodchat/core && node scripts/check-test-migrations.mjs",
     "test:migrations:update": "bunx turbo build --filter=@goodchat/core && bunx drizzle-kit generate --schema packages/adapter-postgres/tests/schema.ts --out packages/adapter-postgres/tests/drizzle --dialect postgresql && bunx drizzle-kit generate --schema packages/adapter-mysql/tests/schema.ts --out packages/adapter-mysql/tests/drizzle --dialect mysql && bunx drizzle-kit generate --schema packages/adapter-sqlite/tests/schema.ts --out packages/adapter-sqlite/tests/drizzle --dialect sqlite",

@@ -7,7 +7,7 @@ COPY apps ./apps
 COPY packages ./packages
 COPY scripts ./scripts
 
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --verbose
 
 ENV NODE_ENV=production
 

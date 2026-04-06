@@ -1,9 +1,9 @@
+import { Database as BunSqliteDatabase } from "bun:sqlite";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
 import { SCHEMA_VERSION, sqliteSchema } from "@goodchat/core/schema";
-import BetterSqliteDatabase from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { SqliteDatabase } from "../src/client";
 import { createSqliteRepositories } from "../src/repository";
 import { ensureSchemaVersion, META_ROW_ID } from "../src/version-check";
@@ -29,10 +29,10 @@ export interface TestDatabaseOptions {
 export const createTestDatabase = (
   options: TestDatabaseOptions = {}
 ): Database => {
-  const client = new BetterSqliteDatabase(":memory:");
+  const client = new BunSqliteDatabase(":memory:");
   const database = drizzle(client, { schema: sqliteSchema });
   const migrationsFolder = fileURLToPath(new URL("./drizzle", import.meta.url));
-  migrate(database as unknown as Parameters<typeof migrate>[0], {
+  migrate(database, {
     migrationsFolder,
   });
 

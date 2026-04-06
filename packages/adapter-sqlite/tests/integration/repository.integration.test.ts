@@ -1,3 +1,4 @@
+import { describe, expect, it } from "bun:test";
 import type {
   MessageCreate,
   MessageUpdate,
@@ -6,7 +7,6 @@ import type {
   ThreadCreate,
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
-import { describe, expect, it } from "vitest";
 import { createTestDatabase } from "../utils";
 
 const buildThread = (overrides: Partial<ThreadCreate> = {}): ThreadCreate => {

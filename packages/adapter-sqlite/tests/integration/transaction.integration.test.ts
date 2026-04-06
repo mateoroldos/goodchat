@@ -1,5 +1,5 @@
+import { describe, expect, it } from "bun:test";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { describe, expect, it } from "vitest";
 import { createTestDatabase } from "../utils";
 
 describe("sqlite transactions", () => {

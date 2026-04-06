@@ -85,6 +85,9 @@ try {
   runProcess("bun", ["run", "test:db:up"], { stdio: "inherit" });
   await waitForServicesHealthy();
   runProcess("bun", ["run", "test:migrations"], { stdio: "inherit" });
+  runProcess("bun", ["run", "test:integration:sqlite"], {
+    stdio: "inherit",
+  });
   runProcess(
     "bun",
     ["x", "vitest", "run", "--config", "vitest.integration.config.ts"],

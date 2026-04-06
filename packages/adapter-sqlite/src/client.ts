@@ -1,6 +1,5 @@
 import { Database as BunSqliteDatabase } from "bun:sqlite";
 import type { Database } from "@goodchat/contracts/database/interface";
-import type { drizzle as drizzleBetterSqlite } from "drizzle-orm/better-sqlite3";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { createSqliteRepositories } from "./repository";
 import { ensureSchemaVersion } from "./version-check";
@@ -15,16 +14,7 @@ type BunSqliteTransaction = Parameters<
   Parameters<ReturnType<typeof drizzle>["transaction"]>[0]
 >[0];
 
-type BetterSqliteDatabase = ReturnType<typeof drizzleBetterSqlite>;
-type BetterSqliteTransaction = Parameters<
-  Parameters<BetterSqliteDatabase["transaction"]>[0]
->[0];
-
-export type SqliteDatabase =
-  | ReturnType<typeof drizzle>
-  | BunSqliteTransaction
-  | BetterSqliteDatabase
-  | BetterSqliteTransaction;
+export type SqliteDatabase = ReturnType<typeof drizzle> | BunSqliteTransaction;
 
 type TransactionRunner = <T>(
   fn: (database: Database) => Promise<T>
