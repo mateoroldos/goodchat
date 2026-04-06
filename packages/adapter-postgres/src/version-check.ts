@@ -1,4 +1,4 @@
-import { postgresSchema, SCHEMA_VERSION } from "@goodchat/core/schema";
+import { postgresSchema, SCHEMA_VERSION } from "@goodchat/core/schema/postgres";
 import { eq } from "drizzle-orm";
 import type { PostgresDatabase } from "./client";
 

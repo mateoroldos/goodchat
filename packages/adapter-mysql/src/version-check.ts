@@ -1,4 +1,4 @@
-import { mysqlSchema, SCHEMA_VERSION } from "@goodchat/core/schema";
+import { mysqlSchema, SCHEMA_VERSION } from "@goodchat/core/schema/mysql";
 import { eq } from "drizzle-orm";
 import type { MysqlDatabase } from "./client";
 

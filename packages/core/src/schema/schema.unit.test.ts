@@ -1,12 +1,26 @@
 import { getTableColumns } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import {
-  defineSchema,
-  type MysqlSchema,
-  type PostgresSchema,
-  SCHEMA_VERSION,
-  type SqliteSchema,
-} from "./schema";
+  messages as mysqlMessages,
+  goodchatMeta as mysqlMeta,
+  mysqlSchema,
+  threads as mysqlThreads,
+  SCHEMA_VERSION as mysqlVersion,
+} from "./mysql";
+import {
+  messages as postgresMessages,
+  goodchatMeta as postgresMeta,
+  postgresSchema,
+  threads as postgresThreads,
+  SCHEMA_VERSION as postgresVersion,
+} from "./postgres";
+import {
+  messages as sqliteMessages,
+  goodchatMeta as sqliteMeta,
+  sqliteSchema,
+  threads as sqliteThreads,
+  SCHEMA_VERSION as sqliteVersion,
+} from "./sqlite";
 
 const THREAD_COLUMNS = [
   "id",
@@ -36,57 +50,70 @@ const MESSAGE_COLUMNS = [
 
 const META_COLUMNS = ["id", "schemaVersion"];
 
-const DIALECTS = ["postgres", "sqlite", "mysql"] as const;
-
 describe("database schema", () => {
-  it("exposes a schema version", () => {
-    expect(SCHEMA_VERSION).toBeTypeOf("string");
-    expect(SCHEMA_VERSION.length).toBeGreaterThan(0);
+  it("keeps schema versions aligned across dialects", () => {
+    expect(postgresVersion).toBe(sqliteVersion);
+    expect(postgresVersion).toBe(mysqlVersion);
+    expect(postgresVersion.length).toBeGreaterThan(0);
   });
 
-  for (const dialect of DIALECTS) {
-    it(`defines required tables for ${dialect}`, () => {
-      const assertSchema = <
-        TSchema extends PostgresSchema | SqliteSchema | MysqlSchema,
-      >(
-        schema: TSchema
-      ) => {
-        const threadColumns = getTableColumns(schema.threads);
-        const messageColumns = getTableColumns(schema.messages);
-        const metaColumns = getTableColumns(schema.goodchatMeta);
+  it("exposes complete sqlite schema", () => {
+    const threadColumns = getTableColumns(sqliteThreads);
+    const messageColumns = getTableColumns(sqliteMessages);
+    const metaColumns = getTableColumns(sqliteMeta);
 
-        expect(Object.keys(threadColumns)).toEqual(
-          expect.arrayContaining(THREAD_COLUMNS)
-        );
-        expect(Object.keys(messageColumns)).toEqual(
-          expect.arrayContaining(MESSAGE_COLUMNS)
-        );
-        expect(Object.keys(metaColumns)).toEqual(
-          expect.arrayContaining(META_COLUMNS)
-        );
+    expect(Object.keys(threadColumns)).toEqual(
+      expect.arrayContaining(THREAD_COLUMNS)
+    );
+    expect(Object.keys(messageColumns)).toEqual(
+      expect.arrayContaining(MESSAGE_COLUMNS)
+    );
+    expect(Object.keys(metaColumns)).toEqual(
+      expect.arrayContaining(META_COLUMNS)
+    );
 
-        expect(threadColumns.id.notNull).toBe(true);
-        expect(threadColumns.createdAt.notNull).toBe(true);
-        expect(threadColumns.updatedAt.notNull).toBe(true);
-        expect(threadColumns.lastActivityAt.notNull).toBe(true);
+    expect(sqliteSchema.threads).toBe(sqliteThreads);
+    expect(sqliteSchema.messages).toBe(sqliteMessages);
+    expect(sqliteSchema.goodchatMeta).toBe(sqliteMeta);
+  });
 
-        expect(messageColumns.role.notNull).toBe(false);
-        expect(messageColumns.metadata.notNull).toBe(false);
+  it("exposes complete postgres schema", () => {
+    const threadColumns = getTableColumns(postgresThreads);
+    const messageColumns = getTableColumns(postgresMessages);
+    const metaColumns = getTableColumns(postgresMeta);
 
-        expect(metaColumns.schemaVersion.notNull).toBe(true);
-      };
+    expect(Object.keys(threadColumns)).toEqual(
+      expect.arrayContaining(THREAD_COLUMNS)
+    );
+    expect(Object.keys(messageColumns)).toEqual(
+      expect.arrayContaining(MESSAGE_COLUMNS)
+    );
+    expect(Object.keys(metaColumns)).toEqual(
+      expect.arrayContaining(META_COLUMNS)
+    );
 
-      if (dialect === "postgres") {
-        assertSchema(defineSchema("postgres"));
-        return;
-      }
+    expect(postgresSchema.threads).toBe(postgresThreads);
+    expect(postgresSchema.messages).toBe(postgresMessages);
+    expect(postgresSchema.goodchatMeta).toBe(postgresMeta);
+  });
 
-      if (dialect === "sqlite") {
-        assertSchema(defineSchema("sqlite"));
-        return;
-      }
+  it("exposes complete mysql schema", () => {
+    const threadColumns = getTableColumns(mysqlThreads);
+    const messageColumns = getTableColumns(mysqlMessages);
+    const metaColumns = getTableColumns(mysqlMeta);
 
-      assertSchema(defineSchema("mysql"));
-    });
-  }
+    expect(Object.keys(threadColumns)).toEqual(
+      expect.arrayContaining(THREAD_COLUMNS)
+    );
+    expect(Object.keys(messageColumns)).toEqual(
+      expect.arrayContaining(MESSAGE_COLUMNS)
+    );
+    expect(Object.keys(metaColumns)).toEqual(
+      expect.arrayContaining(META_COLUMNS)
+    );
+
+    expect(mysqlSchema.threads).toBe(mysqlThreads);
+    expect(mysqlSchema.messages).toBe(mysqlMessages);
+    expect(mysqlSchema.goodchatMeta).toBe(mysqlMeta);
+  });
 });

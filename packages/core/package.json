@@ -30,10 +30,20 @@
       "import": "./dist/types.mjs",
       "require": "./dist/types.cjs"
     },
-    "./schema": {
-      "types": "./dist/schema.d.mts",
-      "import": "./dist/schema.mjs",
-      "require": "./dist/schema.cjs"
+    "./schema/sqlite": {
+      "types": "./dist/schema/sqlite.d.mts",
+      "import": "./dist/schema/sqlite.mjs",
+      "require": "./dist/schema/sqlite.cjs"
+    },
+    "./schema/postgres": {
+      "types": "./dist/schema/postgres.d.mts",
+      "import": "./dist/schema/postgres.mjs",
+      "require": "./dist/schema/postgres.cjs"
+    },
+    "./schema/mysql": {
+      "types": "./dist/schema/mysql.d.mts",
+      "import": "./dist/schema/mysql.mjs",
+      "require": "./dist/schema/mysql.cjs"
     }
   },
   "dependencies": {

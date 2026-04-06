@@ -1,7 +1,7 @@
 import { Database as BunSqliteDatabase } from "bun:sqlite";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { SCHEMA_VERSION, sqliteSchema } from "@goodchat/core/schema";
+import { SCHEMA_VERSION, sqliteSchema } from "@goodchat/core/schema/sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { SqliteDatabase } from "../src/client";

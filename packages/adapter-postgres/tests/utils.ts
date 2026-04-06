@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { postgresSchema, SCHEMA_VERSION } from "@goodchat/core/schema";
+import { postgresSchema, SCHEMA_VERSION } from "@goodchat/core/schema/postgres";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";

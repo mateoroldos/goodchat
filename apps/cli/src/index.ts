@@ -15,6 +15,7 @@ import { deriveBotId } from "@goodchat/contracts/config/utils";
 import { type Provider, resolveProviderFromModelId } from "./env-metadata";
 import {
   createProjectFiles,
+  type DatabaseDialect,
   type GeneratorConfig,
   getEnvMetadataForConfig,
   type McpServerConfig,
@@ -343,6 +344,18 @@ const run = async (): Promise<void> => {
   const isServerless = false;
   const id = undefined;
 
+  const databaseDialect = handleCancel(
+    await select({
+      message: "Database dialect",
+      options: [
+        { label: "SQLite (recommended)", value: "sqlite" },
+        { label: "PostgreSQL", value: "postgres" },
+        { label: "MySQL", value: "mysql" },
+      ],
+      initialValue: "sqlite",
+    })
+  ) as DatabaseDialect;
+
   const plugins = handleCancel(
     await multiselect({
       message: "Select plugins",
@@ -354,6 +367,7 @@ const run = async (): Promise<void> => {
   const mcp = await promptMcpServers();
 
   const config: GeneratorConfig = {
+    databaseDialect,
     name: botName,
     prompt,
     platforms: platforms as Platform[],

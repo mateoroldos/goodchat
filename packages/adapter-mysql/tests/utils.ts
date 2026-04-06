@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { mysqlSchema, SCHEMA_VERSION } from "@goodchat/core/schema";
+import { mysqlSchema, SCHEMA_VERSION } from "@goodchat/core/schema/mysql";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createPool } from "mysql2/promise";

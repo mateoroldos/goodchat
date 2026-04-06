@@ -10,6 +10,8 @@ import {
 
 export type Platform = "local" | "slack" | "discord" | "teams" | "gchat";
 
+export type DatabaseDialect = "sqlite" | "postgres" | "mysql";
+
 export type McpTransport =
   | {
       type: "http" | "sse";
@@ -29,6 +31,7 @@ export interface McpServerConfig {
 }
 
 export interface GeneratorConfig {
+  databaseDialect: DatabaseDialect;
   id?: string;
   isServerless: boolean;
   mcp?: McpServerConfig[];
@@ -92,6 +95,18 @@ const PUBLISHED_CORE_VERSION = formatPublishedVersion(
 );
 const PUBLISHED_PLUGINS_VERSION = formatPublishedVersion(
   readWorkspaceVersion("packages/plugins/package.json"),
+  "^0.0.1"
+);
+const PUBLISHED_ADAPTER_SQLITE_VERSION = formatPublishedVersion(
+  readWorkspaceVersion("packages/adapter-sqlite/package.json"),
+  "^0.0.1"
+);
+const PUBLISHED_ADAPTER_POSTGRES_VERSION = formatPublishedVersion(
+  readWorkspaceVersion("packages/adapter-postgres/package.json"),
+  "^0.0.1"
+);
+const PUBLISHED_ADAPTER_MYSQL_VERSION = formatPublishedVersion(
+  readWorkspaceVersion("packages/adapter-mysql/package.json"),
   "^0.0.1"
 );
 
@@ -188,6 +203,15 @@ export const renderEnvFile = (metadata: EnvVariableMeta[]): string => {
 
 export const renderAppFile = (config: GeneratorConfig): string => {
   const imports = ['import { createGoodchat } from "@goodchat/core";'];
+  if (config.databaseDialect === "sqlite") {
+    imports.push('import { sqlite } from "@goodchat/adapter-sqlite";');
+  }
+  if (config.databaseDialect === "postgres") {
+    imports.push('import { postgres } from "@goodchat/adapter-postgres";');
+  }
+  if (config.databaseDialect === "mysql") {
+    imports.push('import { mysql } from "@goodchat/adapter-mysql";');
+  }
   const plugins = config.plugins ?? [];
   if (plugins.includes("linear")) {
     imports.push('import { linear } from "@goodchat/plugins/linear";');
@@ -220,6 +244,21 @@ export const renderAppFile = (config: GeneratorConfig): string => {
   }
 
   entries.push(`  withDashboard: ${config.withDashboard},`);
+  if (config.databaseDialect === "sqlite") {
+    entries.push(
+      '  database: sqlite({ path: process.env.DATABASE_URL || "./goodchat.db" }),'
+    );
+  }
+  if (config.databaseDialect === "postgres") {
+    entries.push(
+      '  database: postgres({ connectionString: process.env.DATABASE_URL || "" }),'
+    );
+  }
+  if (config.databaseDialect === "mysql") {
+    entries.push(
+      '  database: mysql({ connectionString: process.env.DATABASE_URL || "" }),'
+    );
+  }
   entries.push("  isServerless,");
 
   return `${imports.join("\n")}
@@ -257,6 +296,7 @@ export type { App } from "./app";
 };
 
 export const renderPackageJson = (input: {
+  databaseDialect: DatabaseDialect;
   projectName: string;
   usesPlugins: boolean;
 }): string => {
@@ -272,8 +312,20 @@ export const renderPackageJson = (input: {
     dependencies["@goodchat/plugins"] = PUBLISHED_PLUGINS_VERSION;
   }
 
+  if (input.databaseDialect === "sqlite") {
+    dependencies["@goodchat/adapter-sqlite"] = PUBLISHED_ADAPTER_SQLITE_VERSION;
+  }
+  if (input.databaseDialect === "postgres") {
+    dependencies["@goodchat/adapter-postgres"] =
+      PUBLISHED_ADAPTER_POSTGRES_VERSION;
+  }
+  if (input.databaseDialect === "mysql") {
+    dependencies["@goodchat/adapter-mysql"] = PUBLISHED_ADAPTER_MYSQL_VERSION;
+  }
+
   const devDependencies: Record<string, string> = {
     "@types/bun": "^1.3.4",
+    "drizzle-kit": "^0.31.10",
     tsdown: "^0.16.5",
     typescript: "^5.9.3",
   };
@@ -286,6 +338,9 @@ export const renderPackageJson = (input: {
       dev: "bun run --hot src/index.ts",
       build: "tsdown",
       "check-types": "tsc -b",
+      "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+      "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+      "db:push": "drizzle-kit push --config=drizzle.config.ts",
       start: "bun run dist/index.mjs",
     },
     dependencies,
@@ -328,6 +383,48 @@ dist
 `;
 };
 
+const getScaffoldSchemaSourcePath = (
+  databaseDialect: DatabaseDialect
+): string =>
+  resolve(WORKSPACE_ROOT, "packages/core/src/schema", `${databaseDialect}.ts`);
+
+export const renderDrizzleSchemaFile = (
+  databaseDialect: DatabaseDialect
+): string => {
+  return readFileSync(getScaffoldSchemaSourcePath(databaseDialect), "utf8");
+};
+
+const renderDrizzleCredentials = (databaseDialect: DatabaseDialect): string => {
+  if (databaseDialect === "sqlite") {
+    return '    url: process.env.DATABASE_URL || "./goodchat.db",';
+  }
+  return '    url: process.env.DATABASE_URL || "",';
+};
+
+const getDrizzleDialect = (databaseDialect: DatabaseDialect): string => {
+  if (databaseDialect === "postgres") {
+    return "postgresql";
+  }
+  return databaseDialect;
+};
+
+export const renderDrizzleConfigFile = (
+  databaseDialect: DatabaseDialect
+): string => {
+  return `import "dotenv/config";
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  schema: "./src/db/schema.ts",
+  out: "./drizzle",
+  dialect: "${getDrizzleDialect(databaseDialect)}",
+  dbCredentials: {
+${renderDrizzleCredentials(databaseDialect)}
+  },
+});
+`;
+};
+
 export const createProjectFiles = (
   input: ProjectTemplateInput
 ): ProjectFile[] => {
@@ -336,6 +433,7 @@ export const createProjectFiles = (
     {
       path: "package.json",
       content: renderPackageJson({
+        databaseDialect: input.config.databaseDialect,
         projectName: input.projectName,
         usesPlugins,
       }),
@@ -355,6 +453,14 @@ export const createProjectFiles = (
     {
       path: "src/env.ts",
       content: renderEnvSchemaFile(input.envMetadata),
+    },
+    {
+      path: "src/db/schema.ts",
+      content: renderDrizzleSchemaFile(input.config.databaseDialect),
+    },
+    {
+      path: "drizzle.config.ts",
+      content: renderDrizzleConfigFile(input.config.databaseDialect),
     },
     {
       path: ".env",

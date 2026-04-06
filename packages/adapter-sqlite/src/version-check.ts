@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, sqliteSchema } from "@goodchat/core/schema";
+import { SCHEMA_VERSION, sqliteSchema } from "@goodchat/core/schema/sqlite";
 import { eq } from "drizzle-orm";
 import type { SqliteDatabase } from "./client";
 

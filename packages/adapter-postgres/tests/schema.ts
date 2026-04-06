@@ -1,4 +1,4 @@
-import { postgresSchema } from "@goodchat/core/schema";
+import { postgresSchema } from "@goodchat/core/schema/postgres";
 
 export const goodchatMeta = postgresSchema.goodchatMeta;
 export const messages = postgresSchema.messages;

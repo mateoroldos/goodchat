@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { SCHEMA_VERSION } from "@goodchat/core/schema";
+import { SCHEMA_VERSION } from "@goodchat/core/schema/sqlite";
 import { createTestDatabase } from "../utils";
 
 const SCHEMA_MISMATCH_PATTERN = /schema mismatch/i;

@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION } from "@goodchat/core/schema";
+import { SCHEMA_VERSION } from "@goodchat/core/schema/postgres";
 import { describe, expect, it } from "vitest";
 import type { TestDatabaseOptions } from "../utils";
 import { createTestDatabase } from "../utils";

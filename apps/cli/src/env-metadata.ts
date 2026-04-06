@@ -49,6 +49,13 @@ const ENV_METADATA: EnvVariableMeta[] = [
     providers: ["gateway"],
   },
   {
+    key: "DATABASE_URL",
+    description:
+      "Database connection URL (postgres/mysql) or sqlite file path (sqlite)",
+    category: "core",
+    schema: 'z.string().min(1, "DATABASE_URL is required")',
+  },
+  {
     key: "WEBHOOK_FORWARD_URL",
     description:
       "Optional URL to forward platform webhooks for internal request. In Railway set to http://localhost:8080",

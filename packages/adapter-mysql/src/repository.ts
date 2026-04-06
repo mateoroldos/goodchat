@@ -9,7 +9,7 @@ import type {
   ThreadCreate,
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
-import { mysqlSchema } from "@goodchat/core/schema";
+import { mysqlSchema } from "@goodchat/core/schema/mysql";
 import type { AnyColumn } from "drizzle-orm";
 import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 import type { MysqlDatabase } from "./client";
