@@ -2,7 +2,15 @@
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    [
+      "@goodchat/core",
+      "@goodchat/contracts",
+      "@goodchat/adapter-postgres",
+      "@goodchat/adapter-mysql",
+      "@goodchat/adapter-sqlite"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
