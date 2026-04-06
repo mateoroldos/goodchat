@@ -1,13 +1,11 @@
 import { app } from "./app";
+import { config } from "./config";
 
-const isServerless =
-  process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
-const port = Number(process.env.PORT ?? 3000);
 const serverApp = app;
 
-if (!isServerless) {
-  serverApp.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+if (!config.isServerless) {
+  serverApp.listen(config.port, () => {
+    console.log(`Server is running on http://localhost:${config.port}`);
   });
 }
 
