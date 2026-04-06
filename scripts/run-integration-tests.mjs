@@ -6,6 +6,7 @@ const DEFAULT_MYSQL_URL = "mysql://root:goodchat@localhost:3306/mysql";
 const HEALTH_TIMEOUT_MS = 60_000;
 const HEALTH_POLL_MS = 1000;
 const SERVICE_NAMES = ["postgres", "mysql"];
+const TEST_COMPOSE_FILE = "docker-compose.test.yml";
 
 if (!process.env.POSTGRES_TEST_URL) {
   process.env.POSTGRES_TEST_URL = DEFAULT_POSTGRES_URL;
@@ -31,7 +32,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const getContainerIds = () => {
   const result = runProcess(
     "docker",
-    ["compose", "ps", "-q", ...SERVICE_NAMES],
+    ["compose", "-f", TEST_COMPOSE_FILE, "ps", "-q", ...SERVICE_NAMES],
     { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
   );
   const output = result.stdout.trim();
