@@ -8,7 +8,8 @@ Apps
 
 - `apps/web/` - SvelteKit dashboard for configuring bots, connecting platforms, and viewing threads.
 - `apps/server/` - Elysia control plane API, webhook ingress, and runtime orchestration.
-- `apps/cli/` - `goodchat` CLI that scaffolds, launches dev, builds, and runs production.
+- `apps/create-cli/` - `create-goodchat` scaffolding CLI for one-time project bootstrap.
+- `apps/goodchat-cli/` - `goodchat` lifecycle CLI for repeatable project operations (schema sync, future auth/plugin commands).
 
 Packages
 
@@ -23,7 +24,7 @@ Packages
 
 ## Runtime Topology
 
-- The CLI is the launcher. `goodchat dev` starts the local control plane (Elysia server + dashboard) and loads `goodchat.config.ts`.
+- The CLI is the launcher. `goodchat dev` starts the local control plane (Elysia server + dashboard) and loads `src/goodchat.ts`.
 - The web app talks to the server API for bot config, OAuth connections, and thread streams.
 - The server exposes per-platform webhook endpoints (for example `/api/webhook/discord`) and streams responses back to platforms.
 - Shared packages are consumed by both apps to keep runtime, config, and env rules consistent.
@@ -49,7 +50,7 @@ Each incoming message follows a consistent pipeline:
 
 SQLite is the source of truth for:
 
-- Bot configs and versions (syncs with `goodchat.config.ts`).
+- Bot configs and versions (syncs with `src/goodchat.ts`).
 - Platform connections and OAuth tokens.
 - Conversation threads and message history.
 - Context index metadata (document versions, embeddings, chunk maps).

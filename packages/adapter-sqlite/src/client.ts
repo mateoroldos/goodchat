@@ -27,6 +27,7 @@ const createDatabaseInterface = (
   const repositories = createSqliteRepositories(database);
   return {
     ...repositories,
+    dialect: "sqlite",
     ensureSchemaVersion: () => ensureSchemaVersion(database),
     transaction: transactionRunner,
   };

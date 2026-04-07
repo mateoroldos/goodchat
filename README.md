@@ -4,7 +4,7 @@
 
 ## How to use
 
-Create your bot in `apps/server/src/app.ts` with `createGoodchat`:
+Create your bot in `src/goodchat.ts` with `createGoodchat`:
 
 ```ts
 import { createGoodchat } from "@goodchat/core";
@@ -491,7 +491,8 @@ For a managed cloud deployment with zero setup, use [goodchat.dev](https://goodc
 ## CLI
 
 ```bash
-goodchat init <name>     # Scaffold a new bot project
+npx create-goodchat@latest  # Scaffold a new bot project
+goodchat db schema sync     # Sync generated schema artifacts
 goodchat dev             # Start local dev server with hot reload
 goodchat build           # Build for production
 goodchat start           # Start production server

@@ -70,6 +70,7 @@ const createDatabaseInterface = (
   const repositories = createPostgresRepositories(database);
   return {
     ...repositories,
+    dialect: "postgres",
     ensureSchemaVersion: () => ensureSchemaVersion(database),
     transaction: transactionRunner,
   };

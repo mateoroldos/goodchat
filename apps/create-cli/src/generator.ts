@@ -2,39 +2,22 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
+import type {
+  DatabaseDialect,
+  Platform,
+} from "@goodchat/contracts/config/types";
 import {
   type EnvVariableMeta,
   getEnvMetadata,
   type Provider,
 } from "./env-metadata";
 
-export type Platform = "local" | "slack" | "discord" | "teams" | "gchat";
-
-export type DatabaseDialect = "sqlite" | "postgres" | "mysql";
-
-export type McpTransport =
-  | {
-      type: "http" | "sse";
-      url: string;
-      headers?: Record<string, string>;
-    }
-  | {
-      type: "stdio";
-      command: string;
-      args?: string[];
-      env?: Record<string, string>;
-    };
-
-export interface McpServerConfig {
-  name: string;
-  transport: McpTransport;
-}
-
 export interface GeneratorConfig {
   databaseDialect: DatabaseDialect;
   id?: string;
   isServerless: boolean;
-  mcp?: McpServerConfig[];
+  mcp?: MCPServerConfig[];
   model?: string;
   name: string;
   platforms: Platform[];
@@ -42,6 +25,8 @@ export interface GeneratorConfig {
   prompt: string;
   withDashboard: boolean;
 }
+
+export type ScaffolderConfig = GeneratorConfig;
 
 export interface ProjectFile {
   content: string;
@@ -107,6 +92,10 @@ const PUBLISHED_ADAPTER_POSTGRES_VERSION = formatPublishedVersion(
 );
 const PUBLISHED_ADAPTER_MYSQL_VERSION = formatPublishedVersion(
   readWorkspaceVersion("packages/adapter-mysql/package.json"),
+  "^0.0.1"
+);
+const PUBLISHED_GOODCHAT_CLI_VERSION = formatPublishedVersion(
+  readWorkspaceVersion("apps/goodchat-cli/package.json"),
   "^0.0.1"
 );
 
@@ -201,8 +190,8 @@ export const renderEnvFile = (metadata: EnvVariableMeta[]): string => {
   return `${lines.join("\n")}\n`;
 };
 
-export const renderAppFile = (config: GeneratorConfig): string => {
-  const imports = ['import { createGoodchat } from "@goodchat/core";'];
+export const renderGoodchatFile = (config: GeneratorConfig): string => {
+  const imports: string[] = [];
   if (config.databaseDialect === "sqlite") {
     imports.push('import { sqlite } from "@goodchat/adapter-sqlite";');
   }
@@ -215,6 +204,17 @@ export const renderAppFile = (config: GeneratorConfig): string => {
   const plugins = config.plugins ?? [];
   if (plugins.includes("linear")) {
     imports.push('import { linear } from "@goodchat/plugins/linear";');
+  }
+
+  let databaseExpression =
+    'mysql({ connectionString: process.env.DATABASE_URL || "" })';
+  if (config.databaseDialect === "sqlite") {
+    databaseExpression =
+      'sqlite({ path: process.env.DATABASE_URL || "./goodchat.db" })';
+  }
+  if (config.databaseDialect === "postgres") {
+    databaseExpression =
+      'postgres({ connectionString: process.env.DATABASE_URL || "" })';
   }
 
   const entries: string[] = [
@@ -244,54 +244,34 @@ export const renderAppFile = (config: GeneratorConfig): string => {
   }
 
   entries.push(`  withDashboard: ${config.withDashboard},`);
-  if (config.databaseDialect === "sqlite") {
-    entries.push(
-      '  database: sqlite({ path: process.env.DATABASE_URL || "./goodchat.db" }),'
-    );
-  }
-  if (config.databaseDialect === "postgres") {
-    entries.push(
-      '  database: postgres({ connectionString: process.env.DATABASE_URL || "" }),'
-    );
-  }
-  if (config.databaseDialect === "mysql") {
-    entries.push(
-      '  database: mysql({ connectionString: process.env.DATABASE_URL || "" }),'
-    );
-  }
-  entries.push("  isServerless,");
+  entries.push(`  database: ${databaseExpression},`);
+  entries.push(
+    '  isServerless: process.env.SERVERLESS === "true" || process.env.VERCEL === "1",'
+  );
 
   return `${imports.join("\n")}
 
-const isServerless =
-  process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
-
-const { app, api } = await createGoodchat({
+export const goodchat = {
 ${entries.join("\n")}
-});
-
-export { app };
-export type App = typeof api;
+};
 `;
 };
 
 export const renderIndexFile = (): string => {
   return `import "./env";
-import { app } from "./app";
+import { createGoodchat } from "@goodchat/core";
+import { goodchat } from "./goodchat";
 
-const isServerless =
-  process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
 const port = Number(process.env.PORT ?? 3000);
-const serverApp = app;
+const { app } = await createGoodchat(goodchat);
 
-if (!isServerless) {
-  serverApp.listen(port, () => {
+if (!goodchat.isServerless) {
+  app.listen(port, () => {
     console.log(\`Server is running on http://localhost:\${port}\`);
   });
 }
 
-export default serverApp;
-export type { App } from "./app";
+export default app;
 `;
 };
 
@@ -301,6 +281,7 @@ export const renderPackageJson = (input: {
   usesPlugins: boolean;
 }): string => {
   const dependencies: Record<string, string> = {
+    "@goodchat/cli": PUBLISHED_GOODCHAT_CLI_VERSION,
     "@goodchat/core": PUBLISHED_CORE_VERSION,
     "@t3-oss/env-core": "^0.13.1",
     dotenv: "^17.2.2",
@@ -338,6 +319,8 @@ export const renderPackageJson = (input: {
       dev: "bun run --hot src/index.ts",
       build: "tsdown",
       "check-types": "tsc -b",
+      "db:schema:sync": "goodchat db schema sync",
+      "db:schema:check": "goodchat db schema sync --check",
       "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
       "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
       "db:push": "drizzle-kit push --config=drizzle.config.ts",
@@ -383,48 +366,6 @@ dist
 `;
 };
 
-const getScaffoldSchemaSourcePath = (
-  databaseDialect: DatabaseDialect
-): string =>
-  resolve(WORKSPACE_ROOT, "packages/core/src/schema", `${databaseDialect}.ts`);
-
-export const renderDrizzleSchemaFile = (
-  databaseDialect: DatabaseDialect
-): string => {
-  return readFileSync(getScaffoldSchemaSourcePath(databaseDialect), "utf8");
-};
-
-const renderDrizzleCredentials = (databaseDialect: DatabaseDialect): string => {
-  if (databaseDialect === "sqlite") {
-    return '    url: process.env.DATABASE_URL || "./goodchat.db",';
-  }
-  return '    url: process.env.DATABASE_URL || "",';
-};
-
-const getDrizzleDialect = (databaseDialect: DatabaseDialect): string => {
-  if (databaseDialect === "postgres") {
-    return "postgresql";
-  }
-  return databaseDialect;
-};
-
-export const renderDrizzleConfigFile = (
-  databaseDialect: DatabaseDialect
-): string => {
-  return `import "dotenv/config";
-import { defineConfig } from "drizzle-kit";
-
-export default defineConfig({
-  schema: "./src/db/schema.ts",
-  out: "./drizzle",
-  dialect: "${getDrizzleDialect(databaseDialect)}",
-  dbCredentials: {
-${renderDrizzleCredentials(databaseDialect)}
-  },
-});
-`;
-};
-
 export const createProjectFiles = (
   input: ProjectTemplateInput
 ): ProjectFile[] => {
@@ -443,8 +384,8 @@ export const createProjectFiles = (
       content: renderTsconfig(),
     },
     {
-      path: "src/app.ts",
-      content: renderAppFile(input.config),
+      path: "src/goodchat.ts",
+      content: renderGoodchatFile(input.config),
     },
     {
       path: "src/index.ts",
@@ -453,14 +394,6 @@ export const createProjectFiles = (
     {
       path: "src/env.ts",
       content: renderEnvSchemaFile(input.envMetadata),
-    },
-    {
-      path: "src/db/schema.ts",
-      content: renderDrizzleSchemaFile(input.config.databaseDialect),
-    },
-    {
-      path: "drizzle.config.ts",
-      content: renderDrizzleConfigFile(input.config.databaseDialect),
     },
     {
       path: ".env",

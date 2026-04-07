@@ -8,7 +8,10 @@ import {
   mcpServerSchema,
   toolSchema,
 } from "@goodchat/contracts/capabilities/models";
-import { botConfigSchema } from "@goodchat/contracts/config/models";
+import {
+  botConfigSchema,
+  databaseDialectSchema,
+} from "@goodchat/contracts/config/models";
 import type { BotConfig } from "@goodchat/contracts/config/types";
 import { deriveBotId } from "@goodchat/contracts/config/utils";
 import type { Database } from "@goodchat/contracts/database/interface";
@@ -100,6 +103,7 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     withDashboard = true,
     isServerless = false,
   } = goodchatOptionsSchema.parse(options);
+  databaseDialectSchema.parse(database.dialect);
   const coreDir = dirname(fileURLToPath(import.meta.url));
   const packagedWebBuildPath = join(coreDir, "web");
   const webBuildPath = packagedWebBuildPath;

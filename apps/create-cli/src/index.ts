@@ -10,16 +10,18 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
+import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import { CHAT_PLATFORMS } from "@goodchat/contracts/config/models";
+import type {
+  DatabaseDialect,
+  Platform,
+} from "@goodchat/contracts/config/types";
 import { deriveBotId } from "@goodchat/contracts/config/utils";
 import { type Provider, resolveProviderFromModelId } from "./env-metadata";
 import {
   createProjectFiles,
-  type DatabaseDialect,
-  type GeneratorConfig,
   getEnvMetadataForConfig,
-  type McpServerConfig,
-  type Platform,
+  type ScaffolderConfig,
 } from "./generator";
 
 const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+[/:][\w.-]+$/i;
@@ -94,8 +96,8 @@ const writeFiles = async (
   }
 };
 
-const promptMcpServers = async (): Promise<McpServerConfig[]> => {
-  const servers: McpServerConfig[] = [];
+const promptMcpServers = async (): Promise<MCPServerConfig[]> => {
+  const servers: MCPServerConfig[] = [];
   let shouldAdd = handleCancel(
     await confirm({
       message: "Add an MCP server?",
@@ -257,7 +259,40 @@ const printBanner = (): void => {
   process.stdout.write(`\n${FG_AMB}Welcome to goodchat${RST}\n\n`);
 };
 
+const handleLifecycleCommandAttempt = (args: string[]): void => {
+  if (args.length === 0) {
+    return;
+  }
+
+  const lifecycleTopLevelCommands = new Set([
+    "auth",
+    "build",
+    "db",
+    "deploy",
+    "dev",
+    "doctor",
+    "plugins",
+    "start",
+    "threads",
+  ]);
+
+  const firstArg = args[0] as string;
+  if (!lifecycleTopLevelCommands.has(firstArg)) {
+    return;
+  }
+
+  const command = args.join(" ");
+  throw new Error(
+    [
+      "create-goodchat only supports project scaffolding.",
+      `Received lifecycle command: ${command}`,
+      `Use the lifecycle CLI instead: goodchat ${command}`,
+    ].join("\n")
+  );
+};
+
 const run = async (): Promise<void> => {
+  handleLifecycleCommandAttempt(process.argv.slice(2));
   printBanner();
 
   const botName = handleCancel(
@@ -366,7 +401,7 @@ const run = async (): Promise<void> => {
 
   const mcp = await promptMcpServers();
 
-  const config: GeneratorConfig = {
+  const config: ScaffolderConfig = {
     databaseDialect,
     name: botName,
     prompt,
@@ -397,7 +432,7 @@ const run = async (): Promise<void> => {
   writer.stop("Project created");
 
   outro(
-    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run dev`
+    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run db:schema:sync\n  bun run db:generate\n  bun run db:migrate\n  bun run dev`
   );
 };
 

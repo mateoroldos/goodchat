@@ -19,7 +19,7 @@
         "vitest": "^4.1.2",
       },
     },
-    "apps/cli": {
+    "apps/create-cli": {
       "name": "@goodchat/create",
       "version": "0.0.7",
       "bin": {
@@ -31,6 +31,25 @@
       "devDependencies": {
         "@goodchat/contracts": "workspace:*",
         "@goodchat/core": "workspace:*",
+        "@goodchat/typescript-config": "workspace:*",
+        "@types/bun": "catalog:",
+        "tsdown": "^0.21.4",
+        "typescript": "catalog:",
+        "vitest": "^4.1.0",
+      },
+    },
+    "apps/goodchat-cli": {
+      "name": "@goodchat/cli",
+      "version": "0.0.1",
+      "bin": {
+        "goodchat": "dist/index.mjs",
+      },
+      "dependencies": {
+        "@clack/prompts": "^0.10.0",
+        "@goodchat/contracts": "workspace:*",
+        "jiti": "^2.6.1",
+      },
+      "devDependencies": {
         "@goodchat/typescript-config": "workspace:*",
         "@types/bun": "catalog:",
         "tsdown": "^0.21.4",
@@ -514,11 +533,13 @@
 
     "@goodchat/adapter-sqlite": ["@goodchat/adapter-sqlite@workspace:packages/adapter-sqlite"],
 
+    "@goodchat/cli": ["@goodchat/cli@workspace:apps/goodchat-cli"],
+
     "@goodchat/contracts": ["@goodchat/contracts@workspace:packages/contracts"],
 
     "@goodchat/core": ["@goodchat/core@workspace:packages/core"],
 
-    "@goodchat/create": ["@goodchat/create@workspace:apps/cli"],
+    "@goodchat/create": ["@goodchat/create@workspace:apps/create-cli"],
 
     "@goodchat/plugins": ["@goodchat/plugins@workspace:packages/plugins"],
 

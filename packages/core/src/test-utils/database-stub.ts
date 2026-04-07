@@ -50,6 +50,7 @@ export const createDatabaseStub = (): Database => {
   const messageStore = new Map<string, Message>();
 
   const database: Database = {
+    dialect: "sqlite",
     ensureSchemaVersion: () => Promise.resolve(undefined),
     threads: {
       create: (input: ThreadCreate) => {

@@ -3,10 +3,9 @@ import {
   createProjectFiles,
   getEnvMetadataForConfig,
   type ProjectFile,
-  renderAppFile,
-  renderDrizzleConfigFile,
-  renderDrizzleSchemaFile,
   renderEnvSchemaFile,
+  renderGoodchatFile,
+  renderPackageJson,
 } from "./generator";
 
 describe("generator helpers", () => {
@@ -21,8 +20,8 @@ describe("generator helpers", () => {
     expect(variables).toContain("DISCORD_APPLICATION_ID");
   });
 
-  it("renders app config with plugins and mcp", () => {
-    const result = renderAppFile({
+  it("renders goodchat runtime file with plugins and mcp", () => {
+    const result = renderGoodchatFile({
       databaseDialect: "sqlite",
       name: "Support Bot",
       prompt: "Be helpful",
@@ -42,9 +41,10 @@ describe("generator helpers", () => {
     expect(result).toContain("plugins: [linear]");
     expect(result).toContain("mcp:");
     expect(result).toContain("https://mcp.notion");
-    expect(result).toContain('model: "openai/gpt-4.1-mini"');
+    expect(result).toContain('name: "Support Bot"');
+    expect(result).toContain("export const goodchat = {");
     expect(result).toContain(
-      "database: sqlite({ path: process.env.DATABASE_URL"
+      'database: sqlite({ path: process.env.DATABASE_URL || "./goodchat.db" }),'
     );
   });
 
@@ -88,45 +88,57 @@ describe("generator helpers", () => {
 
     const filePaths = files.map((file: ProjectFile) => file.path);
     expect(filePaths).toContain("package.json");
-    expect(filePaths).toContain("src/app.ts");
+    expect(filePaths).toContain("src/goodchat.ts");
     expect(filePaths).toContain("src/index.ts");
     expect(filePaths).toContain("src/env.ts");
-    expect(filePaths).toContain("src/db/schema.ts");
-    expect(filePaths).toContain("drizzle.config.ts");
     expect(filePaths).toContain(".env");
+    expect(filePaths).not.toContain("src/db/schema.ts");
+    expect(filePaths).not.toContain("src/db/auth-schema.ts");
+    expect(filePaths).not.toContain("src/db/plugins/schema.ts");
+    expect(filePaths).not.toContain("drizzle.config.ts");
+    expect(filePaths).not.toContain("src/app.ts");
+  });
 
-    const copiedSchemaFile = files.find(
-      (file) => file.path === "src/db/schema.ts"
+  it("renders package scripts for lifecycle schema sync", () => {
+    const packageJson = JSON.parse(
+      renderPackageJson({
+        databaseDialect: "sqlite",
+        projectName: "goodchat-app",
+        usesPlugins: false,
+      })
+    ) as {
+      dependencies: Record<string, string>;
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.dependencies["@goodchat/cli"]).toBeDefined();
+    expect(packageJson.scripts["db:schema:sync"]).toBe(
+      "goodchat db schema sync"
     );
-    expect(copiedSchemaFile?.content).toContain(
-      'import { sqliteTable, text } from "drizzle-orm/sqlite-core";'
+    expect(packageJson.scripts["db:schema:check"]).toBe(
+      "goodchat db schema sync --check"
     );
   });
 
-  it("renders drizzle schema with top-level table exports", () => {
-    const result = renderDrizzleSchemaFile("postgres");
+  it("renders goodchat runtime file with dialect and bot metadata", () => {
+    const configFile = renderGoodchatFile({
+      databaseDialect: "postgres",
+      id: "test-id",
+      isServerless: false,
+      model: "openai/gpt-4.1-mini",
+      name: "Test Bot",
+      platforms: ["local", "discord"],
+      plugins: ["linear"],
+      prompt: "Be precise",
+      withDashboard: true,
+      mcp: [],
+    });
 
-    expect(result).toContain(
-      'import { jsonb, pgTable, text } from "drizzle-orm/pg-core";'
+    expect(configFile).toContain("export const goodchat = {");
+    expect(configFile).toContain(
+      'database: postgres({ connectionString: process.env.DATABASE_URL || "" }),'
     );
-    expect(result).toContain(
-      'export const threads = pgTable("goodchat_threads"'
-    );
-    expect(result).toContain(
-      'export const messages = pgTable("goodchat_messages"'
-    );
-    expect(result).toContain(
-      'export const goodchatMeta = pgTable("goodchat_meta"'
-    );
-  });
-
-  it("renders single-file drizzle config", () => {
-    const result = renderDrizzleConfigFile("sqlite");
-
-    expect(result).toContain('schema: "./src/db/schema.ts"');
-    expect(result).toContain('dialect: "sqlite"');
-    expect(result).toContain(
-      'url: process.env.DATABASE_URL || "./goodchat.db"'
-    );
+    expect(configFile).toContain('name: "Test Bot"');
+    expect(configFile).toContain("plugins: [linear]");
   });
 });

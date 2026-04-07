@@ -29,6 +29,7 @@ const createDatabaseInterface = (
   const repositories = createMysqlRepositories(database);
   return {
     ...repositories,
+    dialect: "mysql",
     ensureSchemaVersion: () => ensureSchemaVersion(database),
     transaction: transactionRunner,
   };

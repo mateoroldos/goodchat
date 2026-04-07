@@ -1,0 +1,43 @@
+{
+  "name": "@goodchat/cli",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "goodchat": "dist/index.mjs"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "dev:run": "bun run src/index.ts",
+    "check-types": "tsc -b",
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0",
+    "@goodchat/contracts": "workspace:*",
+    "jiti": "^2.6.1"
+  },
+  "devDependencies": {
+    "@goodchat/typescript-config": "workspace:*",
+    "@types/bun": "catalog:",
+    "tsdown": "^0.21.4",
+    "typescript": "catalog:",
+    "vitest": "^4.1.0"
+  }
+}

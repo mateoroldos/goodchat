@@ -10,6 +10,10 @@ export const CHAT_PLATFORMS = [
 
 export const platformSchema = z.enum(CHAT_PLATFORMS);
 
+export const DATABASE_DIALECTS = ["sqlite", "postgres", "mysql"] as const;
+
+export const databaseDialectSchema = z.enum(DATABASE_DIALECTS);
+
 const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+[/:][\w.-]+$/i;
 
 export const botConfigSchema = z.object({

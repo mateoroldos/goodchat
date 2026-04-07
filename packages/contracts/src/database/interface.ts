@@ -1,3 +1,4 @@
+import type { DatabaseDialect } from "../config/types";
 import type { Message, MessageCreate, MessageUpdate } from "./message";
 import type { Thread, ThreadCreate, ThreadUpdate } from "./thread";
 
@@ -21,6 +22,7 @@ interface MessageListInput {
 }
 
 export interface Database {
+  dialect: DatabaseDialect;
   ensureSchemaVersion: () => Promise<void>;
   messages: {
     create: (input: MessageCreate) => Promise<Message>;
