@@ -1,38 +1,9 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "16b4e993-a3ac-4a6a-a596-538650688e75",
+  "id": "dc2e1bcc-639b-48af-b857-a378541c51d5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "goodchat_meta": {
-      "name": "goodchat_meta",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(191)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "schema_version": {
-          "name": "schema_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "goodchat_meta_id": {
-          "name": "goodchat_meta_id",
-          "columns": ["id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
     "goodchat_messages": {
       "name": "goodchat_messages",
       "columns": {

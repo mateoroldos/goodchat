@@ -1,18 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { postgresSchema, SCHEMA_VERSION } from "@goodchat/core/schema/postgres";
+import { postgresSchema } from "@goodchat/templates/schema/postgres";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { createPostgresDatabase } from "../src/client";
-import { META_ROW_ID } from "../src/version-check";
-
-export interface TestDatabaseOptions {
-  includeMetaRow?: boolean;
-  includeMetaTable?: boolean;
-  schemaVersion?: string;
-}
 
 export interface TestDatabase {
   cleanup: () => Promise<void>;
@@ -38,8 +31,7 @@ const buildTestConnectionString = (
 };
 
 export const createTestDatabase = async (
-  connectionString: string,
-  options: TestDatabaseOptions = {}
+  connectionString: string
 ): Promise<TestDatabase> => {
   const databaseName = buildDatabaseName();
   const adminPool = new Pool({
@@ -56,17 +48,6 @@ export const createTestDatabase = async (
   await migrate(migrationDatabase as unknown as Parameters<typeof migrate>[0], {
     migrationsFolder,
   });
-
-  const includeMetaTable = options.includeMetaTable ?? true;
-  if (!includeMetaTable) {
-    await testPool.query('DROP TABLE "goodchat_meta";');
-  } else if (options.includeMetaRow ?? true) {
-    const schemaVersion = options.schemaVersion ?? SCHEMA_VERSION;
-    await testPool.query(
-      'INSERT INTO "goodchat_meta" (id, schema_version) VALUES ($1, $2);',
-      [META_ROW_ID, schemaVersion]
-    );
-  }
 
   const cleanup = async () => {
     await testPool.end();

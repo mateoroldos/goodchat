@@ -8,7 +8,12 @@
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run dist/index.mjs"
+    "start": "bun run dist/index.mjs",
+    "db:schema:sync": "goodchat db schema sync",
+    "db:schema:check": "goodchat db schema sync --check",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:push": "drizzle-kit push --config=drizzle.config.ts"
   },
   "dependencies": {
     "@goodchat/adapter-sqlite": "workspace:*",
@@ -24,6 +29,7 @@
   "devDependencies": {
     "@goodchat/contracts": "workspace:*",
     "@goodchat/typescript-config": "workspace:*",
+    "@goodchat/cli": "workspace:*",
     "@types/bun": "catalog:",
     "tsdown": "^0.16.5",
     "typescript": "catalog:"

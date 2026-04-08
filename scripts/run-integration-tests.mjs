@@ -88,6 +88,9 @@ try {
   runProcess("bun", ["run", "test:integration:sqlite"], {
     stdio: "inherit",
   });
+  runProcess("bun", ["test", "packages/core/tests/integration"], {
+    stdio: "inherit",
+  });
   runProcess(
     "bun",
     ["x", "vitest", "run", "--config", "vitest.integration.config.ts"],

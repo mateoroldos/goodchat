@@ -7,7 +7,8 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "files": [
-    "dist/**"
+    "dist/**",
+    "src/schema/**"
   ],
   "sideEffects": false,
   "publishConfig": {
@@ -15,7 +16,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch",
+    "dev": "tsdown --watch --no-clean",
     "check-types": "tsc -b",
     "prepack": "bunx turbo build --filter=web --filter=@goodchat/core && bun ../../scripts/copy-web-assets.mjs"
   },
@@ -29,21 +30,6 @@
       "types": "./dist/types.d.mts",
       "import": "./dist/types.mjs",
       "require": "./dist/types.cjs"
-    },
-    "./schema/sqlite": {
-      "types": "./dist/schema/sqlite.d.mts",
-      "import": "./dist/schema/sqlite.mjs",
-      "require": "./dist/schema/sqlite.cjs"
-    },
-    "./schema/postgres": {
-      "types": "./dist/schema/postgres.d.mts",
-      "import": "./dist/schema/postgres.mjs",
-      "require": "./dist/schema/postgres.cjs"
-    },
-    "./schema/mysql": {
-      "types": "./dist/schema/mysql.d.mts",
-      "import": "./dist/schema/mysql.mjs",
-      "require": "./dist/schema/mysql.cjs"
     }
   },
   "dependencies": {
@@ -64,6 +50,7 @@
     "@goodchat/contracts": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "ai": "^6.0.116",
+    "better-auth": "1.3.4",
     "better-result": "^2.7.0",
     "chat": "^4.20.0",
     "drizzle-orm": "^0.45.2",
@@ -71,6 +58,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@goodchat/adapter-sqlite": "workspace:*",
+    "@goodchat/templates": "workspace:*",
     "tsdown": "^0.21.4"
   }
 }

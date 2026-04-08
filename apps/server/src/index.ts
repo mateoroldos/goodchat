@@ -1,12 +1,13 @@
-import { app } from "./app";
+import { createGoodchat } from "@goodchat/core";
 import { config } from "./config";
+import { goodchat } from "./goodchat";
 
-const serverApp = app;
+const { app } = await createGoodchat(goodchat);
 
-if (!config.isServerless) {
-  serverApp.listen(config.port, () => {
+if (!goodchat.isServerless) {
+  app.listen(config.port, () => {
     console.log(`Server is running on http://localhost:${config.port}`);
   });
 }
 
-export default serverApp;
+export default app;

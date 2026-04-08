@@ -1,8 +1,3 @@
-CREATE TABLE `goodchat_meta` (
-	`id` text PRIMARY KEY NOT NULL,
-	`schema_version` text NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE `goodchat_messages` (
 	`id` text PRIMARY KEY NOT NULL,
 	`thread_id` text NOT NULL,

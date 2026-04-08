@@ -8,6 +8,6 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  banner: "#!/usr/bin/env node",
+  banner: "#!/usr/bin/env bun",
   outDir: "./dist",
 });

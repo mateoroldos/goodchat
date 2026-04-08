@@ -12,7 +12,7 @@ const createTempProject = async (dialect: string): Promise<string> => {
   await mkdir(join(directory, "src"), { recursive: true });
   await writeFile(
     join(directory, "src/goodchat.ts"),
-    `export const goodchat = { database: { dialect: "${dialect}" as const } };\n`,
+    `export const goodchat = { database: { dialect: "${dialect}" as const }, auth: { enabled: false, mode: "password" as const, localChatPublic: false } };\n`,
     "utf8"
   );
   return directory;
@@ -40,6 +40,10 @@ describe("db schema sync command", () => {
       join(projectRoot, "src/db/schema.ts"),
       "utf8"
     );
+    const coreSchema = await readFile(
+      join(projectRoot, "src/db/core-schema.ts"),
+      "utf8"
+    );
     const authSchema = await readFile(
       join(projectRoot, "src/db/auth-schema.ts"),
       "utf8"
@@ -50,10 +54,13 @@ describe("db schema sync command", () => {
     );
 
     expect(drizzleConfig).toContain('dialect: "sqlite"');
-    expect(schema).toContain(
-      'import { sqliteSchema as goodchatSchema } from "@goodchat/core/schema/sqlite";'
-    );
+    expect(schema).toContain('import { coreSchema } from "./core-schema";');
     expect(schema).toContain('import { authSchema } from "./auth-schema";');
+    expect(schema).toContain(
+      'import { pluginSchema } from "./plugins/schema";'
+    );
+    expect(coreSchema).toContain('sqliteTable("goodchat_threads"');
+    expect(schema).toContain("export const schema = {");
     expect(authSchema).toBe("export const authSchema = {};\n");
     expect(pluginSchema).toBe("export const pluginSchema = {};\n");
   });
@@ -98,7 +105,7 @@ describe("db schema sync command", () => {
     const projectRoot = await createTempProject("sqlite");
     await writeFile(
       join(projectRoot, "src/custom-goodchat.ts"),
-      'export const goodchat = { database: { dialect: "mysql" as const } };\n',
+      'export const goodchat = { database: { dialect: "mysql" as const }, auth: { enabled: false, mode: "password" as const, localChatPublic: false } };\n',
       "utf8"
     );
 
@@ -129,5 +136,24 @@ describe("db schema sync command", () => {
       "utf8"
     );
     expect(drizzleConfig).toContain('dialect: "postgresql"');
+  });
+
+  it("generates local auth schema when auth is enabled", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await writeFile(
+      join(projectRoot, "src/goodchat.ts"),
+      'export const goodchat = { database: { dialect: "sqlite" as const }, auth: { enabled: true, mode: "password" as const, localChatPublic: false, password: "secret" } };\n',
+      "utf8"
+    );
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    const authSchema = await readFile(
+      join(projectRoot, "src/db/auth-schema.ts"),
+      "utf8"
+    );
+
+    expect(authSchema).toContain('sqliteTable("user"');
+    expect(authSchema).toContain("export const authSchema = {");
   });
 });

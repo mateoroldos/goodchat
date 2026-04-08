@@ -6,6 +6,7 @@ import {
   isCancel,
   multiselect,
   outro,
+  password,
   select,
   spinner,
   text,
@@ -23,6 +24,11 @@ import {
   getEnvMetadataForConfig,
   type ScaffolderConfig,
 } from "./generator";
+import {
+  DEPENDENCY_CHANNELS,
+  type DependencyChannel,
+  resolveDefaultDependencyChannel,
+} from "./version-manifest";
 
 const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+[/:][\w.-]+$/i;
 const MODEL_OPTIONS = [
@@ -291,8 +297,46 @@ const handleLifecycleCommandAttempt = (args: string[]): void => {
   );
 };
 
+const parseDependencyChannelArg = (
+  args: string[]
+): DependencyChannel | null => {
+  for (const [index, arg] of args.entries()) {
+    if (arg === "--channel") {
+      const nextArg = args[index + 1];
+      if (!nextArg) {
+        throw new Error("Missing value for --channel. Use latest or next.");
+      }
+
+      if (DEPENDENCY_CHANNELS.includes(nextArg as DependencyChannel)) {
+        return nextArg as DependencyChannel;
+      }
+
+      throw new Error(
+        `Invalid --channel value: ${nextArg}. Use latest or next.`
+      );
+    }
+
+    if (!arg.startsWith("--channel=")) {
+      continue;
+    }
+
+    const value = arg.slice("--channel=".length);
+    if (DEPENDENCY_CHANNELS.includes(value as DependencyChannel)) {
+      return value as DependencyChannel;
+    }
+
+    throw new Error(`Invalid --channel value: ${value}. Use latest or next.`);
+  }
+
+  return null;
+};
+
 const run = async (): Promise<void> => {
-  handleLifecycleCommandAttempt(process.argv.slice(2));
+  const cliArgs = process.argv.slice(2);
+  handleLifecycleCommandAttempt(cliArgs);
+  const dependencyChannel =
+    parseDependencyChannelArg(cliArgs) ?? resolveDefaultDependencyChannel();
+
   printBanner();
 
   const botName = handleCancel(
@@ -376,6 +420,17 @@ const run = async (): Promise<void> => {
     })
   );
 
+  let dashboardPassword = "";
+  if (withDashboard) {
+    dashboardPassword = handleCancel(
+      await password({
+        message: "Dashboard password",
+        validate: (value) =>
+          value.trim().length >= 8 ? undefined : "Use at least 8 characters",
+      })
+    );
+  }
+
   const isServerless = false;
   const id = undefined;
 
@@ -391,6 +446,17 @@ const run = async (): Promise<void> => {
     })
   ) as DatabaseDialect;
 
+  let sqliteDatabasePath: string | undefined;
+  if (databaseDialect === "sqlite") {
+    sqliteDatabasePath = handleCancel(
+      await text({
+        message: "SQLite database path",
+        initialValue: "./goodchat.db",
+        validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
+      })
+    );
+  }
+
   const plugins = handleCancel(
     await multiselect({
       message: "Select plugins",
@@ -402,6 +468,7 @@ const run = async (): Promise<void> => {
   const mcp = await promptMcpServers();
 
   const config: ScaffolderConfig = {
+    authEnabled: withDashboard,
     databaseDialect,
     name: botName,
     prompt,
@@ -415,15 +482,36 @@ const run = async (): Promise<void> => {
   };
 
   const envMetadata = getEnvMetadataForConfig({
+    authEnabled: withDashboard,
     platforms: platforms as Platform[],
     plugins,
     provider,
   });
 
+  const envDefaults = new Map<string, string>();
+  if (withDashboard) {
+    envDefaults.set("GOODCHAT_DASHBOARD_PASSWORD", dashboardPassword);
+  }
+  if (sqliteDatabasePath) {
+    envDefaults.set("DATABASE_URL", sqliteDatabasePath);
+  }
+
+  const envMetadataWithDefaults = envMetadata.map((meta) => {
+    const override = envDefaults.get(meta.key);
+    if (override === undefined) {
+      return meta;
+    }
+    return {
+      ...meta,
+      defaultValue: override,
+    };
+  });
+
   const files = createProjectFiles({
     projectName,
     config,
-    envMetadata,
+    dependencyChannel,
+    envMetadata: envMetadataWithDefaults,
   });
 
   const writer = spinner();
@@ -432,7 +520,7 @@ const run = async (): Promise<void> => {
   writer.stop("Project created");
 
   outro(
-    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run db:schema:sync\n  bun run db:generate\n  bun run db:migrate\n  bun run dev`
+    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run db:generate\n  bun run db:migrate\n  bun run dev`
   );
 };
 

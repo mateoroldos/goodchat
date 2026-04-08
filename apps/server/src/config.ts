@@ -9,7 +9,7 @@ const toAbsolutePath = (path: string): string => {
 };
 
 const resolveDatabasePath = (): string => {
-  const configuredPath = process.env.GOODCHAT_DB_PATH;
+  const configuredPath = process.env.DATABASE_URL;
   if (configuredPath) {
     return toAbsolutePath(configuredPath);
   }

@@ -1,9 +1,7 @@
-import { json, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
-export const SCHEMA_VERSION = "2026-03-31";
-
-export const threads = mysqlTable("goodchat_threads", {
-  id: varchar("id", { length: 191 }).primaryKey(),
+export const threads = pgTable("goodchat_threads", {
+  id: text("id").primaryKey(),
   botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
   platform: text("platform").notNull(),
@@ -17,24 +15,18 @@ export const threads = mysqlTable("goodchat_threads", {
   lastActivityAt: text("last_activity_at").notNull(),
 });
 
-export const messages = mysqlTable("goodchat_messages", {
-  id: varchar("id", { length: 191 }).primaryKey(),
+export const messages = pgTable("goodchat_messages", {
+  id: text("id").primaryKey(),
   threadId: text("thread_id").notNull(),
   role: text("role"),
   text: text("text").notNull(),
   createdAt: text("created_at").notNull(),
-  metadata: json("metadata"),
+  metadata: jsonb("metadata"),
   userId: text("user_id").notNull(),
   adapterName: text("adapter_name").notNull(),
 });
 
-export const goodchatMeta = mysqlTable("goodchat_meta", {
-  id: varchar("id", { length: 191 }).primaryKey(),
-  schemaVersion: text("schema_version").notNull(),
-});
-
-export const mysqlSchema = {
+export const postgresSchema = {
   threads,
   messages,
-  goodchatMeta,
 };

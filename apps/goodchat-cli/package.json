@@ -31,7 +31,9 @@
   "dependencies": {
     "@clack/prompts": "^0.10.0",
     "@goodchat/contracts": "workspace:*",
-    "jiti": "^2.6.1"
+    "@goodchat/templates": "workspace:*",
+    "jiti": "^2.6.1",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@goodchat/typescript-config": "workspace:*",

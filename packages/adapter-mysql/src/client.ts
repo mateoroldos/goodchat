@@ -3,13 +3,13 @@ import type { AnyMySql2Connection } from "drizzle-orm/mysql2";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool } from "mysql2/promise";
 import { createMysqlRepositories } from "./repository";
-import { ensureSchemaVersion } from "./version-check";
 
 export interface MysqlAdapterOptions {
   client?: AnyMySql2Connection;
   connectionString: string;
   debugLogs?: boolean;
   mode?: "default" | "planetscale";
+  schema?: Record<string, unknown>;
 }
 
 type MysqlTransaction = Parameters<
@@ -24,13 +24,20 @@ type TransactionRunner = <T>(
 
 const createDatabaseInterface = (
   database: MysqlDatabase,
-  transactionRunner: TransactionRunner
+  transactionRunner: TransactionRunner,
+  authConfig: {
+    db: unknown;
+    provider: "mysql";
+    schema?: Record<string, unknown>;
+  }
 ): Database => {
   const repositories = createMysqlRepositories(database);
   return {
     ...repositories,
+    auth: {
+      getBetterAuthDatabaseConfig: () => authConfig,
+    },
     dialect: "mysql",
-    ensureSchemaVersion: () => ensureSchemaVersion(database),
     transaction: transactionRunner,
   };
 };
@@ -41,10 +48,15 @@ export const createMysqlDatabase = (options: MysqlAdapterOptions): Database => {
     logger: options.debugLogs,
     mode: options.mode ?? "default",
   });
+  const authConfig = {
+    db: database,
+    provider: "mysql" as const,
+    schema: options.schema,
+  };
   const transactionRunner: TransactionRunner = (fn) =>
     database.transaction((transaction) =>
-      fn(createDatabaseInterface(transaction, transactionRunner))
+      fn(createDatabaseInterface(transaction, transactionRunner, authConfig))
     );
 
-  return createDatabaseInterface(database, transactionRunner);
+  return createDatabaseInterface(database, transactionRunner, authConfig);
 };

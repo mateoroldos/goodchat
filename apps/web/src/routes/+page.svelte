@@ -18,6 +18,8 @@
 
   const threadsQuery = createQuery(() => threadsQueries.list({ limit }));
 
+  const bot = $derived(botQuery.data);
+
   const platformCount = $derived(botQuery.data?.platforms.length ?? 0);
 </script>
 
@@ -75,8 +77,7 @@
         </Button>
       </Card.Content>
     </Card.Root>
-  {:else if botQuery.data}
-    {@const bot = botQuery.data}
+  {:else if bot}
     <Card.Root>
       <Card.Content class="p-5">
         <div class="flex items-start gap-4">

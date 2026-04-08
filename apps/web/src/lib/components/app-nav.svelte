@@ -1,8 +1,10 @@
 <script lang="ts">
   import { createQuery } from "@tanstack/svelte-query";
   import { Bot, LayoutDashboard, MessageSquare } from "lucide-svelte";
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { botQueries } from "$lib/api/bots/bots.queries";
+  import { Button } from "$lib/components/ui/button";
   import { cn } from "$lib/utils";
 
   const botQuery = createQuery(() => botQueries.detail());
@@ -10,6 +12,17 @@
   const hasLocal = $derived(
     botQuery.data?.platforms.includes("local") ?? false
   );
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/sign-out", {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      await goto("/login");
+    }
+  };
 </script>
 
 <nav
@@ -50,4 +63,13 @@
       Chat
     </a>
   {/if}
+
+  <Button
+    variant="ghost"
+    size="sm"
+    class="ml-auto"
+    onclick={() => handleLogout()}
+  >
+    Logout
+  </Button>
 </nav>

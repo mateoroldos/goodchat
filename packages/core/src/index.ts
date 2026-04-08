@@ -9,6 +9,7 @@ import {
   toolSchema,
 } from "@goodchat/contracts/capabilities/models";
 import {
+  authConfigSchema,
   botConfigSchema,
   databaseDialectSchema,
 } from "@goodchat/contracts/config/models";
@@ -28,9 +29,12 @@ import {
 } from "@goodchat/contracts/plugins/types";
 import { Elysia } from "elysia";
 import z from "zod";
+import { createAuthRuntime } from "./auth/better-auth";
+import { bootstrapSharedAccount } from "./auth/bootstrap-shared-account";
 import { validatePluginEnv, validatePluginParams } from "./extensions/env";
 import { mergePlugins } from "./extensions/merge";
 import { createChatRuntime } from "./runtime/create-chat-runtime";
+import { requireSessionGuard } from "./server/auth-guard";
 import { botController } from "./server/bot-controller";
 import { localChatController } from "./server/local-chat-controller";
 import { threadsController } from "./server/threads-controller";
@@ -65,6 +69,7 @@ export const goodchatOptionsSchema = botConfigSchema.extend({
   prompt: z.string().min(1, "Bot prompt is required"),
   tools: z.record(z.string(), toolSchema).optional(),
   withDashboard: z.boolean().optional(),
+  auth: authConfigSchema.optional(),
 });
 
 export type GoodchatOptionsInput = z.infer<typeof goodchatOptionsSchema>;
@@ -102,6 +107,11 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     model,
     withDashboard = true,
     isServerless = false,
+    auth = {
+      enabled: false,
+      mode: "password",
+      localChatPublic: false,
+    },
   } = goodchatOptionsSchema.parse(options);
   databaseDialectSchema.parse(database.dialect);
   const coreDir = dirname(fileURLToPath(import.meta.url));
@@ -154,7 +164,22 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
   };
 
-  await database.ensureSchemaVersion();
+  const authRuntime = createAuthRuntime({
+    authConfig: auth,
+    database,
+  });
+
+  // Better Auth issues session cookies for persisted users, so shared-password
+  // mode still needs one internal account to authenticate against.
+  if (auth.enabled && authRuntime && auth.password) {
+    await bootstrapSharedAccount({
+      authRuntime,
+      password: auth.password,
+    });
+  }
+
+  const shouldProtectLocalChat = auth.enabled && !auth.localChatPublic;
+
   const chatRuntime = createChatRuntime(botConfig, database, extensions);
   await chatRuntime.gateway.initialize();
 
@@ -167,9 +192,12 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     )
     .use(openapi());
 
-  const api = new Elysia({ prefix: "/api" })
-    .use(botController(botConfig))
-    .use(threadsController(database, botConfig.id))
+  const publicApi = new Elysia();
+  if (authRuntime) {
+    publicApi.mount(authRuntime.auth.handler);
+  }
+
+  publicApi
     .use(
       webhookChatController({
         botConfig,
@@ -180,13 +208,30 @@ export const createGoodchat = async (options: GoodchatOptionsInput) => {
     )
     .get("/health", () => "OK");
 
+  const protectedApi = new Elysia()
+    .onBeforeHandle(requireSessionGuard(authRuntime))
+    .use(botController(botConfig))
+    .use(threadsController(database, botConfig.id));
+
+  const localApi = new Elysia().use(
+    localChatController({
+      botConfig,
+      responseHandler: chatRuntime.responseHandler,
+    })
+  );
+
+  const api = new Elysia({ prefix: "/api" }).use(publicApi).use(protectedApi);
+
   if (botConfig.platforms.includes("local")) {
-    api.use(
-      localChatController({
-        botConfig,
-        responseHandler: chatRuntime.responseHandler,
-      })
-    );
+    if (shouldProtectLocalChat) {
+      api.use(
+        new Elysia()
+          .onBeforeHandle(requireSessionGuard(authRuntime))
+          .use(localApi)
+      );
+    } else {
+      api.use(localApi);
+    }
   }
 
   app.use(api);

@@ -1,34 +1,9 @@
 {
-  "id": "e08780ab-6c4c-42c6-a410-363cedce763a",
+  "id": "62734ebc-e2c1-4d80-a49d-92368cfa2d5d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.goodchat_meta": {
-      "name": "goodchat_meta",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "schema_version": {
-          "name": "schema_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.goodchat_messages": {
       "name": "goodchat_messages",
       "schema": "",

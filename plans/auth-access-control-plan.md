@@ -2,7 +2,8 @@
 
 ## Description
 
-We are simplifying access control for v0 to ship fast without painting ourselves into a corner.
+Develop a basic auth system for project owners to access deployed dashboard. Created with Better Auth, v0 will just have password login managed from env variable.
+Extensible to add new auth methods in future.
 
 We will:
 
@@ -79,6 +80,9 @@ apps/web/src/
   routes/login/+page.svelte                  # password-only form
   routes/+layout.ts                          # redirect/session bootstrap
   lib/components/app-nav.svelte              # login/logout UI actions
+
+apps/goodchat-cli/ 
+  src/commands/db-schema-sync-command.ts     # include auth schema generation - reading from goodchat config
 ```
 
 ### More details
@@ -124,29 +128,27 @@ Conditional:
 // src/goodchat.ts
 auth: {
   enabled: true,
-  mode: "password",
+  mode: "password",                                         # only mode for the time
   localChatPublic: false,
-  sharedEmail: "dashboard@goodchat.local",
-  sharedPasswordEnv: "GOODCHAT_DASHBOARD_PASSWORD",
+  password: env.GOODCHAT_DASHBOARD_PASSWORD,
 }
 ```
 
 ```env
 GOODCHAT_DASHBOARD_PASSWORD=change-me
 GOODCHAT_AUTH_SECRET=replace-me
-GOODCHAT_AUTH_BASE_URL=http://localhost:3000
-GOODCHAT_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 ```
 
 #### Schema & migrations boundary
 
 - Core owns auth runtime behavior and route guards.
+- Schemas are generated using goodchat-cli
 - Consumer owns migration execution timing.
 - Better Auth tables and Goodchat tables are migrated via one consumer pipeline.
 
 Migration ownership rule:
 
-1. Consumer generates/updates schema artifacts.
+1. Consumer generates/updates schema artifacts using goodchat cli.
 2. Consumer runs `drizzle-kit generate/migrate`.
 3. Core only validates DB compatibility at runtime.
 
@@ -160,53 +162,6 @@ Migration ownership rule:
 
 ---
 
-## Plan
-
-1. **Update config contract in `@goodchat/contracts`**
-   - Add `auth` shape to `packages/contracts/src/config/models.ts`.
-   - Include `enabled`, `mode`, `localChatPublic`, `sharedEmail`, `sharedPasswordEnv`.
-
-2. **Implement Better Auth integration in `@goodchat/core`**
-   - Add Better Auth setup in shared-password mode.
-   - Disable signup.
-   - Set secure session/cookie defaults and trusted origins support.
-
-3. **Implement shared account bootstrap in core**
-   - Ensure internal shared account exists.
-   - Reconcile password from env idempotently.
-
-4. **Add core dashboard auth endpoints**
-   - `POST /api/dashboard/login` (password-only payload).
-   - `POST /api/dashboard/logout`.
-   - `GET /api/dashboard/session`.
-
-5. **Add centralized auth policy in core**
-   - `requireSession` helper/middleware.
-   - Deny-by-default for dashboard endpoints with explicit public allowlist.
-
-6. **Apply local chat visibility policy in core**
-   - Respect `auth.localChatPublic` for `/api/local/chat*`.
-   - Enforce auth when toggle is off.
-
-7. **Harden core controllers**
-   - Never trust identity from request body.
-   - Derive actor from authenticated session when route is protected.
-
-8. **Update web app login UX**
-   - Add password-only login page.
-   - Redirect unauthenticated users to `/login`.
-   - Add logout action.
-
-9. **Keep consumer app as pure consumer example**
-   - `apps/server` only passes config to `createGoodchat`.
-   - No duplicated auth handlers/middleware in app layer.
-
-10. **Document limitations + upgrade path**
-    - Shared account means no per-user attribution in v0.
-    - OAuth multi-user is planned next step with same guard boundary.
-
----
-
 ## Tests
 
 ## Unit
@@ -215,6 +170,7 @@ Migration ownership rule:
 - Shared account bootstrap idempotency.
 - `requireSession` pass/fail behavior.
 - Local chat toggle policy behavior.
+- Schema generation with different auth configs in goodchat cli.
 
 ## Integration
 

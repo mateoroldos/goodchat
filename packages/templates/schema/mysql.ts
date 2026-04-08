@@ -1,9 +1,7 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { json, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 
-export const SCHEMA_VERSION = "2026-03-31";
-
-export const threads = sqliteTable("goodchat_threads", {
-  id: text("id").primaryKey(),
+export const threads = mysqlTable("goodchat_threads", {
+  id: varchar("id", { length: 191 }).primaryKey(),
   botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
   platform: text("platform").notNull(),
@@ -17,24 +15,18 @@ export const threads = sqliteTable("goodchat_threads", {
   lastActivityAt: text("last_activity_at").notNull(),
 });
 
-export const messages = sqliteTable("goodchat_messages", {
-  id: text("id").primaryKey(),
+export const messages = mysqlTable("goodchat_messages", {
+  id: varchar("id", { length: 191 }).primaryKey(),
   threadId: text("thread_id").notNull(),
   role: text("role"),
   text: text("text").notNull(),
   createdAt: text("created_at").notNull(),
-  metadata: text("metadata", { mode: "json" }),
+  metadata: json("metadata"),
   userId: text("user_id").notNull(),
   adapterName: text("adapter_name").notNull(),
 });
 
-export const goodchatMeta = sqliteTable("goodchat_meta", {
-  id: text("id").primaryKey(),
-  schemaVersion: text("schema_version").notNull(),
-});
-
-export const sqliteSchema = {
+export const mysqlSchema = {
   threads,
   messages,
-  goodchatMeta,
 };

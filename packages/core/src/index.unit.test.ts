@@ -29,4 +29,22 @@ describe("createGoodchat", () => {
       })
     ).rejects.toThrow("Plugin name is required");
   });
+
+  it("rejects auth enabled without password", async () => {
+    await expect(
+      createGoodchat({
+        name: "Valid",
+        prompt: "Be helpful",
+        platforms: ["local"],
+        auth: {
+          enabled: true,
+          mode: "password",
+          localChatPublic: false,
+        },
+        database: createDatabaseStub(),
+        isServerless: true,
+        withDashboard: false,
+      })
+    ).rejects.toThrow("Auth password is required when auth is enabled");
+  });
 });

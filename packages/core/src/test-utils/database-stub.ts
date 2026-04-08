@@ -51,7 +51,6 @@ export const createDatabaseStub = (): Database => {
 
   const database: Database = {
     dialect: "sqlite",
-    ensureSchemaVersion: () => Promise.resolve(undefined),
     threads: {
       create: (input: ThreadCreate) => {
         threadStore.set(input.id, input);
