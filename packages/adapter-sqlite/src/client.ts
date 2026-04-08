@@ -2,12 +2,12 @@ import { Database as BunSqliteDatabase } from "bun:sqlite";
 import type { Database } from "@goodchat/contracts/database/interface";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { createSqliteRepositories } from "./repository";
-import { ensureSchemaVersion } from "./version-check";
 
 export interface SqliteAdapterOptions {
   client?: BunSqliteDatabase;
   debugLogs?: boolean;
   path: string;
+  schema?: Record<string, unknown>;
 }
 
 type BunSqliteTransaction = Parameters<
@@ -22,13 +22,20 @@ type TransactionRunner = <T>(
 
 const createDatabaseInterface = (
   database: SqliteDatabase,
-  transactionRunner: TransactionRunner
+  transactionRunner: TransactionRunner,
+  authConfig: {
+    db: unknown;
+    provider: "sqlite";
+    schema?: Record<string, unknown>;
+  }
 ): Database => {
   const repositories = createSqliteRepositories(database);
   return {
     ...repositories,
+    auth: {
+      getBetterAuthDatabaseConfig: () => authConfig,
+    },
     dialect: "sqlite",
-    ensureSchemaVersion: () => ensureSchemaVersion(database),
     transaction: transactionRunner,
   };
 };
@@ -40,10 +47,17 @@ export const createSqliteDatabase = (
   const database = drizzle(client, {
     logger: options.debugLogs,
   });
+  const authConfig = {
+    db: database,
+    provider: "sqlite" as const,
+    schema: options.schema,
+  };
   const transactionRunner: TransactionRunner = (fn) =>
     database.transaction((transaction) => {
-      return fn(createDatabaseInterface(transaction, transactionRunner));
+      return fn(
+        createDatabaseInterface(transaction, transactionRunner, authConfig)
+      );
     });
 
-  return createDatabaseInterface(database, transactionRunner);
+  return createDatabaseInterface(database, transactionRunner, authConfig);
 };

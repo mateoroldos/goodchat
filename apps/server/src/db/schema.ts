@@ -1,40 +1,14 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { authSchema } from "./auth-schema";
+import { coreSchema } from "./core-schema";
+import { pluginSchema } from "./plugins/schema";
 
-export const SCHEMA_VERSION = "2026-03-31";
+// biome-ignore lint/performance/noBarrelFile: drizzle-kit relies on exported table symbols
+export * from "./auth-schema";
+export * from "./core-schema";
+export * from "./plugins/schema";
 
-export const threads = sqliteTable("goodchat_threads", {
-  id: text("id").primaryKey(),
-  botId: text("bot_id").notNull(),
-  botName: text("bot_name").notNull(),
-  platform: text("platform").notNull(),
-  adapterName: text("adapter_name").notNull(),
-  threadId: text("thread_id").notNull(),
-  userId: text("user_id").notNull(),
-  text: text("text").notNull(),
-  responseText: text("response_text").notNull(),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  lastActivityAt: text("last_activity_at").notNull(),
-});
-
-export const messages = sqliteTable("goodchat_messages", {
-  id: text("id").primaryKey(),
-  threadId: text("thread_id").notNull(),
-  role: text("role"),
-  text: text("text").notNull(),
-  createdAt: text("created_at").notNull(),
-  metadata: text("metadata", { mode: "json" }),
-  userId: text("user_id").notNull(),
-  adapterName: text("adapter_name").notNull(),
-});
-
-export const goodchatMeta = sqliteTable("goodchat_meta", {
-  id: text("id").primaryKey(),
-  schemaVersion: text("schema_version").notNull(),
-});
-
-export const sqliteSchema = {
-  threads,
-  messages,
-  goodchatMeta,
+export const schema = {
+  ...coreSchema,
+  ...authSchema,
+  ...pluginSchema,
 };

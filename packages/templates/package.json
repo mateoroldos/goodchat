@@ -1,0 +1,31 @@
+{
+  "name": "@goodchat/templates",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "files": [
+    "schema/**",
+    "scripts/**"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "schema:auth:generate": "bun run ./scripts/manage-auth-schema-templates.ts",
+    "schema:auth:check": "bun run ./scripts/manage-auth-schema-templates.ts --check"
+  },
+  "exports": {
+    "./schema/sqlite": "./schema/sqlite.ts",
+    "./schema/postgres": "./schema/postgres.ts",
+    "./schema/mysql": "./schema/mysql.ts",
+    "./schema/auth/sqlite": "./schema/auth/sqlite.ts",
+    "./schema/auth/postgres": "./schema/auth/postgres.ts",
+    "./schema/auth/mysql": "./schema/auth/mysql.ts",
+    "./scripts/manage-auth-schema-templates": "./scripts/manage-auth-schema-templates.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "better-auth": "1.3.4",
+    "drizzle-orm": "^0.45.2"
+  }
+}

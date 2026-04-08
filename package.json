@@ -27,7 +27,7 @@
     "check": "ultracite check",
     "check:knip": "bunx --bun knip",
     "check:all": "bun run check && bun run check-types && bun run check:knip",
-    "ci:version": "changeset version && bun update",
+    "ci:version": "changeset version && node ./scripts/update-create-cli-versions.mjs && bun update",
     "ci:publish": "for dir in packages/* apps/create-cli apps/goodchat-cli; do (cd \"$dir\" && bun publish || true); done && changeset tag",
     "fix": "ultracite fix",
     "release": "bun run build && bun run ci:publish",

@@ -24,6 +24,8 @@ export const env = createEnv({
     GOOGLE_CHAT_USE_ADC: z.string().optional(),
     GOOGLE_CHAT_PUBSUB_TOPIC: z.string().optional(),
     GOOGLE_CHAT_IMPERSONATE_USER: z.string().optional(),
+    GOODCHAT_DASHBOARD_PASSWORD: z.string().optional(),
+    GOODCHAT_AUTH_SECRET: z.string().optional(),
     SERVERLESS: z.enum(["true", "false"]).optional(),
   },
   runtimeEnv: process.env,

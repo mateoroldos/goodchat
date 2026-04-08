@@ -22,8 +22,14 @@ interface MessageListInput {
 }
 
 export interface Database {
+  auth?: {
+    getBetterAuthDatabaseConfig: () => {
+      db: unknown;
+      provider: "mysql" | "pg" | "sqlite";
+      schema?: Record<string, unknown>;
+    };
+  };
   dialect: DatabaseDialect;
-  ensureSchemaVersion: () => Promise<void>;
   messages: {
     create: (input: MessageCreate) => Promise<Message>;
     getById: (id: string) => Promise<Message | null>;

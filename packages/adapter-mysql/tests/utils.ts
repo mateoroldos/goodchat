@@ -1,18 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { mysqlSchema, SCHEMA_VERSION } from "@goodchat/core/schema/mysql";
+import { mysqlSchema } from "@goodchat/templates/schema/mysql";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createPool } from "mysql2/promise";
 import { createMysqlDatabase } from "../src/client";
-import { META_ROW_ID } from "../src/version-check";
-
-export interface TestDatabaseOptions {
-  includeMetaRow?: boolean;
-  includeMetaTable?: boolean;
-  schemaVersion?: string;
-}
 
 export interface TestDatabase {
   cleanup: () => Promise<void>;
@@ -38,8 +31,7 @@ const buildTestConnectionString = (
 };
 
 export const createTestDatabase = async (
-  connectionString: string,
-  options: TestDatabaseOptions = {}
+  connectionString: string
 ): Promise<TestDatabase> => {
   const databaseName = buildDatabaseName();
   const adminPool = createPool(buildAdminConnectionString(connectionString));
@@ -61,17 +53,6 @@ export const createTestDatabase = async (
   await migrate(migrationDatabase as unknown as Parameters<typeof migrate>[0], {
     migrationsFolder,
   });
-
-  const includeMetaTable = options.includeMetaTable ?? true;
-  if (!includeMetaTable) {
-    await testPool.query("DROP TABLE `goodchat_meta`;");
-  } else if (options.includeMetaRow ?? true) {
-    const schemaVersion = options.schemaVersion ?? SCHEMA_VERSION;
-    await testPool.query(
-      "INSERT INTO `goodchat_meta` (id, schema_version) VALUES (?, ?);",
-      [META_ROW_ID, schemaVersion]
-    );
-  }
 
   const cleanup = async () => {
     await testPool.end();

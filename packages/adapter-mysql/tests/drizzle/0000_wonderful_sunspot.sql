@@ -1,9 +1,3 @@
-CREATE TABLE `goodchat_meta` (
-	`id` varchar(191) NOT NULL,
-	`schema_version` text NOT NULL,
-	CONSTRAINT `goodchat_meta_id` PRIMARY KEY(`id`)
-);
---> statement-breakpoint
 CREATE TABLE `goodchat_messages` (
 	`id` varchar(191) NOT NULL,
 	`thread_id` text NOT NULL,

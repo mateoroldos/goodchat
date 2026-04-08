@@ -1,8 +1,6 @@
-import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const SCHEMA_VERSION = "2026-03-31";
-
-export const threads = pgTable("goodchat_threads", {
+export const threads = sqliteTable("goodchat_threads", {
   id: text("id").primaryKey(),
   botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
@@ -17,24 +15,18 @@ export const threads = pgTable("goodchat_threads", {
   lastActivityAt: text("last_activity_at").notNull(),
 });
 
-export const messages = pgTable("goodchat_messages", {
+export const messages = sqliteTable("goodchat_messages", {
   id: text("id").primaryKey(),
   threadId: text("thread_id").notNull(),
   role: text("role"),
   text: text("text").notNull(),
   createdAt: text("created_at").notNull(),
-  metadata: jsonb("metadata"),
+  metadata: text("metadata", { mode: "json" }),
   userId: text("user_id").notNull(),
   adapterName: text("adapter_name").notNull(),
 });
 
-export const goodchatMeta = pgTable("goodchat_meta", {
-  id: text("id").primaryKey(),
-  schemaVersion: text("schema_version").notNull(),
-});
-
-export const postgresSchema = {
+export const sqliteSchema = {
   threads,
   messages,
-  goodchatMeta,
 };

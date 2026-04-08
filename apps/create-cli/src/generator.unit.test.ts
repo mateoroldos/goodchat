@@ -11,6 +11,7 @@ import {
 describe("generator helpers", () => {
   it("includes platform env keys", () => {
     const variables = getEnvMetadataForConfig({
+      authEnabled: true,
       platforms: ["local", "discord"],
       plugins: ["linear"],
     }).map((meta) => meta.key);
@@ -18,10 +19,13 @@ describe("generator helpers", () => {
     expect(variables).toContain("DISCORD_BOT_TOKEN");
     expect(variables).toContain("DISCORD_PUBLIC_KEY");
     expect(variables).toContain("DISCORD_APPLICATION_ID");
+    expect(variables).toContain("GOODCHAT_DASHBOARD_PASSWORD");
+    expect(variables).toContain("GOODCHAT_AUTH_SECRET");
   });
 
   it("renders goodchat runtime file with plugins and mcp", () => {
     const result = renderGoodchatFile({
+      authEnabled: true,
       databaseDialect: "sqlite",
       name: "Support Bot",
       prompt: "Be helpful",
@@ -43,8 +47,14 @@ describe("generator helpers", () => {
     expect(result).toContain("https://mcp.notion");
     expect(result).toContain('name: "Support Bot"');
     expect(result).toContain("export const goodchat = {");
+    expect(result).toContain('import { schema } from "./db/schema";');
+    expect(result).toContain("auth: {");
+    expect(result).toContain("enabled: true,");
     expect(result).toContain(
-      'database: sqlite({ path: process.env.DATABASE_URL || "./goodchat.db" }),'
+      "password: process.env.GOODCHAT_DASHBOARD_PASSWORD,"
+    );
+    expect(result).toContain(
+      'database: sqlite({ path: process.env.DATABASE_URL || "./goodchat.db", schema }),'
     );
   });
 
@@ -70,6 +80,7 @@ describe("generator helpers", () => {
     const files = createProjectFiles({
       projectName: "goodchat-app",
       config: {
+        authEnabled: true,
         databaseDialect: "sqlite",
         name: "goodchat",
         prompt: "Be helpful",
@@ -83,6 +94,12 @@ describe("generator helpers", () => {
           description: "OpenAI API key",
           category: "provider",
         },
+        {
+          key: "GOODCHAT_DASHBOARD_PASSWORD",
+          description: "Dashboard password",
+          category: "core",
+          requiresAuth: true,
+        },
       ],
     });
 
@@ -92,10 +109,11 @@ describe("generator helpers", () => {
     expect(filePaths).toContain("src/index.ts");
     expect(filePaths).toContain("src/env.ts");
     expect(filePaths).toContain(".env");
-    expect(filePaths).not.toContain("src/db/schema.ts");
-    expect(filePaths).not.toContain("src/db/auth-schema.ts");
-    expect(filePaths).not.toContain("src/db/plugins/schema.ts");
-    expect(filePaths).not.toContain("drizzle.config.ts");
+    expect(filePaths).toContain("src/db/schema.ts");
+    expect(filePaths).toContain("src/db/core-schema.ts");
+    expect(filePaths).toContain("src/db/auth-schema.ts");
+    expect(filePaths).toContain("src/db/plugins/schema.ts");
+    expect(filePaths).toContain("drizzle.config.ts");
     expect(filePaths).not.toContain("src/app.ts");
   });
 
@@ -103,6 +121,7 @@ describe("generator helpers", () => {
     const packageJson = JSON.parse(
       renderPackageJson({
         databaseDialect: "sqlite",
+        dependencyChannel: "latest",
         projectName: "goodchat-app",
         usesPlugins: false,
       })
@@ -120,8 +139,27 @@ describe("generator helpers", () => {
     );
   });
 
+  it("renders package dependencies from next channel", () => {
+    const packageJson = JSON.parse(
+      renderPackageJson({
+        databaseDialect: "sqlite",
+        dependencyChannel: "next",
+        projectName: "goodchat-app",
+        usesPlugins: true,
+      })
+    ) as {
+      dependencies: Record<string, string>;
+    };
+
+    expect(packageJson.dependencies["@goodchat/cli"]).toBe("next");
+    expect(packageJson.dependencies["@goodchat/core"]).toBe("next");
+    expect(packageJson.dependencies["@goodchat/adapter-sqlite"]).toBe("next");
+    expect(packageJson.dependencies["@goodchat/plugins"]).toBe("next");
+  });
+
   it("renders goodchat runtime file with dialect and bot metadata", () => {
     const configFile = renderGoodchatFile({
+      authEnabled: true,
       databaseDialect: "postgres",
       id: "test-id",
       isServerless: false,
@@ -136,7 +174,7 @@ describe("generator helpers", () => {
 
     expect(configFile).toContain("export const goodchat = {");
     expect(configFile).toContain(
-      'database: postgres({ connectionString: process.env.DATABASE_URL || "" }),'
+      'database: postgres({ connectionString: process.env.DATABASE_URL || "", schema }),'
     );
     expect(configFile).toContain('name: "Test Bot"');
     expect(configFile).toContain("plugins: [linear]");

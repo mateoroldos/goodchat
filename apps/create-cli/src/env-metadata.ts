@@ -11,6 +11,7 @@ export interface EnvVariableMeta {
   platforms?: string[];
   plugins?: string[];
   providers?: Provider[];
+  requiresAuth?: boolean;
   schema?: string;
 }
 
@@ -54,6 +55,20 @@ const ENV_METADATA: EnvVariableMeta[] = [
       "Database connection URL (postgres/mysql) or sqlite file path (sqlite)",
     category: "core",
     schema: 'z.string().min(1, "DATABASE_URL is required")',
+  },
+  {
+    key: "GOODCHAT_DASHBOARD_PASSWORD",
+    description: "Password for dashboard auth",
+    category: "core",
+    requiresAuth: true,
+    schema: 'z.string().min(1, "Dashboard password is required")',
+  },
+  {
+    key: "GOODCHAT_AUTH_SECRET",
+    description: "Secret key used to sign auth sessions",
+    category: "core",
+    requiresAuth: true,
+    schema: 'z.string().min(1, "GOODCHAT_AUTH_SECRET is required")',
   },
   {
     key: "WEBHOOK_FORWARD_URL",
@@ -225,16 +240,21 @@ export const resolveProviderFromModelId = (
 };
 
 export const getEnvMetadata = (input: {
+  authEnabled?: boolean;
   platforms: string[];
   plugins?: string[];
   provider?: Provider | null;
 }): EnvVariableMeta[] => {
   const selectedPlatforms = new Set(input.platforms);
+  const authEnabled = input.authEnabled ?? false;
   const provider = input.provider ?? null;
 
   const baseSelected = ENV_METADATA.map((meta, index) => ({ meta, index }))
     .filter(({ meta }) => {
       if (meta.providers && !(provider && meta.providers.includes(provider))) {
+        return false;
+      }
+      if (meta.requiresAuth && !authEnabled) {
         return false;
       }
       if (

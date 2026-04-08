@@ -7,7 +7,6 @@ import { drizzle as drizzleVercel } from "drizzle-orm/vercel-postgres";
 import { Pool } from "pg";
 import postgres from "postgres";
 import { createPostgresRepositories } from "./repository";
-import { ensureSchemaVersion } from "./version-check";
 
 export type PostgresDriver =
   | "postgres-js"
@@ -21,6 +20,7 @@ type NodePgClient = Pool;
 interface BasePostgresAdapterOptions {
   connectionString: string;
   debugLogs?: boolean;
+  schema?: Record<string, unknown>;
 }
 
 export type PostgresAdapterOptions =
@@ -65,13 +65,20 @@ type TransactionRunner = <T>(
 
 const createDatabaseInterface = (
   database: PostgresDatabase,
-  transactionRunner: TransactionRunner
+  transactionRunner: TransactionRunner,
+  authConfig: {
+    db: unknown;
+    provider: "pg";
+    schema?: Record<string, unknown>;
+  }
 ): Database => {
   const repositories = createPostgresRepositories(database);
   return {
     ...repositories,
+    auth: {
+      getBetterAuthDatabaseConfig: () => authConfig,
+    },
     dialect: "postgres",
-    ensureSchemaVersion: () => ensureSchemaVersion(database),
     transaction: transactionRunner,
   };
 };
@@ -80,12 +87,17 @@ export const createPostgresDatabase = (
   options: PostgresAdapterOptions
 ): Database => {
   const database = createDriverDatabase(options);
+  const authConfig = {
+    db: database,
+    provider: "pg" as const,
+    schema: options.schema,
+  };
   const transactionRunner: TransactionRunner = (fn) =>
     database.transaction((transaction) =>
-      fn(createDatabaseInterface(transaction, transactionRunner))
+      fn(createDatabaseInterface(transaction, transactionRunner, authConfig))
     );
 
-  return createDatabaseInterface(database, transactionRunner);
+  return createDatabaseInterface(database, transactionRunner, authConfig);
 };
 
 const createDriverDatabase = (

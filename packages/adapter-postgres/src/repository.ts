@@ -9,7 +9,7 @@ import type {
   ThreadCreate,
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
-import { postgresSchema } from "@goodchat/core/schema/postgres";
+import { postgresSchema } from "@goodchat/templates/schema/postgres";
 import type { AnyColumn } from "drizzle-orm";
 import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
 import type { PostgresDatabase } from "./client";
