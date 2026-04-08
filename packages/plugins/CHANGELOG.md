@@ -1,5 +1,11 @@
 # @goodchat/plugins
 
+## 0.0.6
+
+### Patch Changes
+
+- @goodchat/contracts@0.0.8
+
 ## 0.0.5
 
 ### Patch Changes
