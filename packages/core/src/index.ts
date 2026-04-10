@@ -92,172 +92,190 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
-export const createGoodchat = async (options: GoodchatOptionsInput) => {
-  const {
-    name,
-    prompt,
-    platforms,
-    id,
-    database,
-    corsOrigin,
-    plugins = [],
-    tools,
-    hooks,
-    mcp,
-    model,
-    withDashboard = true,
-    isServerless = false,
-    auth = {
-      enabled: false,
-      mode: "password",
-      localChatPublic: false,
-    },
-  } = goodchatOptionsSchema.parse(options);
-  databaseDialectSchema.parse(database.dialect);
-  const coreDir = dirname(fileURLToPath(import.meta.url));
-  const packagedWebBuildPath = join(coreDir, "web");
-  const webBuildPath = packagedWebBuildPath;
+export const createGoodchat = (options: GoodchatOptionsInput) => {
+  const initialize = async () => {
+    const {
+      name,
+      prompt,
+      platforms,
+      id,
+      database,
+      corsOrigin,
+      plugins = [],
+      tools,
+      hooks,
+      mcp,
+      model,
+      withDashboard = true,
+      isServerless = false,
+      auth = {
+        enabled: false,
+        mode: "password",
+        localChatPublic: false,
+      },
+    } = goodchatOptionsSchema.parse(options);
+    databaseDialectSchema.parse(database.dialect);
+    const coreDir = dirname(fileURLToPath(import.meta.url));
+    const packagedWebBuildPath = join(coreDir, "web");
+    const webBuildPath = packagedWebBuildPath;
 
-  const botConfig: BotConfig = {
-    id: id ?? deriveBotId(name),
-    name,
-    prompt,
-    platforms,
-    model,
-  };
+    const botConfig: BotConfig = {
+      id: id ?? deriveBotId(name),
+      name,
+      prompt,
+      platforms,
+      model,
+    };
 
-  const resolvedPlugins: GoodchatPlugin[] = plugins.map((p) => {
-    const pluginDefinition = isPluginFactory(p) ? p() : p;
-    if (!isPluginDefinition(pluginDefinition)) {
-      return pluginDefinition;
-    }
-    const env = pluginDefinition.env
-      ? validatePluginEnv(pluginDefinition.name, pluginDefinition.env)
-      : ({} as never);
-    if (pluginDefinition.paramsSchema) {
-      if (pluginDefinition.params === undefined) {
-        throw new Error(
-          `Plugin "${pluginDefinition.name}" params are required. Check the plugin configuration values.`
-        );
+    const resolvedPlugins: GoodchatPlugin[] = plugins.map((p) => {
+      const pluginDefinition = isPluginFactory(p) ? p() : p;
+      if (!isPluginDefinition(pluginDefinition)) {
+        return pluginDefinition;
       }
-      const params = validatePluginParams(
-        pluginDefinition.name,
-        pluginDefinition.paramsSchema,
-        pluginDefinition.params
-      );
+      const env = pluginDefinition.env
+        ? validatePluginEnv(pluginDefinition.name, pluginDefinition.env)
+        : ({} as never);
+      if (pluginDefinition.paramsSchema) {
+        if (pluginDefinition.params === undefined) {
+          throw new Error(
+            `Plugin "${pluginDefinition.name}" params are required. Check the plugin configuration values.`
+          );
+        }
+        const params = validatePluginParams(
+          pluginDefinition.name,
+          pluginDefinition.paramsSchema,
+          pluginDefinition.params
+        );
+        return {
+          name: pluginDefinition.name,
+          ...pluginDefinition.create(env, params),
+        };
+      }
+
       return {
         name: pluginDefinition.name,
-        ...pluginDefinition.create(env, params),
+        ...pluginDefinition.create(env, undefined),
       };
+    });
+
+    const extensions = mergePlugins(resolvedPlugins, { hooks, mcp, tools });
+
+    const webhookEnv = {
+      CRON_SECRET: process.env.CRON_SECRET,
+      WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
+    };
+
+    const authRuntime = createAuthRuntime({
+      authConfig: auth,
+      database,
+    });
+
+    // Better Auth issues session cookies for persisted users, so shared-password
+    // mode still needs one internal account to authenticate against.
+    if (auth.enabled && authRuntime && auth.password) {
+      await bootstrapSharedAccount({
+        authRuntime,
+        password: auth.password,
+      });
     }
 
-    return {
-      name: pluginDefinition.name,
-      ...pluginDefinition.create(env, undefined),
-    };
-  });
+    const shouldProtectLocalChat = auth.enabled && !auth.localChatPublic;
 
-  const extensions = mergePlugins(resolvedPlugins, { hooks, mcp, tools });
+    const chatRuntime = createChatRuntime(botConfig, database, extensions);
+    await chatRuntime.gateway.initialize();
 
-  const webhookEnv = {
-    CRON_SECRET: process.env.CRON_SECRET,
-    WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
+    const app = new Elysia()
+      .use(
+        cors({
+          origin: corsOrigin ?? sameOriginCors,
+          methods: ["GET", "POST", "PATCH", "OPTIONS"],
+        })
+      )
+      .use(openapi());
+
+    const publicApi = new Elysia();
+    if (authRuntime) {
+      publicApi.mount(authRuntime.auth.handler);
+    }
+
+    publicApi
+      .use(
+        webhookChatController({
+          botConfig,
+          chatRuntime,
+          env: webhookEnv,
+          isServerless,
+        })
+      )
+      .get("/health", () => "OK");
+
+    const protectedApi = new Elysia()
+      .onBeforeHandle(requireSessionGuard(authRuntime))
+      .use(botController(botConfig))
+      .use(threadsController(database, botConfig.id));
+
+    const localApi = new Elysia().use(
+      localChatController({
+        botConfig,
+        responseHandler: chatRuntime.responseHandler,
+      })
+    );
+
+    const api = new Elysia({ prefix: "/api" }).use(publicApi).use(protectedApi);
+
+    if (botConfig.platforms.includes("local")) {
+      if (shouldProtectLocalChat) {
+        api.use(
+          new Elysia()
+            .onBeforeHandle(requireSessionGuard(authRuntime))
+            .use(localApi)
+        );
+      } else {
+        api.use(localApi);
+      }
+    }
+
+    app.use(api);
+
+    if (withDashboard && !isServerless) {
+      try {
+        const webIndexHtml = await readFile(join(webBuildPath, "index.html"));
+        app.use(
+          staticPlugin({
+            assets: webBuildPath,
+            prefix: "/",
+            alwaysStatic: true,
+            indexHTML: false,
+          })
+        );
+
+        app.get("/*", ({ set }) => {
+          set.headers["content-type"] = "text/html; charset=utf-8";
+          return webIndexHtml;
+        });
+      } catch (error) {
+        throw new Error("Dashboard build not found at found.", {
+          cause: error,
+        });
+      }
+    }
+
+    return { app, api, chatRuntime };
   };
 
-  const authRuntime = createAuthRuntime({
-    authConfig: auth,
-    database,
-  });
+  let _ready: ReturnType<typeof initialize> | undefined;
 
-  // Better Auth issues session cookies for persisted users, so shared-password
-  // mode still needs one internal account to authenticate against.
-  if (auth.enabled && authRuntime && auth.password) {
-    await bootstrapSharedAccount({
-      authRuntime,
-      password: auth.password,
-    });
-  }
-
-  const shouldProtectLocalChat = auth.enabled && !auth.localChatPublic;
-
-  const chatRuntime = createChatRuntime(botConfig, database, extensions);
-  await chatRuntime.gateway.initialize();
-
-  const app = new Elysia()
-    .use(
-      cors({
-        origin: corsOrigin ?? sameOriginCors,
-        methods: ["GET", "POST", "PATCH", "OPTIONS"],
-      })
-    )
-    .use(openapi());
-
-  const publicApi = new Elysia();
-  if (authRuntime) {
-    publicApi.mount(authRuntime.auth.handler);
-  }
-
-  publicApi
-    .use(
-      webhookChatController({
-        botConfig,
-        chatRuntime,
-        env: webhookEnv,
-        isServerless,
-      })
-    )
-    .get("/health", () => "OK");
-
-  const protectedApi = new Elysia()
-    .onBeforeHandle(requireSessionGuard(authRuntime))
-    .use(botController(botConfig))
-    .use(threadsController(database, botConfig.id));
-
-  const localApi = new Elysia().use(
-    localChatController({
-      botConfig,
-      responseHandler: chatRuntime.responseHandler,
-    })
-  );
-
-  const api = new Elysia({ prefix: "/api" }).use(publicApi).use(protectedApi);
-
-  if (botConfig.platforms.includes("local")) {
-    if (shouldProtectLocalChat) {
-      api.use(
-        new Elysia()
-          .onBeforeHandle(requireSessionGuard(authRuntime))
-          .use(localApi)
-      );
-    } else {
-      api.use(localApi);
-    }
-  }
-
-  app.use(api);
-
-  if (withDashboard && !isServerless) {
-    try {
-      const webIndexHtml = await readFile(join(webBuildPath, "index.html"));
-      app.use(
-        staticPlugin({
-          assets: webBuildPath,
-          prefix: "/",
-          alwaysStatic: true,
-          indexHTML: false,
-        })
-      );
-
-      app.get("/*", ({ set }) => {
-        set.headers["content-type"] = "text/html; charset=utf-8";
-        return webIndexHtml;
-      });
-    } catch (error) {
-      throw new Error("Dashboard build not found at found.", { cause: error });
-    }
-  }
-
-  return { app, api, chatRuntime };
+  return {
+    name: options.name,
+    database: { dialect: options.database.dialect },
+    auth: options.auth,
+    get ready() {
+      _ready ??= initialize();
+      return _ready;
+    },
+  };
 };
 
-export type GoodchatApi = Awaited<ReturnType<typeof createGoodchat>>["api"];
+export type GoodchatApi = Awaited<
+  ReturnType<typeof createGoodchat>["ready"]
+>["api"];

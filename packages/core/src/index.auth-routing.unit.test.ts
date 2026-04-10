@@ -69,7 +69,7 @@ const createTestApp = async () => {
   }));
 
   const { createGoodchat } = await import("./index");
-  const result = await createGoodchat({
+  const { ready } = createGoodchat({
     name: "Test Bot",
     prompt: "Be helpful",
     platforms: ["local"],
@@ -83,6 +83,7 @@ const createTestApp = async () => {
     isServerless: true,
     withDashboard: false,
   });
+  const result = await ready;
 
   return {
     app: result.app,

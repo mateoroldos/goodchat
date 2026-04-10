@@ -4,7 +4,6 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { databaseDialectSchema } from "@goodchat/contracts/config/models";
 import type { DatabaseDialect } from "@goodchat/contracts/config/types";
 import { createJiti } from "jiti";
-import z from "zod";
 
 export interface DbSchemaSyncOptions {
   check: boolean;
@@ -14,8 +13,6 @@ export interface DbSchemaSyncOptions {
 }
 
 const GOODCHAT_CONFIG_PATH = "src/goodchat.ts";
-const DIALECT_REGEX = /dialect\s*:\s*"(sqlite|postgres|mysql)"/;
-const AUTH_ENABLED_REGEX = /auth\s*:\s*\{[\s\S]*?enabled\s*:\s*(true|false)/;
 const CORE_SCHEMA_EXPORT_REGEX =
   /export const (sqliteSchema|postgresSchema|mysqlSchema)\s*=/;
 const requireFromCli = createRequire(import.meta.url);
@@ -105,64 +102,19 @@ const readCoreSchemaTemplate = async (input: {
 };
 
 interface LoadedGoodchatConfig {
-  auth?: unknown;
+  auth?: { enabled?: boolean };
   database?: {
     dialect?: unknown;
   };
 }
-
-const parseGoodchatConfigFromSource = (
-  source: string
-): LoadedGoodchatConfig | null => {
-  const dialectMatch = source.match(DIALECT_REGEX);
-  if (!dialectMatch) {
-    return null;
-  }
-
-  const authEnabledMatch = source.match(AUTH_ENABLED_REGEX);
-  const authEnabled = authEnabledMatch?.[1] === "true";
-
-  return {
-    database: {
-      dialect: dialectMatch[1],
-    },
-    auth: {
-      enabled: authEnabled,
-      localChatPublic: false,
-      mode: "password",
-      password: authEnabled ? "__inferred__" : undefined,
-    },
-  };
-};
-
-const authConfigSchema = z
-  .object({
-    enabled: z.boolean().default(false),
-    mode: z.literal("password").default("password"),
-    localChatPublic: z.boolean().default(false),
-    password: z.string().min(1).optional(),
-  })
-  .superRefine((value, context) => {
-    if (!value.enabled) {
-      return;
-    }
-
-    if (!value.password) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["password"],
-        message: "Auth password is required when auth is enabled",
-      });
-    }
-  });
 
 const loadGoodchatConfig = async (input: {
   configPath: string;
   cwd: string;
 }): Promise<LoadedGoodchatConfig> => {
   const configPath = resolveConfigPath(input.cwd, input.configPath);
-  const content = await readTextFileOrNull(configPath);
-  if (!content) {
+  const exists = await readTextFileOrNull(configPath);
+  if (!exists) {
     throw new Error(`Missing ${input.configPath}.`);
   }
 
@@ -171,20 +123,18 @@ const loadGoodchatConfig = async (input: {
     moduleCache: false,
   });
 
-  try {
-    const moduleExports = (await jiti.import(configPath)) as {
-      goodchat?: LoadedGoodchatConfig;
-    };
+  const moduleExports = (await jiti.import(configPath)) as {
+    goodchat?: LoadedGoodchatConfig;
+  };
 
-    return moduleExports.goodchat ?? {};
-  } catch (error) {
-    const inferredConfig = parseGoodchatConfigFromSource(content);
-    if (inferredConfig) {
-      return inferredConfig;
-    }
-
-    throw error;
+  const exported = moduleExports.goodchat;
+  if (exported && typeof exported === "object") {
+    return exported;
   }
+
+  throw new Error(
+    `Could not load goodchat config from ${input.configPath}. Ensure you export a goodchat instance created with createGoodchat().`
+  );
 };
 
 const resolveDialectFromGoodchatConfig = async (input: {
@@ -209,25 +159,7 @@ const resolveAuthEnabledFromGoodchatConfig = async (input: {
   cwd: string;
 }): Promise<boolean> => {
   const moduleExports = await loadGoodchatConfig(input);
-  const parsedAuth = authConfigSchema.safeParse(moduleExports.auth ?? {});
-
-  if (!parsedAuth.success) {
-    const auth = moduleExports.auth;
-    if (
-      typeof auth === "object" &&
-      auth !== null &&
-      "enabled" in auth &&
-      typeof auth.enabled === "boolean"
-    ) {
-      return auth.enabled;
-    }
-
-    throw new Error(
-      `Could not resolve a valid auth config from ${input.configPath}. Export goodchat.auth with a supported auth shape.`
-    );
-  }
-
-  return parsedAuth.data.enabled;
+  return moduleExports.auth?.enabled === true;
 };
 
 const resolveDialect = (options: {
