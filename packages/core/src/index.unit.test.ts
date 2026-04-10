@@ -12,7 +12,7 @@ describe("createGoodchat", () => {
         database: createDatabaseStub(),
         isServerless: true,
         withDashboard: false,
-      })
+      }).ready
     ).rejects.toThrow("Bot name is required");
   });
 
@@ -26,7 +26,7 @@ describe("createGoodchat", () => {
         database: createDatabaseStub(),
         isServerless: true,
         withDashboard: false,
-      })
+      }).ready
     ).rejects.toThrow("Plugin name is required");
   });
 
@@ -44,7 +44,7 @@ describe("createGoodchat", () => {
         database: createDatabaseStub(),
         isServerless: true,
         withDashboard: false,
-      })
+      }).ready
     ).rejects.toThrow("Auth password is required when auth is enabled");
   });
 });

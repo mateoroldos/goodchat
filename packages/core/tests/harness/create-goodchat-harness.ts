@@ -17,7 +17,7 @@ export interface CreateGoodchatHarnessOptions {
 }
 
 export interface GoodchatHarness {
-  app: Awaited<ReturnType<typeof createGoodchat>>["app"];
+  app: Awaited<ReturnType<typeof createGoodchat>["ready"]>["app"];
   authPassword: string;
   close: () => Promise<void>;
   sharedEmail: string;
@@ -46,7 +46,7 @@ export const createGoodchatHarness = async (
     },
   });
 
-  const { app } = await createGoodchat({
+  const { ready } = createGoodchat({
     name: "Integration Bot",
     prompt: "Be helpful",
     platforms: ["local"],
@@ -60,6 +60,7 @@ export const createGoodchatHarness = async (
     isServerless: true,
     withDashboard: false,
   });
+  const { app } = await ready;
 
   return {
     app,

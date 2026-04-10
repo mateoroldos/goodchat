@@ -46,7 +46,7 @@ describe("generator helpers", () => {
     expect(result).toContain("mcp:");
     expect(result).toContain("https://mcp.notion");
     expect(result).toContain('name: "Support Bot"');
-    expect(result).toContain("export const goodchat = {");
+    expect(result).toContain("export const goodchat = createGoodchat({");
     expect(result).toContain('import { schema } from "./db/schema";');
     expect(result).toContain("auth: {");
     expect(result).toContain("enabled: true,");
@@ -172,7 +172,7 @@ describe("generator helpers", () => {
       mcp: [],
     });
 
-    expect(configFile).toContain("export const goodchat = {");
+    expect(configFile).toContain("export const goodchat = createGoodchat({");
     expect(configFile).toContain(
       'database: postgres({ connectionString: process.env.DATABASE_URL || "", schema }),'
     );

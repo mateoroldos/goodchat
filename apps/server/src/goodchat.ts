@@ -1,13 +1,13 @@
 import { sqlite } from "@goodchat/adapter-sqlite";
+import { createGoodchat } from "@goodchat/core";
 import { linear } from "@goodchat/plugins/linear";
 import { config } from "./config";
 import { schema } from "./db/schema";
-import type { Platform } from "@goodchat/core/types";
 
-export const goodchat = {
+export const goodchat = createGoodchat({
   name: "Walter",
   prompt: "You are my project assistant. You help me manage my linear tasks.",
-  platforms: ["local", "discord"] as Platform[],
+  platforms: ["local", "discord"],
   plugins: [linear({ team: "EME" })],
   model: "openai:gpt-4.1-nano",
   auth: {
@@ -18,4 +18,4 @@ export const goodchat = {
   },
   database: sqlite({ path: config.databasePath, schema }),
   isServerless: config.isServerless,
-};
+});

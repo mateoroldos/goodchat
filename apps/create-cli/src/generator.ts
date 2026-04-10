@@ -302,6 +302,7 @@ export const renderEnvFile = (metadata: EnvVariableMeta[]): string => {
 
 export const renderGoodchatFile = (config: GeneratorConfig): string => {
   const imports: string[] = [];
+  imports.push('import { createGoodchat } from "@goodchat/core";');
   imports.push('import { schema } from "./db/schema";');
   if (config.databaseDialect === "sqlite") {
     imports.push('import { sqlite } from "@goodchat/adapter-sqlite";');
@@ -370,21 +371,22 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
 
   return `${imports.join("\n")}
 
-export const goodchat = {
+export const goodchat = createGoodchat({
 ${entries.join("\n")}
-};
+});
 `;
 };
 
 export const renderIndexFile = (): string => {
   return `import "./env";
-import { createGoodchat } from "@goodchat/core";
 import { goodchat } from "./goodchat";
 
 const port = Number(process.env.PORT ?? 3000);
-const { app } = await createGoodchat(goodchat);
+const isServerless =
+  process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
+const { app } = await goodchat.ready;
 
-if (!goodchat.isServerless) {
+if (!isServerless) {
   app.listen(port, () => {
     console.log(\`Server is running on http://localhost:\${port}\`);
   });

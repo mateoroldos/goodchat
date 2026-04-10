@@ -98,7 +98,7 @@ describe("db schema sync command", () => {
 
     await expect(
       runDbSchemaSync({ cwd: projectRoot, check: false })
-    ).rejects.toThrow("Could not resolve a valid database dialect");
+    ).rejects.toThrow("Could not load goodchat config from src/goodchat.ts");
   });
 
   it("uses --config override path when provided", async () => {
