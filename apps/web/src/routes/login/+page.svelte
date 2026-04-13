@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
+  import { betterAuthClient } from "$lib/better-auth-client";
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import { Input } from "$lib/components/ui/input";
@@ -20,24 +20,16 @@
     errorMessage = "";
 
     try {
-      const response = await fetch("/api/auth/sign-in/email", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email: INTERNAL_EMAIL,
-          password,
-        }),
+      const { error } = await betterAuthClient.signIn.email({
+        email: INTERNAL_EMAIL,
+        password,
+        callbackURL: "/",
       });
 
-      if (response.ok) {
-        await goto("/");
+      if (error) {
+        errorMessage = "Invalid password";
         return;
       }
-
-      errorMessage = "Invalid password";
     } catch {
       errorMessage = "Invalid password";
     } finally {
