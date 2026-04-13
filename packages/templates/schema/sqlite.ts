@@ -1,6 +1,6 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const threads = sqliteTable("goodchat_threads", {
+export const threads = sqliteTable("threads", {
   id: text("id").primaryKey(),
   botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
@@ -15,7 +15,7 @@ export const threads = sqliteTable("goodchat_threads", {
   lastActivityAt: text("last_activity_at").notNull(),
 });
 
-export const messages = sqliteTable("goodchat_messages", {
+export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
   threadId: text("thread_id").notNull(),
   role: text("role"),

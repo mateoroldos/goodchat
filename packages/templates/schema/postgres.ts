@@ -1,6 +1,6 @@
 import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
-export const threads = pgTable("goodchat_threads", {
+export const threads = pgTable("threads", {
   id: text("id").primaryKey(),
   botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
@@ -15,7 +15,7 @@ export const threads = pgTable("goodchat_threads", {
   lastActivityAt: text("last_activity_at").notNull(),
 });
 
-export const messages = pgTable("goodchat_messages", {
+export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
   threadId: text("thread_id").notNull(),
   role: text("role"),

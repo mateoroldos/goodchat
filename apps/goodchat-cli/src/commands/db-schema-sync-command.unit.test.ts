@@ -59,7 +59,7 @@ describe("db schema sync command", () => {
     expect(schema).toContain(
       'import { pluginSchema } from "./plugins/schema";'
     );
-    expect(coreSchema).toContain('sqliteTable("goodchat_threads"');
+    expect(coreSchema).toContain('sqliteTable("threads"');
     expect(schema).toContain("export const schema = {");
     expect(authSchema).toBe("export const authSchema = {};\n");
     expect(pluginSchema).toBe("export const pluginSchema = {};\n");

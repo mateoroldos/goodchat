@@ -4,8 +4,8 @@
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.goodchat_messages": {
-      "name": "goodchat_messages",
+    "public.messages": {
+      "name": "messages",
       "schema": "",
       "columns": {
         "id": {
@@ -65,8 +65,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.goodchat_threads": {
-      "name": "goodchat_threads",
+    "public.threads": {
+      "name": "threads",
       "schema": "",
       "columns": {
         "id": {
