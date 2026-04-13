@@ -1,4 +1,4 @@
-CREATE TABLE `goodchat_messages` (
+CREATE TABLE `messages` (
 	`id` varchar(191) NOT NULL,
 	`thread_id` text NOT NULL,
 	`role` text,
@@ -7,10 +7,10 @@ CREATE TABLE `goodchat_messages` (
 	`metadata` json,
 	`user_id` text NOT NULL,
 	`adapter_name` text NOT NULL,
-	CONSTRAINT `goodchat_messages_id` PRIMARY KEY(`id`)
+	CONSTRAINT `messages_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `goodchat_threads` (
+CREATE TABLE `threads` (
 	`id` varchar(191) NOT NULL,
 	`bot_id` text NOT NULL,
 	`bot_name` text NOT NULL,
@@ -23,5 +23,5 @@ CREATE TABLE `goodchat_threads` (
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	`last_activity_at` text NOT NULL,
-	CONSTRAINT `goodchat_threads_id` PRIMARY KEY(`id`)
+	CONSTRAINT `threads_id` PRIMARY KEY(`id`)
 );

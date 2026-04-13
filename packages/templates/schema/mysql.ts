@@ -1,6 +1,6 @@
 import { json, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 
-export const threads = mysqlTable("goodchat_threads", {
+export const threads = mysqlTable("threads", {
   id: varchar("id", { length: 191 }).primaryKey(),
   botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
@@ -15,7 +15,7 @@ export const threads = mysqlTable("goodchat_threads", {
   lastActivityAt: text("last_activity_at").notNull(),
 });
 
-export const messages = mysqlTable("goodchat_messages", {
+export const messages = mysqlTable("messages", {
   id: varchar("id", { length: 191 }).primaryKey(),
   threadId: text("thread_id").notNull(),
   role: text("role"),

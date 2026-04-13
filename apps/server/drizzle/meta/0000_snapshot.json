@@ -28,8 +28,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "goodchat_messages": {
-      "name": "goodchat_messages",
+    "messages": {
+      "name": "messages",
       "columns": {
         "id": {
           "name": "id",
@@ -94,8 +94,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "goodchat_threads": {
-      "name": "goodchat_threads",
+    "threads": {
+      "name": "threads",
       "columns": {
         "id": {
           "name": "id",

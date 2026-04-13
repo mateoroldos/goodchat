@@ -1,4 +1,4 @@
-CREATE TABLE `goodchat_messages` (
+CREATE TABLE `messages` (
 	`id` text PRIMARY KEY NOT NULL,
 	`thread_id` text NOT NULL,
 	`role` text,
@@ -9,7 +9,7 @@ CREATE TABLE `goodchat_messages` (
 	`adapter_name` text NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `goodchat_threads` (
+CREATE TABLE `threads` (
 	`id` text PRIMARY KEY NOT NULL,
 	`bot_id` text NOT NULL,
 	`bot_name` text NOT NULL,

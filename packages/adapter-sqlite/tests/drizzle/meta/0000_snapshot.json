@@ -4,8 +4,8 @@
   "id": "d1fe9282-1a47-4b3e-826a-7762ec4bf7b7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "goodchat_messages": {
-      "name": "goodchat_messages",
+    "messages": {
+      "name": "messages",
       "columns": {
         "id": {
           "name": "id",
@@ -70,8 +70,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "goodchat_threads": {
-      "name": "goodchat_threads",
+    "threads": {
+      "name": "threads",
       "columns": {
         "id": {
           "name": "id",

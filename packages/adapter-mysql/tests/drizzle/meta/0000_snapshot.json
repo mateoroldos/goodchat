@@ -4,8 +4,8 @@
   "id": "dc2e1bcc-639b-48af-b857-a378541c51d5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "goodchat_messages": {
-      "name": "goodchat_messages",
+    "messages": {
+      "name": "messages",
       "columns": {
         "id": {
           "name": "id",
@@ -67,16 +67,16 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "goodchat_messages_id": {
-          "name": "goodchat_messages_id",
+        "messages_id": {
+          "name": "messages_id",
           "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "goodchat_threads": {
-      "name": "goodchat_threads",
+    "threads": {
+      "name": "threads",
       "columns": {
         "id": {
           "name": "id",
@@ -166,8 +166,8 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "goodchat_threads_id": {
-          "name": "goodchat_threads_id",
+        "threads_id": {
+          "name": "threads_id",
           "columns": ["id"]
         }
       },
