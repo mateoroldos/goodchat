@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.10
+
+### Patch Changes
+
+- 240b564: Use custom migration script for sqlite
+
 ## 0.0.9
 
 ### Patch Changes
