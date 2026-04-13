@@ -112,9 +112,17 @@ describe("generator helpers", () => {
     expect(filePaths).toContain("src/db/schema.ts");
     expect(filePaths).toContain("src/db/core-schema.ts");
     expect(filePaths).toContain("src/db/auth-schema.ts");
+    expect(filePaths).toContain("src/db/migrate.ts");
     expect(filePaths).toContain("src/db/plugins/schema.ts");
     expect(filePaths).toContain("drizzle.config.ts");
     expect(filePaths).not.toContain("src/app.ts");
+
+    const sqliteMigrateFile = files.find(
+      (file) => file.path === "src/db/migrate.ts"
+    );
+    expect(sqliteMigrateFile?.content).toContain(
+      "SQLite migrations applied successfully."
+    );
   });
 
   it("renders package scripts for lifecycle schema sync", () => {
@@ -136,6 +144,24 @@ describe("generator helpers", () => {
     );
     expect(packageJson.scripts["db:schema:check"]).toBe(
       "goodchat db schema sync --check"
+    );
+    expect(packageJson.scripts["db:migrate"]).toBe("bun run src/db/migrate.ts");
+  });
+
+  it("renders drizzle-kit migrate script for non-sqlite dialects", () => {
+    const packageJson = JSON.parse(
+      renderPackageJson({
+        databaseDialect: "postgres",
+        dependencyChannel: "latest",
+        projectName: "goodchat-app",
+        usesPlugins: false,
+      })
+    ) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.scripts["db:migrate"]).toBe(
+      "drizzle-kit migrate --config=drizzle.config.ts"
     );
   });
 

@@ -266,6 +266,20 @@ export default app;
 `;
 };
 
+export const renderSqliteMigrateFile = (): string => {
+  return `import { Database } from "bun:sqlite";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+
+const sqlite = new Database(process.env.DATABASE_URL || "./goodchat.db");
+const database = drizzle(sqlite);
+
+migrate(database, { migrationsFolder: "./drizzle" });
+console.log("SQLite migrations applied successfully.");
+sqlite.close();
+`;
+};
+
 export const renderPackageJson = (input: {
   databaseDialect: DatabaseDialect;
   dependencyChannel?: DependencyChannel;
@@ -325,6 +339,11 @@ export const renderPackageJson = (input: {
     typescript: TYPESCRIPT_VERSION,
   };
 
+  const migrateCommand =
+    input.databaseDialect === "sqlite"
+      ? "bun run src/db/migrate.ts"
+      : "drizzle-kit migrate --config=drizzle.config.ts";
+
   const packageJson = {
     name: input.projectName,
     type: "module",
@@ -336,7 +355,7 @@ export const renderPackageJson = (input: {
       "db:schema:sync": "goodchat db schema sync",
       "db:schema:check": "goodchat db schema sync --check",
       "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
-      "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+      "db:migrate": migrateCommand,
       "db:push": "drizzle-kit push --config=drizzle.config.ts",
       start: "bun run dist/index.mjs",
     },
@@ -389,6 +408,16 @@ export const createProjectFiles = async (
     authEnabled: input.config.authEnabled,
     dialect: input.config.databaseDialect,
   });
+  const sqliteMigrateFile =
+    input.config.databaseDialect === "sqlite"
+      ? [
+          {
+            path: "src/db/migrate.ts",
+            content: renderSqliteMigrateFile(),
+          },
+        ]
+      : [];
+
   return [
     {
       path: "package.json",
@@ -423,6 +452,7 @@ export const createProjectFiles = async (
       path: ".gitignore",
       content: renderGitignore(),
     },
+    ...sqliteMigrateFile,
     ...Object.entries(schemaFiles).map(([path, content]) => ({
       path,
       content,
