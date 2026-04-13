@@ -1,5 +1,13 @@
 # @goodchat/core
 
+## 0.0.9
+
+### Patch Changes
+
+- 186d3f1: Auth integration
+- Updated dependencies [186d3f1]
+  - @goodchat/contracts@0.0.9
+
 ## 0.0.8
 
 ### Patch Changes
