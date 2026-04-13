@@ -211,9 +211,7 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
       app.use(openapi());
     }
 
-    const publicApi = new Elysia();
-
-    publicApi
+    const publicApi = new Elysia()
       .use(
         webhookChatController({
           botConfig,
@@ -236,7 +234,7 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
       })
     );
 
-    const api = new Elysia({ prefix: "/api" });
+    const authApi = new Elysia();
 
     if (authRuntime) {
       // Work around Elysia mount regression with Better Auth under prefixed apps.
@@ -248,7 +246,7 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
         return authRuntime.auth.handler(request);
       };
 
-      api
+      authApi
         .get("/auth/*", forwardAuth)
         .post("/auth/*", forwardAuth)
         .put("/auth/*", forwardAuth)
@@ -258,19 +256,21 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
         .head("/auth/*", forwardAuth);
     }
 
-    api.use(publicApi).use(protectedApi);
+    const localApiPlugin = shouldProtectLocalChat
+      ? new Elysia()
+          .onBeforeHandle(requireSessionGuard(authRuntime))
+          .use(localApi)
+      : localApi;
 
-    if (botConfig.platforms.includes("local")) {
-      if (shouldProtectLocalChat) {
-        api.use(
-          new Elysia()
-            .onBeforeHandle(requireSessionGuard(authRuntime))
-            .use(localApi)
-        );
-      } else {
-        api.use(localApi);
-      }
-    }
+    const maybeLocalApi = botConfig.platforms.includes("local")
+      ? localApiPlugin
+      : new Elysia();
+
+    const api = new Elysia({ prefix: "/api" })
+      .use(authApi)
+      .use(publicApi)
+      .use(protectedApi)
+      .use(maybeLocalApi);
 
     app.use(api);
 
