@@ -507,7 +507,7 @@ const run = async (): Promise<void> => {
     };
   });
 
-  const files = createProjectFiles({
+  const files = await createProjectFiles({
     projectName,
     config,
     dependencyChannel,
