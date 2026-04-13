@@ -9,12 +9,12 @@ export type DependencyChannel = (typeof DEPENDENCY_CHANNELS)[number];
 // Versions are auto-updated by scripts/update-create-cli-versions.mjs during `bun run ci:version`
 export const GOODCHAT_DEPENDENCY_MANIFEST = {
   latest: {
-    "@goodchat/adapter-mysql": "0.0.9",
-    "@goodchat/adapter-postgres": "0.0.9",
-    "@goodchat/adapter-sqlite": "0.0.9",
-    "@goodchat/cli": "0.0.3",
-    "@goodchat/core": "0.0.9",
-    "@goodchat/plugins": "0.0.7",
+    "@goodchat/adapter-mysql": "0.0.10",
+    "@goodchat/adapter-postgres": "0.0.10",
+    "@goodchat/adapter-sqlite": "0.0.10",
+    "@goodchat/cli": "0.0.4",
+    "@goodchat/core": "0.0.10",
+    "@goodchat/plugins": "0.0.8",
   },
   next: {
     "@goodchat/adapter-mysql": "next",

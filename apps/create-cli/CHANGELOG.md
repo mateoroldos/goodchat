@@ -1,5 +1,13 @@
 # @goodchat/create
 
+## 0.0.9
+
+### Patch Changes
+
+- e5e693d: Fix template packaging
+- Updated dependencies [e5e693d]
+  - @goodchat/templates@0.0.10
+
 ## 0.0.8
 
 ### Patch Changes
