@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import type { DB as BetterAuthDrizzleDatabase } from "better-auth/adapters/drizzle";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { openAPI } from "better-auth/plugins";
 
 export const SHARED_AUTH_EMAIL = "owner@goodchat.internal";
 
@@ -87,7 +88,9 @@ export const createAuthRuntime = (input: {
     emailAndPassword: {
       enabled: true,
       disableSignUp: false,
+      autoSignIn: false,
     },
+    plugins: [openAPI()],
     hooks: {
       // We only allow one controlled sign-up to create the internal shared account.
       before: createAuthMiddleware((context) => {
@@ -123,5 +126,41 @@ export const createAuthRuntime = (input: {
     closeBootstrapSignup: () => {
       isBootstrapSignupOpen = false;
     },
+  };
+};
+
+interface BetterAuthOpenApiSchema {
+  components?: Record<string, unknown>;
+  paths: Record<string, Record<string, unknown>>;
+}
+
+export const getBetterAuthOpenApiDocumentation = async (
+  auth: ReturnType<typeof betterAuth>,
+  prefix = "/api/auth"
+): Promise<BetterAuthOpenApiSchema> => {
+  const generateOpenApiSchema = (
+    auth.api as {
+      generateOpenAPISchema?: () => Promise<BetterAuthOpenApiSchema>;
+    }
+  ).generateOpenAPISchema;
+
+  if (!generateOpenApiSchema) {
+    return { paths: {} };
+  }
+
+  const { components, paths } = await generateOpenApiSchema();
+  const prefixedPaths: BetterAuthOpenApiSchema["paths"] = {};
+
+  for (const [path, pathDefinition] of Object.entries(paths)) {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    const prefixedPath = normalizedPath.startsWith(prefix)
+      ? normalizedPath
+      : `${prefix}${normalizedPath}`;
+    prefixedPaths[prefixedPath] = { ...pathDefinition };
+  }
+
+  return {
+    components,
+    paths: prefixedPaths,
   };
 };

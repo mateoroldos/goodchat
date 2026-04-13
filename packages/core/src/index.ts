@@ -29,7 +29,10 @@ import {
 } from "@goodchat/contracts/plugins/types";
 import { Elysia } from "elysia";
 import z from "zod";
-import { createAuthRuntime } from "./auth/better-auth";
+import {
+  createAuthRuntime,
+  getBetterAuthOpenApiDocumentation,
+} from "./auth/better-auth";
 import { bootstrapSharedAccount } from "./auth/bootstrap-shared-account";
 import { validatePluginEnv, validatePluginParams } from "./extensions/env";
 import { mergePlugins } from "./extensions/merge";
@@ -184,19 +187,31 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
     const chatRuntime = createChatRuntime(botConfig, database, extensions);
     await chatRuntime.gateway.initialize();
 
-    const app = new Elysia()
-      .use(
-        cors({
-          origin: corsOrigin ?? sameOriginCors,
-          methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    const authOpenApi = authRuntime
+      ? await getBetterAuthOpenApiDocumentation(authRuntime.auth)
+      : null;
+
+    const app = new Elysia().use(
+      cors({
+        origin: corsOrigin ?? sameOriginCors,
+        methods: ["GET", "POST", "PATCH", "OPTIONS"],
+      })
+    );
+
+    if (authOpenApi) {
+      app.use(
+        openapi({
+          documentation: {
+            components: authOpenApi.components,
+            paths: authOpenApi.paths,
+          },
         })
-      )
-      .use(openapi());
+      );
+    } else {
+      app.use(openapi());
+    }
 
     const publicApi = new Elysia();
-    if (authRuntime) {
-      publicApi.mount(authRuntime.auth.handler);
-    }
 
     publicApi
       .use(
@@ -221,7 +236,29 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
       })
     );
 
-    const api = new Elysia({ prefix: "/api" }).use(publicApi).use(protectedApi);
+    const api = new Elysia({ prefix: "/api" });
+
+    if (authRuntime) {
+      // Work around Elysia mount regression with Better Auth under prefixed apps.
+      // Problem: `mount(auth.handler)` can return 404 for `/api/auth/*` routes.
+      // Solution: register explicit auth methods under the `/api` group so GET
+      // auth endpoints are not shadowed by the dashboard `GET /*` fallback.
+      // Issue reference: https://github.com/elysiajs/elysia/issues/1806#issuecomment-4128414602
+      const forwardAuth = ({ request }: { request: Request }) => {
+        return authRuntime.auth.handler(request);
+      };
+
+      api
+        .get("/auth/*", forwardAuth)
+        .post("/auth/*", forwardAuth)
+        .put("/auth/*", forwardAuth)
+        .patch("/auth/*", forwardAuth)
+        .delete("/auth/*", forwardAuth)
+        .options("/auth/*", forwardAuth)
+        .head("/auth/*", forwardAuth);
+    }
+
+    api.use(publicApi).use(protectedApi);
 
     if (botConfig.platforms.includes("local")) {
       if (shouldProtectLocalChat) {
@@ -254,7 +291,7 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
           return webIndexHtml;
         });
       } catch (error) {
-        throw new Error("Dashboard build not found at found.", {
+        throw new Error("Dashboard build not found.", {
           cause: error,
         });
       }

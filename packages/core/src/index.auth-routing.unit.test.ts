@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GoodchatOptionsInput } from "./index";
 import { createDatabaseStub } from "./test-utils/database-stub";
 
 const SHARED_AUTH_EMAIL = "owner@goodchat.internal";
@@ -18,8 +19,9 @@ const isSharedAuthPrincipal = (session: unknown): boolean => {
   return email === SHARED_AUTH_EMAIL;
 };
 
-const createTestApp = async () => {
+const createTestApp = async (overrides: Partial<GoodchatOptionsInput> = {}) => {
   const getSession = vi.fn(async () => null);
+  const readFile = vi.fn(async () => Buffer.from("<html>dashboard</html>"));
   const authHandler = vi.fn((request: Request) => {
     const pathname = new URL(request.url).pathname;
     if (pathname.startsWith("/api/auth/")) {
@@ -42,6 +44,10 @@ const createTestApp = async () => {
   vi.doMock("./auth/better-auth", () => ({
     SHARED_AUTH_EMAIL,
     isSharedAuthPrincipal,
+    getBetterAuthOpenApiDocumentation: vi.fn(async () => ({
+      components: {},
+      paths: {},
+    })),
     createAuthRuntime: ({
       authConfig,
     }: {
@@ -68,20 +74,51 @@ const createTestApp = async () => {
     bootstrapSharedAccount,
   }));
 
+  vi.doMock("node:fs/promises", async () => {
+    const actual =
+      await vi.importActual<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
+    return {
+      ...actual,
+      readFile,
+    };
+  });
+
+  vi.doMock("@elysiajs/static", () => ({
+    staticPlugin: vi.fn(() => new Elysia()),
+  }));
+
   const { createGoodchat } = await import("./index");
-  const { ready } = createGoodchat({
+  const defaultAuth: NonNullable<GoodchatOptionsInput["auth"]> = {
+    enabled: true,
+    mode: "password",
+    password: "secret",
+    localChatPublic: false,
+  };
+
+  const defaultOptions: GoodchatOptionsInput = {
     name: "Test Bot",
     prompt: "Be helpful",
     platforms: ["local"],
     database: createDatabaseStub(),
-    auth: {
-      enabled: true,
-      mode: "password",
-      password: "secret",
-      localChatPublic: false,
-    },
-    isServerless: true,
-    withDashboard: false,
+    auth: defaultAuth,
+    isServerless: false,
+    withDashboard: true,
+  };
+
+  const resolvedAuth: GoodchatOptionsInput["auth"] = {
+    enabled: overrides.auth?.enabled ?? defaultAuth.enabled,
+    mode: overrides.auth?.mode ?? defaultAuth.mode,
+    localChatPublic:
+      overrides.auth?.localChatPublic ?? defaultAuth.localChatPublic,
+    password: overrides.auth?.password ?? defaultAuth.password,
+  };
+
+  const { ready } = createGoodchat({
+    ...defaultOptions,
+    ...overrides,
+    auth: resolvedAuth,
   });
   const result = await ready;
 
@@ -90,6 +127,7 @@ const createTestApp = async () => {
     mocks: {
       authHandler,
       bootstrapSharedAccount,
+      readFile,
     },
   };
 };
@@ -114,6 +152,45 @@ describe("createGoodchat auth route integration", () => {
     });
     expect(mocks.authHandler).toHaveBeenCalledTimes(1);
     expect(mocks.bootstrapSharedAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it("proxies GET /api/auth/get-session through Better Auth", async () => {
+    const { app, mocks } = await createTestApp();
+
+    const response = await app.handle(
+      new Request("http://localhost/api/auth/get-session")
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      path: "/api/auth/get-session",
+    });
+    expect(mocks.authHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("serves dashboard routes without overriding auth and api responses", async () => {
+    const { app, mocks } = await createTestApp();
+
+    const dashboardResponse = await app.handle(
+      new Request("http://localhost/dashboard")
+    );
+    expect(dashboardResponse.status).toBe(200);
+    expect(dashboardResponse.headers.get("content-type")).toContain(
+      "text/html"
+    );
+    await expect(dashboardResponse.text()).resolves.toContain("dashboard");
+
+    const authResponse = await app.handle(
+      new Request("http://localhost/api/auth/get-session")
+    );
+    expect(authResponse.status).toBe(200);
+    await expect(authResponse.json()).resolves.toEqual({
+      ok: true,
+      path: "/api/auth/get-session",
+    });
+
+    expect(mocks.readFile).toHaveBeenCalledTimes(1);
   });
 
   it("protects /api/bot without a valid session", async () => {
