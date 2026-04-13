@@ -12,8 +12,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
+    "build:template-assets": "bun run ./scripts/build-db-schema-template-assets.ts",
+    "build": "bun run build:template-assets && tsdown",
+    "dev": "bun run build:template-assets && tsdown --watch",
     "check-types": "tsc -b",
     "schema:auth:generate": "bun run ./scripts/manage-auth-schema-templates.ts",
     "schema:auth:check": "bun run ./scripts/manage-auth-schema-templates.ts --check"

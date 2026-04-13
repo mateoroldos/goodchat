@@ -1,86 +1,38 @@
-import { readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
+import {
+  AUTH_SCHEMA_TEMPLATE_BY_DIALECT,
+  CORE_SCHEMA_TEMPLATE_BY_DIALECT,
+} from "./generated/db-schema-templates";
 
 export type DatabaseDialect = "sqlite" | "postgres" | "mysql";
 
 const CORE_SCHEMA_EXPORT_REGEX =
   /export const (sqliteSchema|postgresSchema|mysqlSchema)\s*=/;
-const requireFromTemplates = createRequire(import.meta.url);
 
-const readTextFileOrNull = async (path: string): Promise<string | null> => {
-  try {
-    return await readFile(path, "utf8");
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
-};
+const TEMPLATE_BY_RELATIVE_PATH = {
+  "schema/auth/mysql.ts": AUTH_SCHEMA_TEMPLATE_BY_DIALECT.mysql,
+  "schema/auth/postgres.ts": AUTH_SCHEMA_TEMPLATE_BY_DIALECT.postgres,
+  "schema/auth/sqlite.ts": AUTH_SCHEMA_TEMPLATE_BY_DIALECT.sqlite,
+  "schema/mysql.ts": CORE_SCHEMA_TEMPLATE_BY_DIALECT.mysql,
+  "schema/postgres.ts": CORE_SCHEMA_TEMPLATE_BY_DIALECT.postgres,
+  "schema/sqlite.ts": CORE_SCHEMA_TEMPLATE_BY_DIALECT.sqlite,
+} as const;
 
-const resolvePackageRootOrNull = (
-  resolvePackageJsonPath: () => string
-): string | null => {
-  try {
-    const packageJsonPath = resolvePackageJsonPath();
-    return dirname(packageJsonPath);
-  } catch {
-    return null;
-  }
-};
-
-export const resolveTemplatesPackageRoot = (cwd?: string): string | null => {
-  if (cwd) {
-    const requireFromProject = createRequire(resolve(cwd, "package.json"));
-
-    const projectPackageRoot = resolvePackageRootOrNull(() =>
-      requireFromProject.resolve("@goodchat/templates/package.json")
-    );
-    if (projectPackageRoot) {
-      return projectPackageRoot;
-    }
-
-    const projectSchemaEntryPath = resolvePackageRootOrNull(() =>
-      requireFromProject.resolve("@goodchat/templates/schema/sqlite")
-    );
-    if (projectSchemaEntryPath) {
-      return resolve(projectSchemaEntryPath, "..");
-    }
-  }
-
-  const packageRoot = resolvePackageRootOrNull(() =>
-    requireFromTemplates.resolve("@goodchat/templates/package.json")
-  );
-  if (packageRoot) {
-    return packageRoot;
-  }
-
-  const schemaEntryPath = resolvePackageRootOrNull(() =>
-    requireFromTemplates.resolve("@goodchat/templates/schema/sqlite")
-  );
-  if (schemaEntryPath) {
-    return resolve(schemaEntryPath, "..");
-  }
-
-  return null;
-};
-
-export const readSchemaTemplate = async (input: {
+export const readSchemaTemplate = (input: {
   relativePath: string;
   cwd?: string;
 }): Promise<string> => {
-  const templatesPackageRoot = resolveTemplatesPackageRoot(input.cwd);
-  if (templatesPackageRoot) {
-    const candidatePath = resolve(templatesPackageRoot, input.relativePath);
-    const content = await readTextFileOrNull(candidatePath);
-    if (content !== null) {
-      return content;
-    }
+  const template =
+    TEMPLATE_BY_RELATIVE_PATH[
+      input.relativePath as keyof typeof TEMPLATE_BY_RELATIVE_PATH
+    ];
+  if (template) {
+    return Promise.resolve(template);
   }
 
-  throw new Error(
-    `Could not load schema template from @goodchat/templates (${input.relativePath}). Ensure @goodchat/templates is installed.`
+  return Promise.reject(
+    new Error(
+      `Could not load schema template from @goodchat/templates (${input.relativePath}). Ensure @goodchat/templates includes this asset.`
+    )
   );
 };
 
