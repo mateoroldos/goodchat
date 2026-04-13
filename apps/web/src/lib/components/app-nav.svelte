@@ -4,6 +4,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { botQueries } from "$lib/api/bots/bots.queries";
+  import { betterAuthClient } from "$lib/better-auth-client";
   import { Button } from "$lib/components/ui/button";
   import { cn } from "$lib/utils";
 
@@ -15,10 +16,7 @@
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        credentials: "include",
-      });
+      await betterAuthClient.signOut();
     } finally {
       await goto("/login");
     }
