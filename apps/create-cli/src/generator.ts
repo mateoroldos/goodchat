@@ -1,12 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
 import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type {
   DatabaseDialect,
   Platform,
 } from "@goodchat/contracts/config/types";
+import { renderDbSchemaArtifacts } from "@goodchat/templates/scaffold/db-schema-artifacts";
 import {
   type EnvVariableMeta,
   getEnvMetadata,
@@ -46,9 +44,6 @@ export interface ProjectTemplateInput {
   projectName: string;
 }
 
-const requireFromGenerator = createRequire(import.meta.url);
-const CORE_SCHEMA_EXPORT_REGEX =
-  /export const (sqliteSchema|postgresSchema|mysqlSchema)\s*=/;
 const SEMVER_VERSION_REGEX = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/;
 
 const formatPublishedVersion = (
@@ -72,131 +67,6 @@ const DRIZZLE_KIT_VERSION = "^0.31.10";
 const TSDOWN_VERSION = "^0.16.5";
 const TYPESCRIPT_VERSION = "^5.9.3";
 const TYPES_BUN_VERSION = "^1.3.4";
-
-const getDrizzleDialect = (dialect: DatabaseDialect): string => {
-  if (dialect === "postgres") {
-    return "postgresql";
-  }
-  return dialect;
-};
-
-const renderDrizzleCredentials = (dialect: DatabaseDialect): string => {
-  if (dialect === "sqlite") {
-    return '    url: process.env.DATABASE_URL || "./goodchat.db",';
-  }
-  return '    url: process.env.DATABASE_URL || "",';
-};
-
-const resolveCorePackageRoot = (): string | null => {
-  try {
-    const schemaEntryPath = requireFromGenerator.resolve(
-      "@goodchat/templates/schema/sqlite"
-    );
-    return resolve(dirname(schemaEntryPath), "..");
-  } catch {
-    return null;
-  }
-};
-
-const readTextFileOrNull = (path: string): string | null => {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return null;
-  }
-};
-
-const readCoreSchemaTemplate = (relativePath: string): string => {
-  const corePackageRoot = resolveCorePackageRoot();
-  if (corePackageRoot) {
-    const candidatePath = resolve(corePackageRoot, relativePath);
-    const fileContent = readTextFileOrNull(candidatePath);
-    if (fileContent) {
-      return fileContent;
-    }
-  }
-
-  throw new Error(
-    `Could not load schema template from @goodchat/templates (${relativePath}).`
-  );
-};
-
-const renderCoreSchemaFile = (dialect: DatabaseDialect): string => {
-  const schemaPathByDialect = {
-    mysql: "schema/mysql.ts",
-    postgres: "schema/postgres.ts",
-    sqlite: "schema/sqlite.ts",
-  } satisfies Record<DatabaseDialect, string>;
-
-  const template = readCoreSchemaTemplate(schemaPathByDialect[dialect]);
-  return template.replace(
-    CORE_SCHEMA_EXPORT_REGEX,
-    "export const coreSchema ="
-  );
-};
-
-const renderAuthSchemaFile = (
-  dialect: DatabaseDialect,
-  authEnabled: boolean
-): string => {
-  if (!authEnabled) {
-    return "export const authSchema = {};\n";
-  }
-
-  const authSchemaPathByDialect = {
-    mysql: "schema/auth/mysql.ts",
-    postgres: "schema/auth/postgres.ts",
-    sqlite: "schema/auth/sqlite.ts",
-  } satisfies Record<DatabaseDialect, string>;
-
-  return readCoreSchemaTemplate(authSchemaPathByDialect[dialect]);
-};
-
-const renderComposedSchemaFile = (): string => {
-  return `import { authSchema } from "./auth-schema";
-import { coreSchema } from "./core-schema";
-import { pluginSchema } from "./plugins/schema";
-
-// biome-ignore lint/performance/noBarrelFile: drizzle-kit relies on exported table symbols
-export * from "./auth-schema";
-export * from "./core-schema";
-export * from "./plugins/schema";
-
-export const schema = {
-  ...coreSchema,
-  ...authSchema,
-  ...pluginSchema,
-};
-`;
-};
-
-const renderDbSchemaArtifacts = (
-  config: Pick<GeneratorConfig, "authEnabled" | "databaseDialect">
-): Record<string, string> => {
-  const authSchemaFile = renderAuthSchemaFile(
-    config.databaseDialect,
-    config.authEnabled
-  );
-
-  return {
-    "drizzle.config.ts": `import "dotenv/config";
-import { defineConfig } from "drizzle-kit";
-
-export default defineConfig({
-  schema: "./src/db/schema.ts",
-  out: "./drizzle",
-  dialect: "${getDrizzleDialect(config.databaseDialect)}",
-  dbCredentials: {
-${renderDrizzleCredentials(config.databaseDialect)}
-  },
-});
-`,
-    "src/db/core-schema.ts": renderCoreSchemaFile(config.databaseDialect),
-    "src/db/schema.ts": renderComposedSchemaFile(),
-    "src/db/auth-schema.ts": authSchemaFile,
-    "src/db/plugins/schema.ts": "export const pluginSchema = {};\n",
-  };
-};
 
 export const getEnvMetadataForConfig = (input: {
   authEnabled?: boolean;
@@ -510,13 +380,13 @@ dist
 `;
 };
 
-export const createProjectFiles = (
+export const createProjectFiles = async (
   input: ProjectTemplateInput
-): ProjectFile[] => {
+): Promise<ProjectFile[]> => {
   const usesPlugins = (input.config.plugins ?? []).length > 0;
-  const schemaFiles = renderDbSchemaArtifacts({
+  const schemaFiles = await renderDbSchemaArtifacts({
     authEnabled: input.config.authEnabled,
-    databaseDialect: input.config.databaseDialect,
+    dialect: input.config.databaseDialect,
   });
   return [
     {

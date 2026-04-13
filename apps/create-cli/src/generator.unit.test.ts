@@ -76,8 +76,8 @@ describe("generator helpers", () => {
     expect(result).toContain("DISCORD_BOT_TOKEN");
   });
 
-  it("creates core project files", () => {
-    const files = createProjectFiles({
+  it("creates core project files", async () => {
+    const files = await createProjectFiles({
       projectName: "goodchat-app",
       config: {
         authEnabled: true,
