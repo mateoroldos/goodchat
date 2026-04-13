@@ -1,0 +1,32 @@
+{
+  "name": "minimal",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "tsdown",
+    "check-types": "tsc -b",
+    "db:schema:sync": "goodchat db schema sync",
+    "db:schema:check": "goodchat db schema sync --check",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:push": "drizzle-kit push --config=drizzle.config.ts",
+    "start": "bun run dist/index.mjs"
+  },
+  "dependencies": {
+    "@goodchat/cli": "workspace:*",
+    "@goodchat/core": "workspace:*",
+    "@t3-oss/env-core": "^0.13.1",
+    "dotenv": "^17.2.2",
+    "drizzle-orm": "^0.45.2",
+    "elysia": "^1.4.28",
+    "zod": "^4.1.13",
+    "@goodchat/adapter-sqlite": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.4",
+    "drizzle-kit": "^0.31.10",
+    "tsdown": "^0.16.5",
+    "typescript": "^5.9.3"
+  }
+}
