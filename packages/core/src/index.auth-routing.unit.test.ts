@@ -20,6 +20,8 @@ const isSharedAuthPrincipal = (session: unknown): boolean => {
 };
 
 const createTestApp = async (overrides: Partial<GoodchatOptionsInput> = {}) => {
+  process.env.OPENAI_API_KEY = "test-openai-key";
+
   const getSession = vi.fn(async () => null);
   const readFile = vi.fn(async () => Buffer.from("<html>dashboard</html>"));
   const authHandler = vi.fn((request: Request) => {
@@ -101,6 +103,7 @@ const createTestApp = async (overrides: Partial<GoodchatOptionsInput> = {}) => {
     name: "Test Bot",
     prompt: "Be helpful",
     platforms: ["local"],
+    model: { provider: "openai", modelId: "gpt-4.1-mini" },
     database: createDatabaseStub(),
     auth: defaultAuth,
     isServerless: false,

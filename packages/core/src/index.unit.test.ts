@@ -3,12 +3,15 @@ import { createGoodchat } from "./index";
 import { createDatabaseStub } from "./test-utils/database-stub";
 
 describe("createGoodchat", () => {
+  process.env.OPENAI_API_KEY = "test-openai-key";
+
   it("rejects empty bot names", async () => {
     await expect(
       createGoodchat({
         name: "",
         prompt: "Be helpful",
         platforms: ["local"],
+        model: { provider: "openai", modelId: "gpt-4.1-mini" },
         database: createDatabaseStub(),
         isServerless: true,
         withDashboard: false,
@@ -22,6 +25,7 @@ describe("createGoodchat", () => {
         name: "Valid",
         prompt: "Be helpful",
         platforms: ["local"],
+        model: { provider: "openai", modelId: "gpt-4.1-mini" },
         plugins: [{ name: "", tools: {} }],
         database: createDatabaseStub(),
         isServerless: true,
@@ -36,6 +40,7 @@ describe("createGoodchat", () => {
         name: "Valid",
         prompt: "Be helpful",
         platforms: ["local"],
+        model: { provider: "openai", modelId: "gpt-4.1-mini" },
         auth: {
           enabled: true,
           mode: "password",

@@ -1,9 +1,10 @@
 import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
+import type { ModelRef } from "@goodchat/contracts/model/model-ref";
 import type { Tool, UIMessageChunk } from "ai";
 
 export interface AiCallParams {
   mcp?: MCPServerConfig[];
-  model?: string;
+  model?: ModelRef;
   systemPrompt: string;
   tools?: Record<string, Tool>;
   userMessage: string;

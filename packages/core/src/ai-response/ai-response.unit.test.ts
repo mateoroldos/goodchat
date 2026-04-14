@@ -18,6 +18,7 @@ const makeService = () =>
 
 describe("DefaultAiResponseService", () => {
   beforeEach(() => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
     mockGenerateText.mockReset();
     mockStreamText.mockReset();
   });
@@ -26,6 +27,7 @@ describe("DefaultAiResponseService", () => {
     mockGenerateText.mockResolvedValue({ text: "AI: Hello" });
 
     const result = await makeService().generate({
+      model: { provider: "openai", modelId: "gpt-4.1-mini" },
       systemPrompt: "Be friendly\n\nBot name: Echo",
       userMessage: "Hello",
     });
@@ -56,6 +58,7 @@ describe("DefaultAiResponseService", () => {
     });
 
     const result = await makeService().stream({
+      model: { provider: "openai", modelId: "gpt-4.1-mini" },
       systemPrompt: "Be friendly\n\nBot name: Echo",
       userMessage: "Hello",
     });
@@ -80,5 +83,19 @@ describe("DefaultAiResponseService", () => {
     }
 
     expect(responseText).toBe("AI: Hello");
+  });
+
+  it("returns an error when model is missing", async () => {
+    const result = await makeService().generate({
+      systemPrompt: "Be friendly",
+      userMessage: "Hello",
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      throw new Error("Expected generate to fail without model");
+    }
+
+    expect(result.error.message).toContain("No model is configured");
   });
 });

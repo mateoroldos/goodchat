@@ -1,3 +1,4 @@
+import type { ModelProvider } from "@goodchat/contracts/model/model-ref";
 import { describe, expect, it } from "vitest";
 import {
   createProjectFiles,
@@ -32,7 +33,7 @@ describe("generator helpers", () => {
       platforms: ["local", "slack"],
       withDashboard: true,
       isServerless: false,
-      model: "openai/gpt-4.1-mini",
+      model: { provider: "openai", modelId: "gpt-4.1-mini" },
       plugins: ["linear"],
       mcp: [
         {
@@ -74,6 +75,34 @@ describe("generator helpers", () => {
 
     expect(result).toContain("OPENAI_API_KEY");
     expect(result).toContain("DISCORD_BOT_TOKEN");
+  });
+
+  it("renders docs URLs in scaffolded env file comments", async () => {
+    const files = await createProjectFiles({
+      projectName: "goodchat-app",
+      config: {
+        authEnabled: true,
+        databaseDialect: "sqlite",
+        name: "goodchat",
+        prompt: "Be helpful",
+        platforms: ["local"],
+        withDashboard: true,
+        isServerless: false,
+      },
+      envMetadata: [
+        {
+          key: "OPENAI_API_KEY",
+          description: "OpenAI API key",
+          category: "provider",
+          docsUrl: "https://platform.openai.com/api-keys",
+        },
+      ],
+    });
+
+    const envFile = files.find((file) => file.path === ".env");
+    expect(envFile?.content).toContain(
+      "# Docs: https://platform.openai.com/api-keys"
+    );
   });
 
   it("creates core project files", async () => {
@@ -189,7 +218,7 @@ describe("generator helpers", () => {
       databaseDialect: "postgres",
       id: "test-id",
       isServerless: false,
-      model: "openai/gpt-4.1-mini",
+      model: { provider: "openai", modelId: "gpt-4.1-mini" },
       name: "Test Bot",
       platforms: ["local", "discord"],
       plugins: ["linear"],
@@ -204,5 +233,62 @@ describe("generator helpers", () => {
     );
     expect(configFile).toContain('name: "Test Bot"');
     expect(configFile).toContain("plugins: [linear]");
+  });
+
+  it.each<{
+    provider: ModelProvider;
+    modelId: string;
+    expectedFactory: string;
+  }>([
+    {
+      provider: "openai",
+      modelId: "gpt-4.1-mini",
+      expectedFactory: "openai",
+    },
+    {
+      provider: "anthropic",
+      modelId: "claude-sonnet-4-6",
+      expectedFactory: "anthropic",
+    },
+    {
+      provider: "google",
+      modelId: "gemini-2.5-flash",
+      expectedFactory: "google",
+    },
+    {
+      provider: "openrouter",
+      modelId: "openai/gpt-4.1-mini",
+      expectedFactory: "openrouter",
+    },
+    {
+      provider: "ai-gateway",
+      modelId: "@cf/meta/llama-3.1-8b-instruct",
+      expectedFactory: "aiGateway",
+    },
+    {
+      provider: "vercel-gateway",
+      modelId: "openai/gpt-4.1-mini",
+      expectedFactory: "vercelGateway",
+    },
+  ])("renders model factory import for $provider", ({
+    provider,
+    modelId,
+    expectedFactory,
+  }) => {
+    const output = renderGoodchatFile({
+      authEnabled: false,
+      databaseDialect: "sqlite",
+      isServerless: false,
+      model: { provider, modelId },
+      name: "Provider Bot",
+      platforms: ["local"],
+      prompt: "Be helpful",
+      withDashboard: false,
+    });
+
+    expect(output).toContain(
+      `import { createGoodchat, ${expectedFactory} } from "@goodchat/core";`
+    );
+    expect(output).toContain(`model: ${expectedFactory}("${modelId}")`);
   });
 });

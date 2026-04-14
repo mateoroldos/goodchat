@@ -31,6 +31,7 @@ export const createGoodchatHarness = async (
     await generateSqliteMigrationFromTemplateSchemas();
 
   process.env.GOODCHAT_AUTH_SECRET = DEFAULT_AUTH_SECRET;
+  process.env.OPENAI_API_KEY = "test-openai-key";
   const client = new BunSqliteDatabase(":memory:");
 
   migrate(drizzle(client), {
@@ -50,6 +51,7 @@ export const createGoodchatHarness = async (
     name: "Integration Bot",
     prompt: "Be helpful",
     platforms: ["local"],
+    model: { provider: "openai", modelId: "gpt-4.1-mini" },
     database,
     auth: {
       enabled: true,

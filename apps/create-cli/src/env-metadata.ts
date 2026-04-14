@@ -1,4 +1,8 @@
-export type Provider = "gateway" | "openai" | "anthropic" | "google";
+import type { ModelProvider } from "@goodchat/contracts/model/model-ref";
+import { MODEL_PROVIDERS } from "@goodchat/contracts/model/model-ref";
+import { PROVIDER_METADATA } from "@goodchat/contracts/model/provider-metadata";
+
+export type Provider = ModelProvider;
 
 export type EnvCategory = "core" | "platform" | "provider" | "plugin";
 
@@ -16,39 +20,16 @@ export interface EnvVariableMeta {
 }
 
 const ENV_METADATA: EnvVariableMeta[] = [
-  {
-    key: "OPENAI_API_KEY",
-    description: "OpenAI API key for direct provider usage",
-    category: "provider",
-    docsUrl: "https://platform.openai.com/api-keys",
-    schema: 'z.string().min(1, "OpenAI API key is required")',
-    providers: ["openai"],
-  },
-  {
-    key: "ANTHROPIC_API_KEY",
-    description: "Anthropic API key for direct provider usage",
-    category: "provider",
-    docsUrl: "https://console.anthropic.com/settings/keys",
-    schema: 'z.string().min(1, "Anthropic API key is required")',
-    providers: ["anthropic"],
-  },
-  {
-    key: "GOOGLE_GENERATIVE_AI_API_KEY",
-    description: "Google Generative AI API key",
-    category: "provider",
-    docsUrl: "https://aistudio.google.com/app/apikey",
-    schema: 'z.string().min(1, "Google Generative AI API key is required")',
-    providers: ["google"],
-  },
-  {
-    key: "AI_GATEWAY_API_KEY",
-    description: "Vercel AI Gateway API key",
-    category: "provider",
-    docsUrl:
-      "https://vercel.com/docs/ai-gateway/authentication-and-byok/authentication",
-    schema: 'z.string().min(1, "AI Gateway API key is required")',
-    providers: ["gateway"],
-  },
+  ...MODEL_PROVIDERS.flatMap((provider): EnvVariableMeta[] => {
+    return PROVIDER_METADATA[provider].envVariables.map((variable) => ({
+      key: variable.key,
+      description: variable.description,
+      category: "provider",
+      docsUrl: variable.docsUrl,
+      schema: `z.string().min(1, "${variable.requiredMessage}")`,
+      providers: [provider],
+    }));
+  }),
   {
     key: "DATABASE_URL",
     description:
@@ -218,26 +199,6 @@ const CATEGORY_ORDER: EnvCategory[] = [
   "platform",
   "plugin",
 ];
-
-export const resolveProviderFromModelId = (
-  modelId: string | undefined
-): Provider | null => {
-  if (!modelId) {
-    return null;
-  }
-  if (modelId.includes("/")) {
-    return "gateway";
-  }
-  const [provider] = modelId.split(":", 1);
-  if (
-    provider === "openai" ||
-    provider === "anthropic" ||
-    provider === "google"
-  ) {
-    return provider;
-  }
-  return null;
-};
 
 export const getEnvMetadata = (input: {
   authEnabled?: boolean;

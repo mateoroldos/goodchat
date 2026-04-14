@@ -116,6 +116,7 @@
       "dependencies": {
         "@goodchat/adapter-sqlite": "workspace:*",
         "@goodchat/cli": "workspace:*",
+        "@goodchat/contracts": "workspace:*",
         "@goodchat/core": "workspace:*",
         "@t3-oss/env-core": "^0.13.1",
         "dotenv": "^17.2.2",

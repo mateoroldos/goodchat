@@ -29,6 +29,7 @@ import {
 } from "@goodchat/contracts/plugins/types";
 import { Elysia } from "elysia";
 import z from "zod";
+import { validateModelProviderConfig } from "./ai-response/provider-registry";
 import {
   createAuthRuntime,
   getBetterAuthOpenApiDocumentation,
@@ -121,6 +122,14 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
     const coreDir = dirname(fileURLToPath(import.meta.url));
     const packagedWebBuildPath = join(coreDir, "web");
     const webBuildPath = packagedWebBuildPath;
+
+    if (!model) {
+      throw new Error(
+        "No model is configured. Set model in createGoodchat({ model: ... })."
+      );
+    }
+
+    validateModelProviderConfig(model);
 
     const botConfig: BotConfig = {
       id: id ?? deriveBotId(name),
@@ -316,3 +325,11 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
 export type GoodchatApi = Awaited<
   ReturnType<typeof createGoodchat>["ready"]
 >["api"];
+
+// biome-ignore lint/performance/noBarrelFile: drizzle-kit relies on exported table symbols
+export { aiGateway } from "@goodchat/contracts/model/catalog/ai-gateway";
+export { anthropic } from "@goodchat/contracts/model/catalog/anthropic";
+export { google } from "@goodchat/contracts/model/catalog/google";
+export { openai } from "@goodchat/contracts/model/catalog/openai";
+export { openrouter } from "@goodchat/contracts/model/catalog/openrouter";
+export { vercelGateway } from "@goodchat/contracts/model/catalog/vercel-gateway";

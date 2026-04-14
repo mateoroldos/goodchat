@@ -18,49 +18,24 @@ import type {
   Platform,
 } from "@goodchat/contracts/config/types";
 import { deriveBotId } from "@goodchat/contracts/config/utils";
-import { type Provider, resolveProviderFromModelId } from "./env-metadata";
+import {
+  MODEL_CATALOG,
+  MODEL_PROVIDER_OPTIONS,
+  MODEL_PROVIDER_PROMPT_DOCS_URL,
+  MODEL_PROVIDER_PROMPT_ENV_KEY,
+} from "@goodchat/contracts/model/provider-metadata";
+import type { Provider } from "./env-metadata";
 import {
   createProjectFiles,
   getEnvMetadataForConfig,
   type ScaffolderConfig,
+  type SelectedModel,
 } from "./generator";
 import {
   DEPENDENCY_CHANNELS,
   type DependencyChannel,
   resolveDefaultDependencyChannel,
 } from "./version-manifest";
-
-const LLM_MODEL_ID_REGEX = /^[a-z0-9-]+[/:][\w.-]+$/i;
-const MODEL_OPTIONS = [
-  {
-    label: "OpenAI GPT-4.1 Mini",
-    value: "openai/gpt-4.1-mini",
-  },
-  {
-    label: "OpenAI GPT-4.1",
-    value: "openai/gpt-4.1",
-  },
-  {
-    label: "Anthropic Claude Sonnet 4.6",
-    value: "anthropic/claude-sonnet-4.6",
-  },
-  {
-    label: "Google Gemini 2.5 Flash",
-    value: "google/gemini-2.5-flash",
-  },
-  {
-    label: "Google Gemini 2.5 Pro",
-    value: "google/gemini-2.5-pro",
-  },
-  {
-    label: "Custom (AI Gateway / or direct :)",
-    value: "custom",
-  },
-  {
-    label: "Use default (openai/gpt-4.1-nano via AI Gateway)",
-    value: "default",
-  },
-];
 
 const handleCancel = <T>(value: T | symbol): T => {
   if (isCancel(value)) {
@@ -331,6 +306,64 @@ const parseDependencyChannelArg = (
   return null;
 };
 
+const promptModel = async (): Promise<{
+  model: SelectedModel;
+  provider: Provider;
+  apiKeyEnvKey: string | undefined;
+  apiKey: string | undefined;
+}> => {
+  const providerSelection = handleCancel(
+    await select({
+      message: "AI provider",
+      options: MODEL_PROVIDER_OPTIONS,
+      initialValue: "openai",
+    })
+  );
+
+  const provider = providerSelection as Provider;
+  const knownModels = MODEL_CATALOG[provider] ?? [];
+  const modelSelection = handleCancel(
+    await select({
+      message: "Model",
+      options: [
+        ...knownModels.map((id) => ({ label: id, value: id })),
+        { label: "Custom model ID", value: "__custom__" },
+      ],
+    })
+  );
+
+  let modelId: string;
+  if (modelSelection === "__custom__") {
+    modelId = handleCancel(
+      await text({
+        message: "Model ID",
+        validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
+      })
+    );
+  } else {
+    modelId = modelSelection;
+  }
+
+  const apiKeyEnvKey = MODEL_PROVIDER_PROMPT_ENV_KEY[provider];
+  const apiKeyDocsUrl = MODEL_PROVIDER_PROMPT_DOCS_URL[provider];
+  const apiKey = apiKeyEnvKey
+    ? handleCancel(
+        await password({
+          message: apiKeyDocsUrl
+            ? `${apiKeyEnvKey} (press Enter to skip)\nGet key: ${apiKeyDocsUrl}`
+            : `${apiKeyEnvKey} (press Enter to skip)`,
+        })
+      )
+    : undefined;
+
+  return {
+    model: { provider, modelId },
+    provider,
+    apiKeyEnvKey,
+    apiKey,
+  };
+};
+
 const run = async (): Promise<void> => {
   const cliArgs = process.argv.slice(2);
   handleLifecycleCommandAttempt(cliArgs);
@@ -368,38 +401,7 @@ const run = async (): Promise<void> => {
     })
   );
 
-  const modelSelection = handleCancel(
-    await select({
-      message:
-        "Select model (provider/model for AI Gateway, provider:model for direct)",
-      options: MODEL_OPTIONS,
-      initialValue: "default",
-    })
-  );
-
-  let model: string | undefined;
-  if (modelSelection === "custom") {
-    model = handleCancel(
-      await text({
-        message:
-          "Model id (provider/model = AI Gateway, provider:model = direct)",
-        placeholder: "openai/gpt-4.1-nano or openai:gpt-5.2-nano",
-        validate: (value) =>
-          LLM_MODEL_ID_REGEX.test(value.trim())
-            ? undefined
-            : "Use provider/model (gateway) or provider:model (direct)",
-      })
-    );
-  } else if (modelSelection !== "default") {
-    model = modelSelection as string;
-  }
-
-  let provider: Provider | null = null;
-  if (modelSelection === "default") {
-    provider = "gateway";
-  } else {
-    provider = resolveProviderFromModelId(model);
-  }
+  const { model, provider, apiKeyEnvKey, apiKey } = await promptModel();
 
   const platforms = handleCancel(
     await multiselect({
@@ -494,6 +496,9 @@ const run = async (): Promise<void> => {
   }
   if (sqliteDatabasePath) {
     envDefaults.set("DATABASE_URL", sqliteDatabasePath);
+  }
+  if (apiKeyEnvKey && apiKey !== undefined) {
+    envDefaults.set(apiKeyEnvKey, apiKey);
   }
 
   const envMetadataWithDefaults = envMetadata.map((meta) => {

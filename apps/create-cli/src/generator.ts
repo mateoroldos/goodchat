@@ -4,6 +4,8 @@ import type {
   DatabaseDialect,
   Platform,
 } from "@goodchat/contracts/config/types";
+import type { ModelProvider } from "@goodchat/contracts/model/model-ref";
+import { resolveModelFactoryName } from "@goodchat/contracts/model/provider-metadata";
 import { renderDbSchemaArtifacts } from "@goodchat/templates/scaffold/db-schema-artifacts";
 import {
   type EnvVariableMeta,
@@ -16,13 +18,18 @@ import {
   resolveDefaultDependencyChannel,
 } from "./version-manifest";
 
+export interface SelectedModel {
+  modelId: string;
+  provider: ModelProvider;
+}
+
 export interface GeneratorConfig {
   authEnabled: boolean;
   databaseDialect: DatabaseDialect;
   id?: string;
   isServerless: boolean;
   mcp?: MCPServerConfig[];
-  model?: string;
+  model?: SelectedModel;
   name: string;
   platforms: Platform[];
   plugins?: string[];
@@ -172,7 +179,7 @@ export const renderEnvFile = (metadata: EnvVariableMeta[]): string => {
 
 export const renderGoodchatFile = (config: GeneratorConfig): string => {
   const imports: string[] = [];
-  imports.push('import { createGoodchat } from "@goodchat/core";');
+  const coreImports = ["createGoodchat"];
   imports.push('import { schema } from "./db/schema";');
   if (config.databaseDialect === "sqlite") {
     imports.push('import { sqlite } from "@goodchat/adapter-sqlite";');
@@ -183,6 +190,13 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
   if (config.databaseDialect === "mysql") {
     imports.push('import { mysql } from "@goodchat/adapter-mysql";');
   }
+  if (config.model) {
+    const factoryName = resolveModelFactoryName(config.model.provider);
+    coreImports.push(factoryName);
+  }
+  imports.unshift(
+    `import { ${coreImports.join(", ")} } from "@goodchat/core";`
+  );
   const plugins = config.plugins ?? [];
   if (plugins.includes("linear")) {
     imports.push('import { linear } from "@goodchat/plugins/linear";');
@@ -214,7 +228,10 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
   }
 
   if (config.model) {
-    entries.push(`  model: ${JSON.stringify(config.model)},`);
+    const factoryName = resolveModelFactoryName(config.model.provider);
+    entries.push(
+      `  model: ${factoryName}(${JSON.stringify(config.model.modelId)}),`
+    );
   }
 
   if (config.mcp && config.mcp.length > 0) {

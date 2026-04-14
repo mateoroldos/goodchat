@@ -97,7 +97,6 @@ const renderComposedSchemaFile = (): string => {
 import { coreSchema } from "./core-schema";
 import { pluginSchema } from "./plugins/schema";
 
-// biome-ignore lint/performance/noBarrelFile: drizzle-kit relies on exported table symbols
 export * from "./auth-schema";
 export * from "./core-schema";
 export * from "./plugins/schema";

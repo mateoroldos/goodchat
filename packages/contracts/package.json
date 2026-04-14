@@ -85,6 +85,46 @@
       "types": "./dist/database/interface.d.ts",
       "import": "./dist/database/interface.mjs",
       "require": "./dist/database/interface.cjs"
+    },
+    "./model/model-ref": {
+      "types": "./dist/model/model-ref.d.ts",
+      "import": "./dist/model/model-ref.mjs",
+      "require": "./dist/model/model-ref.cjs"
+    },
+    "./model/provider-metadata": {
+      "types": "./dist/model/provider-metadata.d.ts",
+      "import": "./dist/model/provider-metadata.mjs",
+      "require": "./dist/model/provider-metadata.cjs"
+    },
+    "./model/catalog/openai": {
+      "types": "./dist/model/catalog/openai.d.ts",
+      "import": "./dist/model/catalog/openai.mjs",
+      "require": "./dist/model/catalog/openai.cjs"
+    },
+    "./model/catalog/anthropic": {
+      "types": "./dist/model/catalog/anthropic.d.ts",
+      "import": "./dist/model/catalog/anthropic.mjs",
+      "require": "./dist/model/catalog/anthropic.cjs"
+    },
+    "./model/catalog/google": {
+      "types": "./dist/model/catalog/google.d.ts",
+      "import": "./dist/model/catalog/google.mjs",
+      "require": "./dist/model/catalog/google.cjs"
+    },
+    "./model/catalog/openrouter": {
+      "types": "./dist/model/catalog/openrouter.d.ts",
+      "import": "./dist/model/catalog/openrouter.mjs",
+      "require": "./dist/model/catalog/openrouter.cjs"
+    },
+    "./model/catalog/ai-gateway": {
+      "types": "./dist/model/catalog/ai-gateway.d.ts",
+      "import": "./dist/model/catalog/ai-gateway.mjs",
+      "require": "./dist/model/catalog/ai-gateway.cjs"
+    },
+    "./model/catalog/vercel-gateway": {
+      "types": "./dist/model/catalog/vercel-gateway.d.ts",
+      "import": "./dist/model/catalog/vercel-gateway.mjs",
+      "require": "./dist/model/catalog/vercel-gateway.cjs"
     }
   },
   "dependencies": {
