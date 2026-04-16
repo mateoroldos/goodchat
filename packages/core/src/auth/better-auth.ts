@@ -60,14 +60,14 @@ const resolveAuthDatabase = (database: Database) => {
 };
 
 export const createAuthRuntime = (input: {
-  authConfig: AuthConfig;
+  config: AuthConfig;
   database: Database;
 }): DashboardAuthRuntime | null => {
-  if (!input.authConfig.enabled) {
+  if (!input.config.enabled) {
     return null;
   }
 
-  if (!input.authConfig.password) {
+  if (!input.config.password) {
     throw new Error("Auth password is required when auth is enabled");
   }
 

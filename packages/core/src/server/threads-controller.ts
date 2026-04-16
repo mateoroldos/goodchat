@@ -13,7 +13,15 @@ const logApiError = (requestId: string, error: Error): void => {
   console.error(`[${requestId}]`, error);
 };
 
-export const threadsController = (database: Database, botId: string) =>
+interface ThreadsControllerOptions {
+  botId: string;
+  database: Database;
+}
+
+export const threadsController = ({
+  database,
+  botId,
+}: ThreadsControllerOptions) =>
   new Elysia({ prefix: "/threads" }).get(
     "/",
     async ({ query, status }) => {

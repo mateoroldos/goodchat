@@ -1,6 +1,7 @@
+import { botConfigSchema } from "@goodchat/contracts/config/models";
+import type { BotConfigInput } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { GoodchatOptionsInput } from "./index";
 import { createDatabaseStub } from "./test-utils/database-stub";
 
 const SHARED_AUTH_EMAIL = "owner@goodchat.internal";
@@ -19,7 +20,7 @@ const isSharedAuthPrincipal = (session: unknown): boolean => {
   return email === SHARED_AUTH_EMAIL;
 };
 
-const createTestApp = async (overrides: Partial<GoodchatOptionsInput> = {}) => {
+const createTestApp = async (overrides: Partial<BotConfigInput> = {}) => {
   process.env.OPENAI_API_KEY = "test-openai-key";
 
   const getSession = vi.fn(async () => null);
@@ -50,12 +51,8 @@ const createTestApp = async (overrides: Partial<GoodchatOptionsInput> = {}) => {
       components: {},
       paths: {},
     })),
-    createAuthRuntime: ({
-      authConfig,
-    }: {
-      authConfig: { enabled: boolean };
-    }) => {
-      if (!authConfig.enabled) {
+    createAuthRuntime: ({ config }: { config: { enabled: boolean } }) => {
+      if (!config.enabled) {
         return null;
       }
 
@@ -92,14 +89,14 @@ const createTestApp = async (overrides: Partial<GoodchatOptionsInput> = {}) => {
   }));
 
   const { createGoodchat } = await import("./index");
-  const defaultAuth: NonNullable<GoodchatOptionsInput["auth"]> = {
+  const defaultAuth: NonNullable<BotConfigInput["auth"]> = {
     enabled: true,
     mode: "password",
     password: "secret",
     localChatPublic: false,
   };
 
-  const defaultOptions: GoodchatOptionsInput = {
+  const defaultOptions = botConfigSchema.parse({
     name: "Test Bot",
     prompt: "Be helpful",
     platforms: ["local"],
@@ -108,9 +105,9 @@ const createTestApp = async (overrides: Partial<GoodchatOptionsInput> = {}) => {
     auth: defaultAuth,
     isServerless: false,
     withDashboard: true,
-  };
+  });
 
-  const resolvedAuth: GoodchatOptionsInput["auth"] = {
+  const resolvedAuth: BotConfigInput["auth"] = {
     enabled: overrides.auth?.enabled ?? defaultAuth.enabled,
     mode: overrides.auth?.mode ?? defaultAuth.mode,
     localChatPublic:
@@ -204,6 +201,54 @@ describe("createGoodchat auth route integration", () => {
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({
       message: "Unauthorized",
+    });
+  });
+
+  it("protects local chat when auth is enabled and localChatPublic is false", async () => {
+    const { app } = await createTestApp({
+      auth: {
+        enabled: true,
+        mode: "password",
+        password: "secret",
+        localChatPublic: false,
+      },
+    });
+
+    const response = await app.handle(
+      new Request("http://localhost/api/local/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      })
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      message: "Unauthorized",
+    });
+  });
+
+  it("keeps local chat public when localChatPublic is true", async () => {
+    const { app } = await createTestApp({
+      auth: {
+        enabled: true,
+        mode: "password",
+        password: "secret",
+        localChatPublic: true,
+      },
+    });
+
+    const response = await app.handle(
+      new Request("http://localhost/api/local/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      })
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Message is required",
     });
   });
 });

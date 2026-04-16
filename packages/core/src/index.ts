@@ -1,82 +1,36 @@
-import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cors } from "@elysiajs/cors";
-import { openapi } from "@elysiajs/openapi";
-import { staticPlugin } from "@elysiajs/static";
-import {
-  mcpServerSchema,
-  toolSchema,
-} from "@goodchat/contracts/capabilities/models";
-import {
-  authConfigSchema,
-  botConfigSchema,
-  databaseDialectSchema,
-} from "@goodchat/contracts/config/models";
-import type { BotConfig } from "@goodchat/contracts/config/types";
+import { botConfigSchema } from "@goodchat/contracts/config/models";
+import type { Bot, BotConfigInput } from "@goodchat/contracts/config/types";
 import { deriveBotId } from "@goodchat/contracts/config/utils";
-import type { Database } from "@goodchat/contracts/database/interface";
-import { goodchatHooksSchema } from "@goodchat/contracts/hooks/models";
-import {
-  goodchatPluginDefinitionSchema,
-  goodchatPluginFactorySchema,
-  goodchatPluginSchema,
-} from "@goodchat/contracts/plugins/models";
-import type { GoodchatPlugin } from "@goodchat/contracts/plugins/types";
-import {
-  isPluginDefinition,
-  isPluginFactory,
-} from "@goodchat/contracts/plugins/types";
 import { Elysia } from "elysia";
-import z from "zod";
 import { validateModelProviderConfig } from "./ai-response/provider-registry";
+import {
+  EvlogAiTelemetryService,
+  NoopAiTelemetryService,
+} from "./ai-telemetry/service";
 import {
   createAuthRuntime,
   getBetterAuthOpenApiDocumentation,
 } from "./auth/better-auth";
 import { bootstrapSharedAccount } from "./auth/bootstrap-shared-account";
-import { validatePluginEnv, validatePluginParams } from "./extensions/env";
-import { mergePlugins } from "./extensions/merge";
+import { mergePlugins, resolvePlugins } from "./extensions/merge";
+import { ElysiaLoggerService, NoopLoggerService } from "./logger/service";
 import { createChatRuntime } from "./runtime/create-chat-runtime";
+import {
+  createAuthApi,
+  createLocalChatApi,
+  type LocalChatAccess,
+  setupDashboard,
+  setupOpenApiDocumentation,
+  setupRequestLogging,
+} from "./server/app-bootstrap";
 import { requireSessionGuard } from "./server/auth-guard";
 import { botController } from "./server/bot-controller";
 import { localChatController } from "./server/local-chat-controller";
 import { threadsController } from "./server/threads-controller";
 import { webhookChatController } from "./server/webhook-chat-controller";
-
-const corsOriginSchema = z.custom<string | ((request: Request) => boolean)>(
-  (value) => typeof value === "string" || typeof value === "function",
-  {
-    message: "CORS origin must be a string or function",
-  }
-);
-
-export const goodchatOptionsSchema = botConfigSchema.extend({
-  corsOrigin: corsOriginSchema.optional(),
-  hooks: goodchatHooksSchema.optional(),
-  id: z.string().min(1, "Bot id is required").optional(),
-  isServerless: z.boolean().optional(),
-  mcp: z.array(mcpServerSchema).optional(),
-  model: botConfigSchema.shape.model.optional(),
-  database: z.custom<Database>(),
-  name: z.string().min(1, "Bot name is required"),
-  platforms: botConfigSchema.shape.platforms,
-  plugins: z
-    .array(
-      z.union([
-        goodchatPluginDefinitionSchema,
-        goodchatPluginFactorySchema,
-        goodchatPluginSchema,
-      ])
-    )
-    .optional(),
-  prompt: z.string().min(1, "Bot prompt is required"),
-  tools: z.record(z.string(), toolSchema).optional(),
-  withDashboard: z.boolean().optional(),
-  auth: authConfigSchema.optional(),
-});
-
-export type GoodchatOptionsInput = z.infer<typeof goodchatOptionsSchema>;
 
 const sameOriginCors = (request: Request) => {
   const origin = request.headers.get("origin");
@@ -96,104 +50,79 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
-export const createGoodchat = (options: GoodchatOptionsInput) => {
+type ResolvedLocalChatAccess = "disabled" | LocalChatAccess;
+
+const resolveLocalChatAccess = (input: {
+  platforms: Bot["platforms"];
+  auth: Bot["auth"];
+}): ResolvedLocalChatAccess => {
+  if (!input.platforms.includes("local")) {
+    return "disabled";
+  }
+
+  if (input.auth.enabled && !input.auth.localChatPublic) {
+    return "protected";
+  }
+
+  return "public";
+};
+
+export const createGoodchat = (options: BotConfigInput) => {
   const initialize = async () => {
-    const {
-      name,
-      prompt,
-      platforms,
-      id,
-      database,
-      corsOrigin,
-      plugins = [],
-      tools,
-      hooks,
-      mcp,
-      model,
-      withDashboard = true,
-      isServerless = false,
-      auth = {
-        enabled: false,
-        mode: "password",
-        localChatPublic: false,
+    const botConfig = botConfigSchema.parse(options);
+
+    const merged = mergePlugins(resolvePlugins(botConfig), {
+      hooks: botConfig.hooks ?? {},
+      mcp: botConfig.mcp,
+      tools: botConfig.tools,
+    });
+
+    const bot: Bot = {
+      ...botConfig,
+      id: botConfig.id ?? deriveBotId(botConfig.name),
+      hooks: {
+        afterMessage: merged.afterMessage,
+        beforeMessage: merged.beforeMessage,
       },
-    } = goodchatOptionsSchema.parse(options);
-    databaseDialectSchema.parse(database.dialect);
+      mcp: merged.mcp,
+      tools: merged.tools,
+      ...(merged.systemPrompt ? { systemPrompt: merged.systemPrompt } : {}),
+    };
+
     const coreDir = dirname(fileURLToPath(import.meta.url));
     const packagedWebBuildPath = join(coreDir, "web");
     const webBuildPath = packagedWebBuildPath;
 
-    if (!model) {
-      throw new Error(
-        "No model is configured. Set model in createGoodchat({ model: ... })."
-      );
-    }
+    validateModelProviderConfig(bot.model);
 
-    validateModelProviderConfig(model);
-
-    const botConfig: BotConfig = {
-      id: id ?? deriveBotId(name),
-      name,
-      prompt,
-      platforms,
-      model,
-    };
-
-    const resolvedPlugins: GoodchatPlugin[] = plugins.map((p) => {
-      const pluginDefinition = isPluginFactory(p) ? p() : p;
-      if (!isPluginDefinition(pluginDefinition)) {
-        return pluginDefinition;
-      }
-      const env = pluginDefinition.env
-        ? validatePluginEnv(pluginDefinition.name, pluginDefinition.env)
-        : ({} as never);
-      if (pluginDefinition.paramsSchema) {
-        if (pluginDefinition.params === undefined) {
-          throw new Error(
-            `Plugin "${pluginDefinition.name}" params are required. Check the plugin configuration values.`
-          );
-        }
-        const params = validatePluginParams(
-          pluginDefinition.name,
-          pluginDefinition.paramsSchema,
-          pluginDefinition.params
-        );
-        return {
-          name: pluginDefinition.name,
-          ...pluginDefinition.create(env, params),
-        };
-      }
-
-      return {
-        name: pluginDefinition.name,
-        ...pluginDefinition.create(env, undefined),
-      };
-    });
-
-    const extensions = mergePlugins(resolvedPlugins, { hooks, mcp, tools });
-
-    const webhookEnv = {
-      CRON_SECRET: process.env.CRON_SECRET,
-      WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
-    };
+    const loggingEnabled = bot.logging.enabled !== false;
+    const logger = loggingEnabled
+      ? new ElysiaLoggerService(bot.logging?.service ?? bot.name)
+      : new NoopLoggerService();
+    const aiTelemetry = loggingEnabled
+      ? new EvlogAiTelemetryService()
+      : new NoopAiTelemetryService();
 
     const authRuntime = createAuthRuntime({
-      authConfig: auth,
-      database,
+      config: bot.auth,
+      database: bot.database,
     });
 
     // Better Auth issues session cookies for persisted users, so shared-password
     // mode still needs one internal account to authenticate against.
-    if (auth.enabled && authRuntime && auth.password) {
+    if (bot.auth.enabled && authRuntime && bot.auth.password) {
       await bootstrapSharedAccount({
         authRuntime,
-        password: auth.password,
+        password: bot.auth.password,
       });
     }
 
-    const shouldProtectLocalChat = auth.enabled && !auth.localChatPublic;
+    const localChatAccess = resolveLocalChatAccess({
+      platforms: bot.platforms,
+      auth: bot.auth,
+    });
 
-    const chatRuntime = createChatRuntime(botConfig, database, extensions);
+    const chatRuntime = createChatRuntime({ aiTelemetry, bot, logger });
     await chatRuntime.gateway.initialize();
 
     const authOpenApi = authRuntime
@@ -202,78 +131,66 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
 
     const app = new Elysia().use(
       cors({
-        origin: corsOrigin ?? sameOriginCors,
+        origin: bot.corsOrigin ?? sameOriginCors,
         methods: ["GET", "POST", "PATCH", "OPTIONS"],
       })
     );
 
-    if (authOpenApi) {
-      app.use(
-        openapi({
-          documentation: {
-            components: authOpenApi.components,
-            paths: authOpenApi.paths,
-          },
-        })
-      );
-    } else {
-      app.use(openapi());
-    }
+    setupRequestLogging({
+      app,
+      drain: bot.logging?.drain,
+      loggingEnabled,
+    });
+    setupOpenApiDocumentation({ app, authOpenApi });
 
     const publicApi = new Elysia()
       .use(
         webhookChatController({
-          botConfig,
-          chatRuntime,
-          env: webhookEnv,
-          isServerless,
+          botId: bot.id,
+          platforms: bot.platforms,
+          isServerless: bot.isServerless,
+          gateway: chatRuntime.gateway,
         })
       )
       .get("/health", () => "OK");
 
     const protectedApi = new Elysia()
       .onBeforeHandle(requireSessionGuard(authRuntime))
-      .use(botController(botConfig))
-      .use(threadsController(database, botConfig.id));
+      .use(
+        botController({
+          id: bot.id,
+          name: bot.name,
+          prompt: bot.prompt,
+          platforms: bot.platforms,
+          model: bot.model,
+        })
+      )
+      .use(
+        threadsController({
+          database: bot.database,
+          botId: bot.id,
+        })
+      );
 
-    const localApi = new Elysia().use(
+    const localChatApi = new Elysia().use(
       localChatController({
-        botConfig,
+        botId: bot.id,
+        botName: bot.name,
+        platforms: bot.platforms,
         responseHandler: chatRuntime.responseHandler,
       })
     );
 
-    const authApi = new Elysia();
+    const authApi = createAuthApi(authRuntime);
 
-    if (authRuntime) {
-      // Work around Elysia mount regression with Better Auth under prefixed apps.
-      // Problem: `mount(auth.handler)` can return 404 for `/api/auth/*` routes.
-      // Solution: register explicit auth methods under the `/api` group so GET
-      // auth endpoints are not shadowed by the dashboard `GET /*` fallback.
-      // Issue reference: https://github.com/elysiajs/elysia/issues/1806#issuecomment-4128414602
-      const forwardAuth = ({ request }: { request: Request }) => {
-        return authRuntime.auth.handler(request);
-      };
-
-      authApi
-        .get("/auth/*", forwardAuth)
-        .post("/auth/*", forwardAuth)
-        .put("/auth/*", forwardAuth)
-        .patch("/auth/*", forwardAuth)
-        .delete("/auth/*", forwardAuth)
-        .options("/auth/*", forwardAuth)
-        .head("/auth/*", forwardAuth);
-    }
-
-    const localApiPlugin = shouldProtectLocalChat
-      ? new Elysia()
-          .onBeforeHandle(requireSessionGuard(authRuntime))
-          .use(localApi)
-      : localApi;
-
-    const maybeLocalApi = botConfig.platforms.includes("local")
-      ? localApiPlugin
-      : new Elysia();
+    const maybeLocalApi =
+      localChatAccess === "disabled"
+        ? new Elysia()
+        : createLocalChatApi({
+            localApi: localChatApi,
+            authRuntime,
+            access: localChatAccess,
+          });
 
     const api = new Elysia({ prefix: "/api" })
       .use(authApi)
@@ -283,28 +200,12 @@ export const createGoodchat = (options: GoodchatOptionsInput) => {
 
     app.use(api);
 
-    if (withDashboard && !isServerless) {
-      try {
-        const webIndexHtml = await readFile(join(webBuildPath, "index.html"));
-        app.use(
-          staticPlugin({
-            assets: webBuildPath,
-            prefix: "/",
-            alwaysStatic: true,
-            indexHTML: false,
-          })
-        );
-
-        app.get("/*", ({ set }) => {
-          set.headers["content-type"] = "text/html; charset=utf-8";
-          return webIndexHtml;
-        });
-      } catch (error) {
-        throw new Error("Dashboard build not found.", {
-          cause: error,
-        });
-      }
-    }
+    await setupDashboard({
+      app,
+      webBuildPath,
+      withDashboard: bot.withDashboard,
+      isServerless: bot.isServerless,
+    });
 
     return { app, api, chatRuntime };
   };

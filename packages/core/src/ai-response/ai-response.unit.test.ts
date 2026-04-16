@@ -5,6 +5,7 @@ import {
   type streamText,
 } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { EvlogAiTelemetryService } from "../ai-telemetry/service";
 import { DefaultAiResponseService } from "./index";
 
 const mockGenerateText = vi.fn();
@@ -97,5 +98,36 @@ describe("DefaultAiResponseService", () => {
     }
 
     expect(result.error.message).toContain("No model is configured");
+  });
+
+  it("enables telemetry when logger is provided", async () => {
+    mockGenerateText.mockResolvedValue({ text: "AI: Hello" });
+    const service = new DefaultAiResponseService(
+      {
+        generateText: mockGenerateText as unknown as typeof generateText,
+        streamText: mockStreamText as unknown as typeof streamText,
+      },
+      new EvlogAiTelemetryService()
+    );
+
+    const result = await service.generate({
+      logger: {
+        emit: vi.fn(),
+        error: vi.fn(),
+        getContext: vi.fn(() => ({})),
+        info: vi.fn(),
+        set: vi.fn(),
+        warn: vi.fn(),
+      },
+      model: { provider: "openai", modelId: "gpt-4.1-mini" },
+      systemPrompt: "Be friendly\n\nBot name: Echo",
+      userMessage: "Hello",
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(mockGenerateText).toHaveBeenCalledTimes(1);
+    expect(
+      mockGenerateText.mock.calls[0]?.[0]?.experimental_telemetry?.isEnabled
+    ).toBe(true);
   });
 });

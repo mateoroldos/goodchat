@@ -1,15 +1,16 @@
-import type { BotConfig } from "@goodchat/contracts/config/types";
+import type { Bot } from "@goodchat/contracts/config/types";
 import type { Database } from "@goodchat/contracts/database/interface";
 import type { MessageCreate } from "@goodchat/contracts/database/message";
 import type {
   ThreadCreate,
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
+import type { HookContext } from "@goodchat/contracts/hooks/types";
 import type { UIMessageChunk } from "ai";
 import { readUIMessageStream } from "ai";
 import { Result } from "better-result";
 import type { AiResponseService } from "../ai-response/interface";
-import type { GoodchatExtensions } from "../extensions/models";
+import type { LoggerService } from "../logger/interface";
 import type { MessageContext } from "../types";
 import {
   ChatResponseGenerationError,
@@ -19,27 +20,19 @@ import type { ChatResponseService } from "./interface";
 
 interface ChatResponseDependencies {
   aiResponse: AiResponseService;
-  botConfig: BotConfig;
-  database: Database;
-  extensions: GoodchatExtensions;
+  bot: Bot;
+  logger: LoggerService;
 }
 
 export class DefaultChatResponseService implements ChatResponseService {
   readonly #aiResponse: AiResponseService;
-  readonly #botConfig: BotConfig;
-  readonly #database: Database;
-  readonly #extensions: GoodchatExtensions;
+  readonly #bot: Bot;
+  readonly #logger: LoggerService;
 
-  constructor({
-    aiResponse,
-    botConfig,
-    database,
-    extensions,
-  }: ChatResponseDependencies) {
+  constructor({ aiResponse, bot, logger }: ChatResponseDependencies) {
     this.#aiResponse = aiResponse;
-    this.#botConfig = botConfig;
-    this.#database = database;
-    this.#extensions = extensions;
+    this.#bot = bot;
+    this.#logger = logger;
   }
 
   async handleMessage(context: MessageContext) {
@@ -49,12 +42,15 @@ export class DefaultChatResponseService implements ChatResponseService {
       );
     }
 
-    for (const hook of this.#extensions.beforeMessageHooks) {
-      await hook(context);
+    const logger = this.#logger.get();
+    const hookContext = this.#buildHookContext(context, logger);
+
+    for (const hook of this.#bot.hooks.beforeMessage) {
+      await hook(hookContext);
     }
 
     const botResponse = await this.#aiResponse.generate(
-      this.#buildAiParams(context)
+      this.#buildAiParams(context, logger)
     );
 
     if (botResponse.isErr()) {
@@ -67,8 +63,8 @@ export class DefaultChatResponseService implements ChatResponseService {
       );
     }
 
-    for (const hook of this.#extensions.afterMessageHooks) {
-      await hook(context, botResponse.value);
+    for (const hook of this.#bot.hooks.afterMessage) {
+      await hook(hookContext, botResponse.value);
     }
 
     this.#persistResponse(context, botResponse.value.text).catch((error) => {
@@ -88,12 +84,15 @@ export class DefaultChatResponseService implements ChatResponseService {
       );
     }
 
-    for (const hook of this.#extensions.beforeMessageHooks) {
-      await hook(context);
+    const logger = this.#logger.get();
+    const hookContext = this.#buildHookContext(context, logger);
+
+    for (const hook of this.#bot.hooks.beforeMessage) {
+      await hook(hookContext);
     }
 
     const botResponse = await this.#aiResponse.stream(
-      this.#buildAiParams(context)
+      this.#buildAiParams(context, logger)
     );
 
     if (botResponse.isErr()) {
@@ -107,28 +106,42 @@ export class DefaultChatResponseService implements ChatResponseService {
     }
 
     const [clientStream, storeStream] = botResponse.value.uiStream.tee();
-    this.#storeStreamResponse(context, storeStream).catch(() => undefined);
+    this.#storeStreamResponse(hookContext, storeStream).catch(() => undefined);
 
     return Result.ok({ uiStream: clientStream });
   }
 
-  #buildAiParams(context: MessageContext) {
-    const { systemPrompt: promptExtension } = this.#extensions;
+  #buildHookContext(
+    context: MessageContext,
+    log: HookContext["log"]
+  ): HookContext {
+    log.set({
+      platform: context.platform,
+      adapter: context.adapterName,
+      thread: { id: context.threadId },
+      user: { id: context.userId },
+    });
+    return { ...context, log };
+  }
+
+  #buildAiParams(context: MessageContext, logger: HookContext["log"]) {
+    const { systemPrompt: promptExtension } = this.#bot;
     const systemPrompt = promptExtension
-      ? `${this.#botConfig.prompt}\n\nBot name: ${this.#botConfig.name}\n\n${promptExtension}`
-      : `${this.#botConfig.prompt}\n\nBot name: ${this.#botConfig.name}`;
+      ? `${this.#bot.prompt}\n\nBot name: ${this.#bot.name}\n\n${promptExtension}`
+      : `${this.#bot.prompt}\n\nBot name: ${this.#bot.name}`;
 
     return {
+      logger,
       systemPrompt,
       userMessage: context.text,
-      tools: this.#extensions.tools,
-      mcp: this.#extensions.mcp,
-      model: this.#botConfig.model,
+      tools: this.#bot.tools,
+      mcp: this.#bot.mcp,
+      model: this.#bot.model,
     };
   }
 
   async #storeStreamResponse(
-    context: MessageContext,
+    hookContext: HookContext,
     stream: ReadableStream<UIMessageChunk>
   ) {
     let responseText = "";
@@ -142,16 +155,16 @@ export class DefaultChatResponseService implements ChatResponseService {
         .join("");
     }
 
-    for (const hook of this.#extensions.afterMessageHooks) {
-      await hook(context, { text: responseText });
+    for (const hook of this.#bot.hooks.afterMessage) {
+      await hook(hookContext, { text: responseText });
     }
 
-    await this.#persistResponse(context, responseText);
+    await this.#persistResponse(hookContext, responseText);
   }
 
   async #persistResponse(context: MessageContext, responseText: string) {
     const timestamp = new Date().toISOString();
-    await this.#database.transaction(async (database: Database) => {
+    await this.#bot.database.transaction(async (database: Database) => {
       const threadId = context.threadId;
       const existingThread = await database.threads.getById(threadId);
       if (existingThread) {

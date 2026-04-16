@@ -4,7 +4,7 @@ export type {
   ToolConfig,
 } from "@goodchat/contracts/capabilities/types";
 export type {
-  BotConfig,
+  Bot,
   BotConfigInput,
   Platform,
 } from "@goodchat/contracts/config/types";
@@ -14,5 +14,6 @@ export type {
   GoodchatPlugin,
   GoodchatPluginDefinition,
   GoodchatPluginFactory,
+  Logger,
   MessageContext,
 } from "@goodchat/contracts/plugins/types";

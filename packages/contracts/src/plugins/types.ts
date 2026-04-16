@@ -12,8 +12,10 @@ import type { GoodchatHooks } from "../hooks/types";
 export type {
   BotResponse,
   GoodchatHooks,
+  HookContext,
   MessageContext,
 } from "../hooks/types";
+export type { Logger } from "../logger/types";
 
 export interface GoodchatPlugin {
   hooks?: GoodchatHooks;

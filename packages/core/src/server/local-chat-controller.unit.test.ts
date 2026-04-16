@@ -1,78 +1,43 @@
-import type { BotConfig } from "@goodchat/contracts/config/types";
+import type { Bot } from "@goodchat/contracts/config/types";
 import { createUIMessageStream } from "ai";
 import { Result } from "better-result";
 import { Elysia } from "elysia";
 import { describe, expect, it } from "vitest";
-import type { AiResponseService } from "../ai-response/interface";
-import type { AiCallParams } from "../ai-response/models";
-import { DefaultChatResponseService } from "../chat-response";
-import type { GoodchatExtensions } from "../extensions/models";
-import { createDatabaseStub } from "../test-utils/database-stub";
+import type { ChatResponseService } from "../chat-response/interface";
 import { localChatController } from "./local-chat-controller";
 
-const emptyExtensions: GoodchatExtensions = {
-  afterMessageHooks: [],
-  beforeMessageHooks: [],
-  mcp: [],
-  systemPrompt: "",
-  tools: {},
+const bot: Pick<Bot, "id" | "name" | "platforms"> = {
+  id: "local-bot",
+  name: "Local Bot",
+  platforms: ["local"],
 };
 
-const createResponseHandler = (chunks: string[]) => {
-  const aiResponse: AiResponseService = {
-    generate: (_params: AiCallParams) =>
-      Promise.resolve(Result.ok({ text: chunks.join("") })),
-    stream: (_params: AiCallParams) =>
-      Promise.resolve(
-        Result.ok({
-          uiStream: createUIMessageStream({
-            execute({ writer }) {
-              writer.write({ type: "text-start", id: "greeting" });
-              for (const chunk of chunks) {
-                writer.write({
-                  type: "text-delta",
-                  id: "greeting",
-                  delta: chunk,
-                });
-              }
-              writer.write({ type: "text-end", id: "greeting" });
-            },
-          }),
-        })
-      ),
-  };
+const createResponseHandler = (chunks: string[]): ChatResponseService => ({
+  handleMessage: async () =>
+    Result.ok({ text: chunks.join(""), threadEntryId: "thread-1" }),
+  handleMessageStream: async () =>
+    Result.ok({
+      uiStream: createUIMessageStream({
+        execute({ writer }) {
+          writer.write({ type: "text-start", id: "greeting" });
+          for (const chunk of chunks) {
+            writer.write({ type: "text-delta", id: "greeting", delta: chunk });
+          }
+          writer.write({ type: "text-end", id: "greeting" });
+        },
+      }),
+    }),
+});
 
-  const botConfig: BotConfig = {
-    id: "local-bot",
-    name: "Local Bot",
-    prompt: "Be helpful",
-    platforms: ["local"],
-  };
-
-  return new DefaultChatResponseService({
-    aiResponse,
-    extensions: emptyExtensions,
-    database: createDatabaseStub(),
-    botConfig,
-  });
-};
-
-const createApp = (chunks: string[]) => {
-  const botConfig: BotConfig = {
-    id: "local-bot",
-    name: "Local Bot",
-    prompt: "Be helpful",
-    platforms: ["local"],
-  };
-  const responseHandler = createResponseHandler(chunks);
-
-  return new Elysia().use(
+const createApp = (chunks: string[]) =>
+  new Elysia().use(
     localChatController({
-      botConfig,
-      responseHandler,
+      botId: bot.id,
+      botName: bot.name,
+      platforms: bot.platforms,
+      responseHandler: createResponseHandler(chunks),
     })
   );
-};
 
 describe("localChatController", () => {
   it("streams responses and sets the thread id header", async () => {

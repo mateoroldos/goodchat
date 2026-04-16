@@ -1,9 +1,12 @@
 import { createMCPClient } from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
+import type { LanguageModelV3 } from "@ai-sdk/provider";
 import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type { Tool } from "ai";
 import { generateText, stepCountIs, streamText } from "ai";
 import { Result } from "better-result";
+import type { AiTelemetryService } from "../ai-telemetry/interface";
+import { NoopAiTelemetryService } from "../ai-telemetry/service";
 import { AiResponseGenerationError } from "./errors";
 import type { AiResponseService } from "./interface";
 import type { AiCallParams } from "./models";
@@ -19,23 +22,30 @@ interface AiProviderFunctions {
 export class DefaultAiResponseService implements AiResponseService {
   readonly #generateText: typeof generateText;
   readonly #streamText: typeof streamText;
+  readonly #telemetry: AiTelemetryService;
 
-  constructor(provider: AiProviderFunctions = { generateText, streamText }) {
+  constructor(
+    provider: AiProviderFunctions = { generateText, streamText },
+    telemetry: AiTelemetryService = new NoopAiTelemetryService()
+  ) {
     this.#generateText = provider.generateText;
     this.#streamText = provider.streamText;
+    this.#telemetry = telemetry;
   }
 
   generate(params: AiCallParams) {
     return Result.tryPromise({
       try: async () => {
-        const { model, system, prompt, tools, closeMcpClients } =
+        const { model, system, prompt, tools, closeMcpClients, telemetry } =
           await this.#prepareCall(params);
+
         try {
           const result = await this.#generateText({
             model,
             system,
             prompt,
             ...(tools && { tools, stopWhen: stepCountIs(TOOL_USE_MAX_STEPS) }),
+            ...telemetry,
           });
           return { text: result.text };
         } finally {
@@ -56,13 +66,15 @@ export class DefaultAiResponseService implements AiResponseService {
   stream(params: AiCallParams) {
     return Result.tryPromise({
       try: async () => {
-        const { model, system, prompt, tools, closeMcpClients } =
+        const { model, system, prompt, tools, closeMcpClients, telemetry } =
           await this.#prepareCall(params);
+
         const result = this.#streamText({
           model,
           system,
           prompt,
           ...(tools && { tools, stopWhen: stepCountIs(TOOL_USE_MAX_STEPS) }),
+          ...telemetry,
           onFinish: async () => {
             await closeMcpClients();
           },
@@ -85,19 +97,25 @@ export class DefaultAiResponseService implements AiResponseService {
 
   async #prepareCall(params: AiCallParams) {
     const { tools, closeMcpClients } = await buildTools(params);
-    const model = params.model;
-    if (!model) {
+    if (!params.model) {
       throw new Error(
         "No model is configured. Set model in createGoodchat({ model: ... })."
       );
     }
 
+    const model = resolveModelFromRegistry(params.model);
+    const instrumented = this.#telemetry.apply({
+      logger: params.logger,
+      model: model as LanguageModelV3,
+    });
+
     return {
-      model: resolveModelFromRegistry(model),
+      model: instrumented.model,
       system: params.systemPrompt,
       prompt: params.userMessage,
       tools: Object.keys(tools).length > 0 ? tools : undefined,
       closeMcpClients,
+      telemetry: instrumented.telemetry,
     };
   }
 }

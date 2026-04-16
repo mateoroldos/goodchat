@@ -1,7 +1,12 @@
-import type { BotConfig } from "@goodchat/contracts/config/types";
+import type { Bot } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
 
-export const botController = (botConfig: BotConfig) =>
+type BotControllerConfig = Pick<
+  Bot,
+  "id" | "name" | "prompt" | "platforms" | "model"
+>;
+
+export const botController = (botConfig: BotControllerConfig) =>
   new Elysia({ prefix: "/bot" }).get("/", () => ({
     id: botConfig.id,
     name: botConfig.name,

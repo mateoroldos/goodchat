@@ -1,8 +1,8 @@
 import type { DiscordAdapter } from "@chat-adapter/discord";
 import { cron, Patterns } from "@elysiajs/cron";
-import type { BotConfig, Platform } from "@goodchat/contracts/config/types";
+import type { Bot, Platform } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
-import type { ChatRuntime } from "../runtime/create-chat-runtime";
+import type { ChatGatewayService } from "../gateway/interface";
 
 export interface WebhookEnv {
   CRON_SECRET?: string;
@@ -45,26 +45,31 @@ const getDefaultBaseUrl = (env: WebhookEnv) =>
   env.WEBHOOK_FORWARD_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
 
 interface WebhookChatControllerOptions {
-  botConfig: BotConfig;
-  chatRuntime: ChatRuntime;
-  env: WebhookEnv;
-  isServerless: boolean;
+  botId: Bot["id"];
+  gateway: ChatGatewayService;
+  isServerless: Bot["isServerless"];
+  platforms: Bot["platforms"];
 }
 
 export const webhookChatController = ({
-  botConfig,
-  chatRuntime,
-  env,
+  botId,
+  platforms,
   isServerless,
+  gateway,
 }: WebhookChatControllerOptions) => {
   const app = new Elysia({ prefix: "/webhook" });
-  const hasDiscordBots = botConfig.platforms.includes("discord");
+  const hasDiscordBots = platforms.includes("discord");
+
+  const env = {
+    CRON_SECRET: process.env.CRON_SECRET,
+    WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
+  };
 
   const startDiscordGatewayListener = async (
     webhookUrl: string,
     abortSignal?: AbortSignal
   ) => {
-    const discordAdapter = chatRuntime.gateway.getAdapter(
+    const discordAdapter = gateway.getAdapter(
       "discord"
     ) as DiscordAdapter | null;
 
@@ -95,12 +100,12 @@ export const webhookChatController = ({
     request: Request,
     set: { status?: number | string }
   ) => {
-    if (!botConfig.platforms.includes(platform)) {
+    if (!platforms.includes(platform)) {
       set.status = 404;
       return { message: "Platform not configured" };
     }
 
-    const webhooks = chatRuntime.gateway.getWebhooks();
+    const webhooks = gateway.getWebhooks();
     const handler = webhooks[platform as keyof typeof webhooks];
     if (!handler) {
       set.status = 404;
@@ -121,29 +126,29 @@ export const webhookChatController = ({
     }) =>
       handlePlatformWebhook(platform, request, set);
 
-  if (botConfig.platforms.includes("discord")) {
+  if (platforms.includes("discord")) {
     app.post("/discord", createPlatformHandler("discord"));
   }
 
-  if (botConfig.platforms.includes("slack")) {
+  if (platforms.includes("slack")) {
     app.post("/slack", createPlatformHandler("slack"));
   }
 
-  if (botConfig.platforms.includes("teams")) {
+  if (platforms.includes("teams")) {
     app.post("/teams", createPlatformHandler("teams"));
   }
 
-  if (botConfig.platforms.includes("gchat")) {
+  if (platforms.includes("gchat")) {
     app.post("/gchat", createPlatformHandler("gchat"));
   }
 
-  if (botConfig.platforms.includes("local")) {
+  if (platforms.includes("local")) {
     app.post("/local", createPlatformHandler("local"));
   }
 
   if (hasDiscordBots) {
     app.get("/discord/gateway", async ({ request, set }) => {
-      if (!botConfig.platforms.includes("discord")) {
+      if (!platforms.includes("discord")) {
         set.status = 404;
         return { message: "Discord adapter not configured" };
       }
@@ -161,18 +166,18 @@ export const webhookChatController = ({
         url.searchParams.get("webhookUrl")
       );
 
-      const existingController = gatewayAbortControllers.get(botConfig.id);
+      const existingController = gatewayAbortControllers.get(botId);
       if (existingController) {
         existingController.abort();
       }
 
       const controller = new AbortController();
-      gatewayAbortControllers.set(botConfig.id, controller);
+      gatewayAbortControllers.set(botId, controller);
 
       setTimeout(() => {
-        const currentController = gatewayAbortControllers.get(botConfig.id);
+        const currentController = gatewayAbortControllers.get(botId);
         if (currentController === controller) {
-          gatewayAbortControllers.delete(botConfig.id);
+          gatewayAbortControllers.delete(botId);
         }
       }, gatewayListenerDurationMs + 1000);
 
@@ -191,7 +196,7 @@ export const webhookChatController = ({
   }
 
   const runDiscordGatewayKeepalive = async () => {
-    if (!botConfig.platforms.includes("discord")) {
+    if (!platforms.includes("discord")) {
       return;
     }
 
@@ -209,7 +214,7 @@ export const webhookChatController = ({
 
     if (!response.ok) {
       console.warn(
-        `Discord gateway cron failed for ${botConfig.id}: ${response.status}`
+        `Discord gateway cron failed for ${botId}: ${response.status}`
       );
     }
   };

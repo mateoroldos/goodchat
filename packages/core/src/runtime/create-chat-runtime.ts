@@ -1,37 +1,44 @@
-import type { BotConfig, Platform } from "@goodchat/contracts/config/types";
-import type { Database } from "@goodchat/contracts/database/interface";
+import type { Bot, Platform } from "@goodchat/contracts/config/types";
 import type { MessageContext } from "@goodchat/contracts/plugins/types";
+import { generateText, streamText } from "ai";
 import { DefaultAiResponseService } from "../ai-response";
+import type { AiTelemetryService } from "../ai-telemetry/interface";
 import { DefaultChatResponseService } from "../chat-response";
 import type { ChatResponseService } from "../chat-response/interface";
-import type { GoodchatExtensions } from "../extensions/models";
 import { DefaultChatGatewayService } from "../gateway/index";
 import type {
   ChatGatewayHandlers,
   ChatGatewayService,
 } from "../gateway/interface";
+import type { LoggerService } from "../logger/interface";
 
 export interface ChatRuntime {
   gateway: ChatGatewayService;
   responseHandler: ChatResponseService;
 }
 
-export const createChatRuntime = (
-  botConfig: BotConfig,
-  database: Database,
-  extensions: GoodchatExtensions
-): ChatRuntime => {
-  const aiResponse = new DefaultAiResponseService();
+export const createChatRuntime = ({
+  aiTelemetry,
+  bot,
+  logger,
+}: {
+  aiTelemetry: AiTelemetryService;
+  bot: Bot;
+  logger: LoggerService;
+}): ChatRuntime => {
+  const aiResponse = new DefaultAiResponseService(
+    { generateText, streamText },
+    aiTelemetry
+  );
   const responseHandler = new DefaultChatResponseService({
     aiResponse,
-    botConfig,
-    database,
-    extensions,
+    bot,
+    logger,
   });
 
   const gateway = new DefaultChatGatewayService({
-    userName: botConfig.name,
-    platforms: botConfig.platforms,
+    userName: bot.name,
+    platforms: bot.platforms,
   });
 
   const handleMessage = async (
@@ -51,8 +58,8 @@ export const createChatRuntime = (
 
     const context: MessageContext = {
       adapterName: platform,
-      botId: botConfig.id,
-      botName: botConfig.name,
+      botId: bot.id,
+      botName: bot.name,
       platform,
       text: message.text,
       threadId: thread.id,

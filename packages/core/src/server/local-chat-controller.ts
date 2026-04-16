@@ -1,16 +1,20 @@
-import type { BotConfig } from "@goodchat/contracts/config/types";
+import type { Bot } from "@goodchat/contracts/config/types";
 import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import { createUIMessageStreamResponse } from "ai";
 import { Elysia, t } from "elysia";
 import type { ChatResponseService } from "../chat-response/interface";
 
 interface LocalChatControllerOptions {
-  botConfig: BotConfig;
+  botId: Bot["id"];
+  botName: Bot["name"];
+  platforms: Bot["platforms"];
   responseHandler: ChatResponseService;
 }
 
 export const localChatController = ({
-  botConfig,
+  botId,
+  botName,
+  platforms,
   responseHandler,
 }: LocalChatControllerOptions) => {
   const controller = new Elysia({ prefix: "/local" });
@@ -69,7 +73,7 @@ export const localChatController = ({
   controller.post(
     "/chat",
     async ({ body, status }) => {
-      if (!botConfig.platforms.includes("local")) {
+      if (!platforms.includes("local")) {
         return status(404, { message: "Local platform not configured" });
       }
 
@@ -84,8 +88,8 @@ export const localChatController = ({
 
       const context: MessageContext = {
         adapterName: "local",
-        botId: botConfig.id,
-        botName: botConfig.name,
+        botId,
+        botName,
         platform: "local",
         text: messageText,
         threadId,
@@ -119,7 +123,7 @@ export const localChatController = ({
   controller.post(
     "/chat/stream",
     async ({ body, status }) => {
-      if (!botConfig.platforms.includes("local")) {
+      if (!platforms.includes("local")) {
         return status(404, { message: "Local platform not configured" });
       }
 
@@ -134,8 +138,8 @@ export const localChatController = ({
 
       const context: MessageContext = {
         adapterName: "local",
-        botId: botConfig.id,
-        botName: botConfig.name,
+        botId,
+        botName,
         platform: "local",
         text: messageText,
         threadId,

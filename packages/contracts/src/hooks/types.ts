@@ -1,4 +1,5 @@
 import type { Platform } from "../config/types";
+import type { Logger } from "../logger/types";
 
 export interface MessageContext {
   adapterName: string;
@@ -14,10 +15,18 @@ export interface BotResponse {
   text: string;
 }
 
+export interface HookContext extends MessageContext {
+  log: Logger;
+}
+
+export type AfterMessageHook = (
+  context: HookContext,
+  response: BotResponse
+) => Promise<void>;
+
+export type BeforeMessageHook = (context: HookContext) => Promise<void>;
+
 export interface GoodchatHooks {
-  afterMessage?: (
-    message: MessageContext,
-    response: BotResponse
-  ) => Promise<void>;
-  beforeMessage?: (message: MessageContext) => Promise<void>;
+  afterMessage?: AfterMessageHook;
+  beforeMessage?: BeforeMessageHook;
 }
