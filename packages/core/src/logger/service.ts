@@ -17,7 +17,18 @@ export class ElysiaLoggerService implements LoggerService {
     service: string,
     loggerFactory: () => Logger = () => useLogger()
   ) {
-    initLogger({ env: { service } });
+    initLogger({
+      env: { service },
+      redact: true,
+      sampling: {
+        rates: {
+          debug: 0,
+          error: 100,
+          info: 20,
+          warn: 50,
+        },
+      },
+    });
     this.#loggerFactory = loggerFactory;
   }
 

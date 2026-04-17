@@ -26,7 +26,29 @@ export const setupRequestLogging = ({
     return;
   }
 
-  app.use(evlog({ drain }));
+  app.use(
+    evlog({
+      drain,
+      keep: (context) => {
+        const path = context.path ?? "";
+        const status = context.status ?? 200;
+        const duration = context.duration ?? 0;
+
+        if (status >= 400 || duration >= 1500) {
+          context.shouldKeep = true;
+          return;
+        }
+
+        if (
+          path.startsWith("/api/webhook") ||
+          path.startsWith("/api/local") ||
+          path.startsWith("/api/auth")
+        ) {
+          context.shouldKeep = true;
+        }
+      },
+    })
+  );
 };
 
 export const setupOpenApiDocumentation = ({

@@ -44,16 +44,39 @@ export class DefaultChatResponseService implements ChatResponseService {
 
     const logger = this.#logger.get();
     const hookContext = this.#buildHookContext(context, logger);
+    logger.set({
+      message: {
+        length: context.text.length,
+      },
+      request: {
+        mode: "sync",
+      },
+    });
 
     for (const hook of this.#bot.hooks.beforeMessage) {
       await hook(hookContext);
     }
+
+    logger.set({
+      hooks: {
+        beforeCount: this.#bot.hooks.beforeMessage.length,
+      },
+    });
 
     const botResponse = await this.#aiResponse.generate(
       this.#buildAiParams(context, logger)
     );
 
     if (botResponse.isErr()) {
+      logger.error("Failed to generate chat response", {
+        error: {
+          code: botResponse.error.code,
+          message: botResponse.error.message,
+          type: botResponse.error.name,
+          why: "The AI provider failed while generating the response.",
+          fix: "Check model credentials, model availability, and tool/MCP connectivity.",
+        },
+      });
       return Result.err(
         new ChatResponseGenerationError(
           botResponse.error.message,
@@ -67,8 +90,28 @@ export class DefaultChatResponseService implements ChatResponseService {
       await hook(hookContext, botResponse.value);
     }
 
+    logger.set({
+      hooks: {
+        afterCount: this.#bot.hooks.afterMessage.length,
+      },
+      outcome: {
+        status: "success",
+      },
+      response: {
+        length: botResponse.value.text.length,
+      },
+    });
+
     this.#persistResponse(context, botResponse.value.text).catch((error) => {
-      console.error("Failed to persist chat response", error);
+      logger.error("Failed to persist chat response", {
+        error: {
+          code: "CHAT_RESPONSE_PERSISTENCE_FAILED",
+          message: error instanceof Error ? error.message : "Unknown error",
+          type: error instanceof Error ? error.name : "UnknownError",
+          why: "Chat response was generated but database writes failed.",
+          fix: "Check database connectivity and migrations.",
+        },
+      });
     });
 
     return Result.ok({
@@ -86,16 +129,39 @@ export class DefaultChatResponseService implements ChatResponseService {
 
     const logger = this.#logger.get();
     const hookContext = this.#buildHookContext(context, logger);
+    logger.set({
+      message: {
+        length: context.text.length,
+      },
+      request: {
+        mode: "stream",
+      },
+    });
 
     for (const hook of this.#bot.hooks.beforeMessage) {
       await hook(hookContext);
     }
+
+    logger.set({
+      hooks: {
+        beforeCount: this.#bot.hooks.beforeMessage.length,
+      },
+    });
 
     const botResponse = await this.#aiResponse.stream(
       this.#buildAiParams(context, logger)
     );
 
     if (botResponse.isErr()) {
+      logger.error("Failed to generate streamed chat response", {
+        error: {
+          code: botResponse.error.code,
+          message: botResponse.error.message,
+          type: botResponse.error.name,
+          why: "The AI provider failed while opening the stream.",
+          fix: "Check model credentials, model availability, and tool/MCP connectivity.",
+        },
+      });
       return Result.err(
         new ChatResponseGenerationError(
           botResponse.error.message,
@@ -106,7 +172,26 @@ export class DefaultChatResponseService implements ChatResponseService {
     }
 
     const [clientStream, storeStream] = botResponse.value.uiStream.tee();
-    this.#storeStreamResponse(hookContext, storeStream).catch(() => undefined);
+    this.#storeStreamResponse(hookContext, storeStream).catch((error) => {
+      logger.error("Failed to persist streamed chat response", {
+        error: {
+          code: "CHAT_RESPONSE_STREAM_PERSISTENCE_FAILED",
+          message: error instanceof Error ? error.message : "Unknown error",
+          type: error instanceof Error ? error.name : "UnknownError",
+          why: "Streaming response finished but post-processing failed.",
+          fix: "Check database connectivity and afterMessage hook behavior.",
+        },
+      });
+    });
+
+    logger.set({
+      hooks: {
+        afterCount: this.#bot.hooks.afterMessage.length,
+      },
+      outcome: {
+        status: "streaming",
+      },
+    });
 
     return Result.ok({ uiStream: clientStream });
   }
@@ -129,6 +214,14 @@ export class DefaultChatResponseService implements ChatResponseService {
     const systemPrompt = promptExtension
       ? `${this.#bot.prompt}\n\nBot name: ${this.#bot.name}\n\n${promptExtension}`
       : `${this.#bot.prompt}\n\nBot name: ${this.#bot.name}`;
+
+    logger.set({
+      ai: {
+        mcpServerCount: this.#bot.mcp?.length ?? 0,
+        model: this.#bot.model,
+        toolCount: Object.keys(this.#bot.tools ?? {}).length,
+      },
+    });
 
     return {
       logger,

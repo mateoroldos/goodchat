@@ -39,6 +39,8 @@ export class DefaultAiResponseService implements AiResponseService {
         const { model, system, prompt, tools, closeMcpClients, telemetry } =
           await this.#prepareCall(params);
 
+        const { logger } = params;
+
         try {
           const result = await this.#generateText({
             model,
@@ -47,7 +49,24 @@ export class DefaultAiResponseService implements AiResponseService {
             ...(tools && { tools, stopWhen: stepCountIs(TOOL_USE_MAX_STEPS) }),
             ...telemetry,
           });
+          logger.set({
+            ai: {
+              outcome: "success",
+              responseLength: result.text.length,
+            },
+          });
           return { text: result.text };
+        } catch (error) {
+          logger.error("AI text generation failed", {
+            error: {
+              code: "AI_RESPONSE_GENERATION_FAILED",
+              fix: "Validate provider credentials, model availability, tools, and MCP transport.",
+              message: error instanceof Error ? error.message : "Unknown error",
+              type: error instanceof Error ? error.name : "UnknownError",
+              why: "The provider call failed while generating text.",
+            },
+          });
+          throw error;
         } finally {
           await closeMcpClients();
         }
@@ -69,6 +88,8 @@ export class DefaultAiResponseService implements AiResponseService {
         const { model, system, prompt, tools, closeMcpClients, telemetry } =
           await this.#prepareCall(params);
 
+        const { logger } = params;
+
         const result = this.#streamText({
           model,
           system,
@@ -76,9 +97,21 @@ export class DefaultAiResponseService implements AiResponseService {
           ...(tools && { tools, stopWhen: stepCountIs(TOOL_USE_MAX_STEPS) }),
           ...telemetry,
           onFinish: async () => {
+            logger.set({
+              ai: {
+                outcome: "stream-finished",
+              },
+            });
             await closeMcpClients();
           },
           onError: async () => {
+            logger.error("AI stream ended with provider error", {
+              error: {
+                code: "AI_RESPONSE_STREAM_FAILED",
+                fix: "Check model availability and provider/API credentials.",
+                why: "The provider stream emitted an error before completion.",
+              },
+            });
             await closeMcpClients();
           },
         });
@@ -103,9 +136,19 @@ export class DefaultAiResponseService implements AiResponseService {
       );
     }
 
+    const { logger } = params;
+
     const model = resolveModelFromRegistry(params.model);
+    logger.set({
+      ai: {
+        mcpServerCount: params.mcp?.length ?? 0,
+        model: params.model,
+        toolCount: Object.keys(tools).length,
+      },
+    });
+
     const instrumented = this.#telemetry.apply({
-      logger: params.logger,
+      logger,
       model: model as LanguageModelV3,
     });
 
@@ -129,7 +172,14 @@ const buildTools = async (
   const staticTools = params.tools ?? {};
   const mcpServers = params.mcp ?? [];
 
+  const { logger } = params;
+
   if (mcpServers.length === 0) {
+    logger.set({
+      ai: {
+        mcpClientCount: 0,
+      },
+    });
     return { tools: staticTools, closeMcpClients: async () => undefined };
   }
 
@@ -149,6 +199,13 @@ const buildTools = async (
       }
     }
   }
+
+  logger.set({
+    ai: {
+      mcpClientCount: mcpClients.length,
+      mcpToolCount: Object.keys(mcpTools).length,
+    },
+  });
 
   return {
     tools: { ...mcpTools, ...staticTools },

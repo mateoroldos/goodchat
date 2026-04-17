@@ -41,6 +41,15 @@ describe("ElysiaLoggerService", () => {
     expect(initLoggerMock).toHaveBeenCalledTimes(1);
     expect(initLoggerMock).toHaveBeenCalledWith({
       env: { service: "bot-service" },
+      redact: true,
+      sampling: {
+        rates: {
+          debug: 0,
+          error: 100,
+          info: 20,
+          warn: 50,
+        },
+      },
     });
   });
 

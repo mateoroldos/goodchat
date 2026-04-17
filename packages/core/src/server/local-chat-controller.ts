@@ -2,7 +2,17 @@ import type { Bot } from "@goodchat/contracts/config/types";
 import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import { createUIMessageStreamResponse } from "ai";
 import { Elysia, t } from "elysia";
+import { useLogger } from "evlog/elysia";
 import type { ChatResponseService } from "../chat-response/interface";
+import { NOOP_LOGGER } from "../logger/noop";
+
+const getRequestLogger = () => {
+  try {
+    return useLogger();
+  } catch {
+    return NOOP_LOGGER;
+  }
+};
 
 interface LocalChatControllerOptions {
   botId: Bot["id"];
@@ -73,7 +83,24 @@ export const localChatController = ({
   controller.post(
     "/chat",
     async ({ body, status }) => {
+      const log = getRequestLogger();
+      log.set({
+        request: {
+          mode: "sync",
+        },
+      });
+
       if (!platforms.includes("local")) {
+        log.warn(
+          "Local chat endpoint requested while local platform is disabled",
+          {
+            error: {
+              code: "LOCAL_PLATFORM_NOT_CONFIGURED",
+              fix: "Enable the 'local' platform in createGoodchat().",
+              why: "The request targeted local chat but local is not configured.",
+            },
+          }
+        );
         return status(404, { message: "Local platform not configured" });
       }
 
@@ -82,7 +109,20 @@ export const localChatController = ({
       const userId = body.userId ?? "dashboard-user";
       const messageText = resolveMessageText(body);
 
+      log.set({
+        message: { length: messageText?.length ?? 0 },
+        thread: { id: threadId },
+        user: { id: userId },
+      });
+
       if (!messageText) {
+        log.warn("Local chat request is missing message text", {
+          error: {
+            code: "LOCAL_CHAT_INPUT_INVALID",
+            fix: "Provide 'message' or a user text part in 'messages'.",
+            why: "Neither body.message nor messages[] contains user text.",
+          },
+        });
         return status(400, { message: "Message is required" });
       }
 
@@ -99,8 +139,23 @@ export const localChatController = ({
       const result = await responseHandler.handleMessage(context);
 
       if (result.isErr()) {
+        log.error("Local chat generation failed", {
+          error: {
+            code: result.error.code,
+            message: result.error.message,
+            type: result.error.name,
+            why: "Chat response service failed to generate a sync response.",
+            fix: "Check model configuration, provider credentials, tools, and MCP servers.",
+          },
+        });
+
         return status(500, { message: "Failed to generate response" });
       }
+
+      log.set({
+        outcome: { status: "success" },
+        response: { length: result.value.text.length },
+      });
 
       return {
         text: result.value.text,
@@ -123,7 +178,24 @@ export const localChatController = ({
   controller.post(
     "/chat/stream",
     async ({ body, status }) => {
+      const log = getRequestLogger();
+      log.set({
+        request: {
+          mode: "stream",
+        },
+      });
+
       if (!platforms.includes("local")) {
+        log.warn(
+          "Local stream endpoint requested while local platform is disabled",
+          {
+            error: {
+              code: "LOCAL_PLATFORM_NOT_CONFIGURED",
+              fix: "Enable the 'local' platform in createGoodchat().",
+              why: "The request targeted local chat stream but local is not configured.",
+            },
+          }
+        );
         return status(404, { message: "Local platform not configured" });
       }
 
@@ -132,7 +204,20 @@ export const localChatController = ({
       const userId = body.userId ?? "dashboard-user";
       const messageText = resolveMessageText(body);
 
+      log.set({
+        message: { length: messageText?.length ?? 0 },
+        thread: { id: threadId },
+        user: { id: userId },
+      });
+
       if (!messageText) {
+        log.warn("Local stream request is missing message text", {
+          error: {
+            code: "LOCAL_CHAT_INPUT_INVALID",
+            fix: "Provide 'message' or a user text part in 'messages'.",
+            why: "Neither body.message nor messages[] contains user text.",
+          },
+        });
         return status(400, { message: "Message is required" });
       }
 
@@ -149,8 +234,22 @@ export const localChatController = ({
       const result = await responseHandler.handleMessageStream(context);
 
       if (result.isErr()) {
+        log.error("Local stream generation failed", {
+          error: {
+            code: result.error.code,
+            message: result.error.message,
+            type: result.error.name,
+            why: "Chat response service failed to open the response stream.",
+            fix: "Check model configuration, provider credentials, tools, and MCP servers.",
+          },
+        });
+
         return status(500, { message: "Failed to generate response" });
       }
+
+      log.set({
+        outcome: { status: "streaming" },
+      });
 
       return createUIMessageStreamResponse({
         stream: result.value.uiStream,

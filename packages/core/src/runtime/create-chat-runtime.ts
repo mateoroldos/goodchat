@@ -46,15 +46,38 @@ export const createChatRuntime = ({
     message: ThreadMessage,
     shouldSubscribe: boolean
   ) => {
+    const log = logger.get();
+    log.set({
+      adapter: "gateway",
+      message: {
+        length: message.text.length,
+      },
+      thread: { id: thread.id },
+    });
+
     if (shouldSubscribe) {
       await thread.subscribe();
     }
 
     const platform = parsePlatform(thread.id);
     if (!platform) {
+      log.warn("Gateway message ignored because platform is invalid", {
+        error: {
+          code: "CHAT_PLATFORM_INVALID",
+          fix: "Use thread IDs formatted as '<platform>:<id>'.",
+          why: "The incoming thread id does not include a known platform.",
+        },
+      });
       await thread.post(DEFAULT_ERROR_MESSAGE);
       return;
     }
+
+    log.set({
+      platform,
+      request: {
+        kind: shouldSubscribe ? "mention" : "subscribed-message",
+      },
+    });
 
     const context: MessageContext = {
       adapterName: platform,
@@ -68,10 +91,27 @@ export const createChatRuntime = ({
 
     const result = await responseHandler.handleMessage(context);
     if (result.isErr()) {
-      console.error("Error while handling response:", result.error);
+      log.error("Failed to handle gateway message", {
+        error: {
+          code: result.error.code,
+          message: result.error.message,
+          type: result.error.name,
+          why: "Chat response pipeline failed while generating a reply.",
+          fix: "Inspect AI provider, hooks, MCP servers, and database availability.",
+        },
+      });
       await thread.post(DEFAULT_ERROR_MESSAGE);
       return;
     }
+
+    log.set({
+      outcome: {
+        status: "success",
+      },
+      response: {
+        length: result.value.text.length,
+      },
+    });
 
     await thread.post(result.value.text);
   };
