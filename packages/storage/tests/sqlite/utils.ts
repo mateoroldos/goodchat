@@ -4,14 +4,14 @@ import type { Database } from "@goodchat/contracts/database/interface";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { sqliteSchema } from "../../schema/sqlite";
-import { createRepositories } from "../../src/repository";
+import { createSqliteRepositories } from "../../src/repositories-sqlite";
 import type { SqliteDatabase } from "../../src/sqlite";
 
 const createDatabaseInterface = (
   database: SqliteDatabase,
   transactionRunner: Database["transaction"]
 ): Database => ({
-  ...createRepositories(sqliteSchema, database),
+  ...createSqliteRepositories(database),
   dialect: "sqlite",
   transaction: transactionRunner,
 });

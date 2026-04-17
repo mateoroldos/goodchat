@@ -2,8 +2,7 @@ import type { Database } from "@goodchat/contracts/database/interface";
 import type { AnyMySql2Connection } from "drizzle-orm/mysql2";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool } from "mysql2/promise";
-import { mysqlSchema } from "../schema/mysql";
-import { createRepositories } from "./repository";
+import { createMysqlRepositories } from "./repositories-mysql";
 
 export interface MysqlAdapterOptions {
   client?: AnyMySql2Connection;
@@ -13,7 +12,7 @@ export interface MysqlAdapterOptions {
   schema?: Record<string, unknown>;
 }
 
-type MysqlDb = ReturnType<typeof drizzle>;
+export type MysqlDb = ReturnType<typeof drizzle>;
 type MysqlTransaction = Parameters<Parameters<MysqlDb["transaction"]>[0]>[0];
 
 export type MysqlDatabase = MysqlDb | MysqlTransaction;
@@ -31,7 +30,7 @@ const createDatabaseInterface = (
     schema?: Record<string, unknown>;
   }
 ): Database => ({
-  ...createRepositories(mysqlSchema, database),
+  ...createMysqlRepositories(database),
   auth: { getBetterAuthDatabaseConfig: () => authConfig },
   dialect: "mysql",
   transaction: transactionRunner,

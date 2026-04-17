@@ -6,8 +6,7 @@ import { drizzle as drizzlePostgresJs } from "drizzle-orm/postgres-js";
 import { drizzle as drizzleVercel } from "drizzle-orm/vercel-postgres";
 import { Pool } from "pg";
 import postgresJs from "postgres";
-import { postgresSchema } from "../schema/postgres";
-import { createRepositories } from "./repository";
+import { createPostgresRepositories } from "./repositories-postgres";
 
 export type PostgresDriver =
   | "postgres-js"
@@ -73,7 +72,7 @@ const createDatabaseInterface = (
     schema?: Record<string, unknown>;
   }
 ): Database => ({
-  ...createRepositories(postgresSchema, database),
+  ...createPostgresRepositories(database),
   auth: { getBetterAuthDatabaseConfig: () => authConfig },
   dialect: "postgres",
   transaction: transactionRunner,

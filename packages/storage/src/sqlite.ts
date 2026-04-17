@@ -1,8 +1,7 @@
 import { Database as BunSqliteDatabase } from "bun:sqlite";
 import type { Database } from "@goodchat/contracts/database/interface";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import { sqliteSchema } from "../schema/sqlite";
-import { createRepositories } from "./repository";
+import { createSqliteRepositories } from "./repositories-sqlite";
 
 export interface SqliteAdapterOptions {
   client?: BunSqliteDatabase;
@@ -20,7 +19,7 @@ type TransactionRunner = <T>(
   fn: (database: Database) => Promise<T>
 ) => Promise<T>;
 
-const createDatabaseInterface = (
+export const createDatabaseInterface = (
   database: SqliteDatabase,
   transactionRunner: TransactionRunner,
   authConfig: {
@@ -29,7 +28,7 @@ const createDatabaseInterface = (
     schema?: Record<string, unknown>;
   }
 ): Database => ({
-  ...createRepositories(sqliteSchema, database),
+  ...createSqliteRepositories(database),
   auth: { getBetterAuthDatabaseConfig: () => authConfig },
   dialect: "sqlite",
   transaction: transactionRunner,

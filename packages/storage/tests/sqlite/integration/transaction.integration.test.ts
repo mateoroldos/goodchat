@@ -6,7 +6,7 @@ describe("sqlite transactions", () => {
   it("rolls back when the transaction fails", async () => {
     const database = createTestDatabase();
 
-    await expect(
+    expect(
       database.transaction(async (tx: Database) => {
         await tx.threads.create({
           id: "thread-1",
