@@ -59,7 +59,7 @@ export class DefaultAiResponseService implements AiResponseService {
             telemetry: buildAiRunTelemetry({
               finishedAt,
               mode: "sync",
-              result,
+              result: result as unknown as Record<string, unknown>,
               startedAt,
               model: modelRef,
             }),
@@ -359,7 +359,7 @@ const extractToolCalls = (
             : "success",
         ...(toolCallId ? { toolCallId } : {}),
         toolName,
-      } satisfies AiRunToolCallTelemetry;
+      } as AiRunToolCallTelemetry;
     })
     .filter((value): value is AiRunToolCallTelemetry => Boolean(value));
 };
