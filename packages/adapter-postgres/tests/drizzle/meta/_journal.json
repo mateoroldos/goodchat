@@ -8,6 +8,20 @@
       "when": 1775688695654,
       "tag": "0000_ordinary_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776454859896,
+      "tag": "0001_sparkling_dark_phoenix",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776456267826,
+      "tag": "0002_huge_slayback",
+      "breakpoints": true
     }
   ]
 }

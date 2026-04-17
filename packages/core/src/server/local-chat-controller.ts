@@ -2,21 +2,13 @@ import type { Bot } from "@goodchat/contracts/config/types";
 import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import { createUIMessageStreamResponse } from "ai";
 import { Elysia, t } from "elysia";
-import { useLogger } from "evlog/elysia";
 import type { ChatResponseService } from "../chat-response/interface";
-import { NOOP_LOGGER } from "../logger/noop";
-
-const getRequestLogger = () => {
-  try {
-    return useLogger();
-  } catch {
-    return NOOP_LOGGER;
-  }
-};
+import type { LoggerService } from "../logger/interface";
 
 interface LocalChatControllerOptions {
   botId: Bot["id"];
   botName: Bot["name"];
+  logger: LoggerService;
   platforms: Bot["platforms"];
   responseHandler: ChatResponseService;
 }
@@ -24,6 +16,7 @@ interface LocalChatControllerOptions {
 export const localChatController = ({
   botId,
   botName,
+  logger,
   platforms,
   responseHandler,
 }: LocalChatControllerOptions) => {
@@ -83,7 +76,7 @@ export const localChatController = ({
   controller.post(
     "/chat",
     async ({ body, status }) => {
-      const log = getRequestLogger();
+      const log = logger.request();
       log.set({
         request: {
           mode: "sync",
@@ -178,7 +171,7 @@ export const localChatController = ({
   controller.post(
     "/chat/stream",
     async ({ body, status }) => {
-      const log = getRequestLogger();
+      const log = logger.request();
       log.set({
         request: {
           mode: "stream",

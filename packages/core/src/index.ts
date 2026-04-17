@@ -100,7 +100,7 @@ export const createGoodchat = (options: BotConfigInput) => {
       ? new ElysiaLoggerService(bot.logging?.service ?? bot.name)
       : new NoopLoggerService();
     const aiTelemetry = loggingEnabled
-      ? new EvlogAiTelemetryService()
+      ? new EvlogAiTelemetryService(logger)
       : new NoopAiTelemetryService();
 
     const authRuntime = createAuthRuntime({
@@ -149,6 +149,7 @@ export const createGoodchat = (options: BotConfigInput) => {
           botId: bot.id,
           platforms: bot.platforms,
           isServerless: bot.isServerless,
+          logger,
           gateway: chatRuntime.gateway,
         })
       )
@@ -169,6 +170,7 @@ export const createGoodchat = (options: BotConfigInput) => {
         threadsController({
           database: bot.database,
           botId: bot.id,
+          logger,
         })
       );
 
@@ -176,6 +178,7 @@ export const createGoodchat = (options: BotConfigInput) => {
       localChatController({
         botId: bot.id,
         botName: bot.name,
+        logger,
         platforms: bot.platforms,
         responseHandler: chatRuntime.responseHandler,
       })

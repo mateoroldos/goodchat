@@ -8,6 +8,13 @@
       "when": 1776107466035,
       "tag": "0000_violet_mole_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1776455367085,
+      "tag": "0001_stiff_mimic",
+      "breakpoints": true
     }
   ]
 }

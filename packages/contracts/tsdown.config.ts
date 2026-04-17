@@ -15,6 +15,8 @@ export default defineConfig({
     "plugins/types": "./src/plugins/types.ts",
     "database/thread": "./src/database/thread.ts",
     "database/message": "./src/database/message.ts",
+    "database/ai-run": "./src/database/ai-run.ts",
+    "database/ai-run-tool-call": "./src/database/ai-run-tool-call.ts",
     "database/interface": "./src/database/interface.ts",
     "model/model-ref": "./src/model/model-ref.ts",
     "model/provider-metadata": "./src/model/provider-metadata.ts",

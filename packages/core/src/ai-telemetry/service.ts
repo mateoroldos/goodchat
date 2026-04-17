@@ -1,54 +1,75 @@
 import type { Logger } from "@goodchat/contracts/plugins/types";
-import type { RequestLogger } from "evlog";
-import { createAILogger, createEvlogIntegration } from "evlog/ai";
-import { NOOP_LOGGER } from "../logger/noop";
+import { createAILogger } from "evlog/ai";
+import type { LoggerService } from "../logger/interface";
 import type { AiTelemetryService } from "./interface";
 
 export class NoopAiTelemetryService implements AiTelemetryService {
-  apply({ model }: Parameters<AiTelemetryService["apply"]>[0]) {
-    return { model };
+  start({ model }: Parameters<AiTelemetryService["start"]>[0]) {
+    return { finish: () => undefined, model };
   }
 }
 
 export class EvlogAiTelemetryService implements AiTelemetryService {
-  apply({ logger, model }: Parameters<AiTelemetryService["apply"]>[0]) {
-    if (!logger || logger === NOOP_LOGGER) {
-      return { model };
-    }
+  readonly #logger: LoggerService;
 
-    const ai = createAILogger(toRequestLogger(logger), { toolInputs: true });
+  constructor(logger: LoggerService) {
+    this.#logger = logger;
+  }
+
+  start({
+    logger,
+    mode,
+    model,
+    threadId,
+    userId,
+  }: Parameters<AiTelemetryService["start"]>[0]) {
+    const aiLogger = createAiRunLogger({
+      logger,
+      loggerService: this.#logger,
+      mode,
+      threadId,
+      userId,
+    });
+    const ai = createAILogger(aiLogger, { toolInputs: true });
+    let done = false;
+
+    const finish = () => {
+      if (done) {
+        return;
+      }
+      done = true;
+      aiLogger.emit();
+    };
+
     return {
+      finish,
       model: ai.wrap(model),
-      telemetry: {
-        experimental_telemetry: {
-          integrations: [createEvlogIntegration(ai)],
-          isEnabled: true,
-        },
-      },
     };
   }
 }
 
-const toRequestLogger = (
-  logger: Logger
-): RequestLogger<Record<string, unknown>> => {
-  return {
-    emit: (...args) => {
-      logger.emit(...args);
-      return null;
-    },
-    error: (...args) => {
-      logger.error(...args);
-    },
-    getContext: () => logger.getContext(),
-    info: (...args) => {
-      logger.info(...args);
-    },
-    set: (fields) => {
-      logger.set(fields);
-    },
-    warn: (...args) => {
-      logger.warn(...args);
-    },
-  };
+const createAiRunLogger = ({
+  logger,
+  loggerService,
+  mode,
+  threadId,
+  userId,
+}: {
+  logger: Logger;
+  loggerService: LoggerService;
+  mode: "stream" | "sync";
+  threadId?: string;
+  userId?: string;
+}) => {
+  const context = logger.getContext();
+  const requestId =
+    typeof context.requestId === "string" ? context.requestId : undefined;
+
+  return loggerService.wide({
+    mode,
+    ...(requestId ? { parentRequestId: requestId } : {}),
+    ...(threadId ? { thread: { id: threadId } } : {}),
+    ...(userId ? { user: { id: userId } } : {}),
+    operation: "ai-run",
+  });
 };

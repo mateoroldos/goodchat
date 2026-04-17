@@ -141,4 +141,52 @@ describeMysql("mysql repositories", () => {
       expect(updated.metadata).toEqual(patch.metadata);
     });
   });
+
+  it("stores ai runs with tool calls", async () => {
+    await withDatabase(async (database) => {
+      const runId = "run-1";
+
+      await database.aiRuns.create({
+        assistantMessageId: "message-assistant-1",
+        createdAt: "2026-03-31T00:00:00.000Z",
+        finishReason: "stop",
+        hadError: false,
+        id: runId,
+        inputTokens: 12,
+        mode: "sync",
+        modelId: "gpt-4.1-mini",
+        outputTokens: 34,
+        provider: "openai",
+        threadId: "thread-1",
+        totalTokens: 46,
+        userId: "user-1",
+      });
+
+      await database.aiRunToolCalls.create({
+        aiRunId: runId,
+        createdAt: "2026-03-31T00:00:01.000Z",
+        id: "tool-call-1",
+        input: { location: "Berlin" },
+        output: { temperature: 20 },
+        status: "success",
+        toolCallId: "call_1",
+        toolName: "weather",
+      });
+
+      const runs = await database.aiRuns.listByThread({
+        threadId: "thread-1",
+        limit: 10,
+        sort: "desc",
+      });
+      const toolCalls = await database.aiRunToolCalls.listByRun({
+        aiRunId: runId,
+        sort: "asc",
+      });
+
+      expect(runs).toHaveLength(1);
+      expect(runs[0]?.totalTokens).toBe(46);
+      expect(toolCalls).toHaveLength(1);
+      expect(toolCalls[0]?.toolName).toBe("weather");
+    });
+  });
 });

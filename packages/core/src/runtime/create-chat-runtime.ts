@@ -46,13 +46,14 @@ export const createChatRuntime = ({
     message: ThreadMessage,
     shouldSubscribe: boolean
   ) => {
-    const log = logger.get();
+    const log = logger.request();
     log.set({
       adapter: "gateway",
       message: {
         length: message.text.length,
       },
       thread: { id: thread.id },
+      user: { id: message.author.userId },
     });
 
     if (shouldSubscribe) {

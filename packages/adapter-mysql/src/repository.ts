@@ -1,3 +1,13 @@
+import type {
+  AiRun,
+  AiRunCreate,
+  AiRunUpdate,
+} from "@goodchat/contracts/database/ai-run";
+import type {
+  AiRunToolCall,
+  AiRunToolCallCreate,
+  AiRunToolCallUpdate,
+} from "@goodchat/contracts/database/ai-run-tool-call";
 import type { Database } from "@goodchat/contracts/database/interface";
 import type {
   Message,
@@ -18,13 +28,140 @@ const DEFAULT_LIST_LIMIT = 50;
 
 const mapThread = (thread: Thread): Thread => thread;
 const mapMessage = (message: Message): Message => message;
+const mapAiRun = (aiRun: AiRun): AiRun => aiRun;
+const mapAiRunToolCall = (toolCall: AiRunToolCall): AiRunToolCall => toolCall;
 
 export const createMysqlRepositories = (
   database: MysqlDatabase
-): Pick<Database, "messages" | "threads"> => {
-  const { messages, threads } = mysqlSchema;
+): Pick<Database, "aiRuns" | "aiRunToolCalls" | "messages" | "threads"> => {
+  const { aiRunToolCalls, aiRuns, messages, threads } = mysqlSchema;
 
   return {
+    aiRuns: {
+      async create(input: AiRunCreate) {
+        await database.insert(aiRuns).values(input);
+        return mapAiRun(input);
+      },
+      async getById(id: string) {
+        const rows = await database
+          .select()
+          .from(aiRuns)
+          .where(eq(aiRuns.id, id));
+        const row = rows[0];
+        return row ? mapAiRun(row as AiRun) : null;
+      },
+      async listByThread(
+        input: Parameters<Database["aiRuns"]["listByThread"]>[0]
+      ) {
+        const sortDirection = input.sort ?? "desc";
+        const limit = input.limit ?? DEFAULT_LIST_LIMIT;
+        const baseFilter = eq(aiRuns.threadId, input.threadId);
+        const cursorFilter = input.cursor
+          ? buildCursorFilter(
+              sortDirection,
+              aiRuns.createdAt,
+              aiRuns.id,
+              input.cursor.createdAt,
+              input.cursor.id
+            )
+          : undefined;
+        const whereClause = cursorFilter
+          ? and(baseFilter, cursorFilter)
+          : baseFilter;
+        const orderBy =
+          sortDirection === "asc"
+            ? [asc(aiRuns.createdAt), asc(aiRuns.id)]
+            : [desc(aiRuns.createdAt), desc(aiRuns.id)];
+
+        const rows = await database
+          .select()
+          .from(aiRuns)
+          .where(whereClause)
+          .orderBy(...orderBy)
+          .limit(limit);
+
+        return rows.map((row) => mapAiRun(row as AiRun));
+      },
+      async update(id: string, patch: AiRunUpdate) {
+        await database.update(aiRuns).set(patch).where(eq(aiRuns.id, id));
+        const rows = await database
+          .select()
+          .from(aiRuns)
+          .where(eq(aiRuns.id, id));
+        const updated = rows[0];
+        if (!updated) {
+          throw new Error(`AI run not found: ${id}`);
+        }
+        return mapAiRun(updated as AiRun);
+      },
+      async delete(id: string) {
+        await database.delete(aiRuns).where(eq(aiRuns.id, id));
+      },
+    },
+    aiRunToolCalls: {
+      async create(input: AiRunToolCallCreate) {
+        await database.insert(aiRunToolCalls).values(input);
+        return mapAiRunToolCall(input);
+      },
+      async getById(id: string) {
+        const rows = await database
+          .select()
+          .from(aiRunToolCalls)
+          .where(eq(aiRunToolCalls.id, id));
+        const row = rows[0];
+        return row ? mapAiRunToolCall(row as AiRunToolCall) : null;
+      },
+      async listByRun(
+        input: Parameters<Database["aiRunToolCalls"]["listByRun"]>[0]
+      ) {
+        const sortDirection = input.sort ?? "desc";
+        const limit = input.limit ?? DEFAULT_LIST_LIMIT;
+        const baseFilter = eq(aiRunToolCalls.aiRunId, input.aiRunId);
+        const cursorFilter = input.cursor
+          ? buildCursorFilter(
+              sortDirection,
+              aiRunToolCalls.createdAt,
+              aiRunToolCalls.id,
+              input.cursor.createdAt,
+              input.cursor.id
+            )
+          : undefined;
+        const whereClause = cursorFilter
+          ? and(baseFilter, cursorFilter)
+          : baseFilter;
+        const orderBy =
+          sortDirection === "asc"
+            ? [asc(aiRunToolCalls.createdAt), asc(aiRunToolCalls.id)]
+            : [desc(aiRunToolCalls.createdAt), desc(aiRunToolCalls.id)];
+
+        const rows = await database
+          .select()
+          .from(aiRunToolCalls)
+          .where(whereClause)
+          .orderBy(...orderBy)
+          .limit(limit);
+
+        return rows.map((row) => mapAiRunToolCall(row as AiRunToolCall));
+      },
+      async update(id: string, patch: AiRunToolCallUpdate) {
+        await database
+          .update(aiRunToolCalls)
+          .set(patch)
+          .where(eq(aiRunToolCalls.id, id));
+        const rows = await database
+          .select()
+          .from(aiRunToolCalls)
+          .where(eq(aiRunToolCalls.id, id));
+        const updated = rows[0];
+        if (!updated) {
+          throw new Error(`AI run tool call not found: ${id}`);
+        }
+        return mapAiRunToolCall(updated as AiRunToolCall);
+      },
+      async delete(id: string) {
+        await database.delete(aiRunToolCalls).where(eq(aiRunToolCalls.id, id));
+      },
+    },
     threads: {
       async create(input: ThreadCreate) {
         await database.insert(threads).values(input);

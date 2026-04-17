@@ -4,6 +4,7 @@ import { Result } from "better-result";
 import { Elysia } from "elysia";
 import { describe, expect, it } from "vitest";
 import type { ChatResponseService } from "../chat-response/interface";
+import { NoopLoggerService } from "../logger/service";
 import { localChatController } from "./local-chat-controller";
 
 const bot: Pick<Bot, "id" | "name" | "platforms"> = {
@@ -34,6 +35,7 @@ const createApp = (chunks: string[]) =>
     localChatController({
       botId: bot.id,
       botName: bot.name,
+      logger: new NoopLoggerService(),
       platforms: bot.platforms,
       responseHandler: createResponseHandler(chunks),
     })

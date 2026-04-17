@@ -8,6 +8,20 @@
       "when": 1775688696164,
       "tag": "0000_wonderful_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1776454859918,
+      "tag": "0001_serious_preak",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1776456268263,
+      "tag": "0002_messy_tempest",
+      "breakpoints": true
     }
   ]
 }

@@ -81,6 +81,16 @@
       "import": "./dist/database/message.mjs",
       "require": "./dist/database/message.cjs"
     },
+    "./database/ai-run": {
+      "types": "./dist/database/ai-run.d.ts",
+      "import": "./dist/database/ai-run.mjs",
+      "require": "./dist/database/ai-run.cjs"
+    },
+    "./database/ai-run-tool-call": {
+      "types": "./dist/database/ai-run-tool-call.d.ts",
+      "import": "./dist/database/ai-run-tool-call.mjs",
+      "require": "./dist/database/ai-run-tool-call.cjs"
+    },
     "./database/interface": {
       "types": "./dist/database/interface.d.ts",
       "import": "./dist/database/interface.mjs",

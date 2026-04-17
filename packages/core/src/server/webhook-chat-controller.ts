@@ -2,10 +2,8 @@ import type { DiscordAdapter } from "@chat-adapter/discord";
 import { cron, Patterns } from "@elysiajs/cron";
 import type { Bot, Platform } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
-import { createLogger } from "evlog";
-import { useLogger } from "evlog/elysia";
 import type { ChatGatewayService } from "../gateway/interface";
-import { NOOP_LOGGER } from "../logger/noop";
+import type { LoggerService } from "../logger/interface";
 
 export interface WebhookEnv {
   CRON_SECRET?: string;
@@ -16,14 +14,6 @@ const gatewayListenerDurationMs = 10 * 60 * 1000;
 const gatewayCronIntervalMinutes = 9;
 const gatewayCronPattern = Patterns.everyMinutes(gatewayCronIntervalMinutes);
 const gatewayAbortControllers = new Map<string, AbortController>();
-
-const getRequestLogger = () => {
-  try {
-    return useLogger();
-  } catch {
-    return NOOP_LOGGER;
-  }
-};
 
 const getCronSecret = (request: Request) => {
   const url = new URL(request.url);
@@ -59,6 +49,7 @@ interface WebhookChatControllerOptions {
   botId: Bot["id"];
   gateway: ChatGatewayService;
   isServerless: Bot["isServerless"];
+  logger: LoggerService;
   platforms: Bot["platforms"];
 }
 
@@ -67,6 +58,7 @@ export const webhookChatController = ({
   platforms,
   isServerless,
   gateway,
+  logger,
 }: WebhookChatControllerOptions) => {
   const app = new Elysia({ prefix: "/webhook" });
   const hasDiscordBots = platforms.includes("discord");
@@ -111,7 +103,7 @@ export const webhookChatController = ({
     request: Request,
     set: { status?: number | string }
   ) => {
-    const log = getRequestLogger();
+    const log = logger.request();
     log?.set({
       platform,
       webhook: {
@@ -182,7 +174,7 @@ export const webhookChatController = ({
 
   if (hasDiscordBots) {
     app.get("/discord/gateway", async ({ request, set }) => {
-      const log = getRequestLogger();
+      const log = logger.request();
       log.set({
         platform: "discord",
         request: { kind: "gateway-keepalive" },
@@ -259,7 +251,7 @@ export const webhookChatController = ({
   }
 
   const runDiscordGatewayKeepalive = async () => {
-    const log = createLogger({
+    const log = logger.wide({
       job: { name: "discord-gateway-keepalive" },
       platform: "discord",
     });
