@@ -1,6 +1,6 @@
-import { sqlite } from "@goodchat/adapter-sqlite";
 import { createGoodchat, openai } from "@goodchat/core";
 import { linear } from "@goodchat/plugins/linear";
+import { sqlite } from "@goodchat/storage/sqlite";
 import { schema } from "./db/schema";
 
 export const goodchat = createGoodchat({

@@ -19,36 +19,35 @@ import type {
   ThreadCreate,
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
-import { postgresSchema } from "@goodchat/templates/schema/postgres";
 import type { AnyColumn } from "drizzle-orm";
 import { and, asc, desc, eq, gt, lt, or } from "drizzle-orm";
-import type { PostgresDatabase } from "./client";
 
 const DEFAULT_LIST_LIMIT = 50;
 
-const mapThread = (thread: Thread): Thread => thread;
-const mapMessage = (message: Message): Message => message;
-const mapAiRun = (aiRun: AiRun): AiRun => aiRun;
-const mapAiRunToolCall = (toolCall: AiRunToolCall): AiRunToolCall => toolCall;
+type RepositorySchema = {
+  threads: { id: AnyColumn; botId: AnyColumn; createdAt: AnyColumn };
+  messages: { id: AnyColumn; threadId: AnyColumn; createdAt: AnyColumn };
+  aiRuns: { id: AnyColumn; threadId: AnyColumn; createdAt: AnyColumn };
+  aiRunToolCalls: { id: AnyColumn; aiRunId: AnyColumn; createdAt: AnyColumn };
+};
 
-export const createPostgresRepositories = (
-  database: PostgresDatabase
+// biome-ignore lint/suspicious/noExplicitAny: db is typed at the dialect call sites
+export const createRepositories = (
+  schema: RepositorySchema,
+  db: any
 ): Pick<Database, "aiRuns" | "aiRunToolCalls" | "messages" | "threads"> => {
-  const { aiRunToolCalls, aiRuns, messages, threads } = postgresSchema;
+  const { aiRunToolCalls, aiRuns, messages, threads } = schema;
 
   return {
     aiRuns: {
       async create(input: AiRunCreate) {
-        await database.insert(aiRuns).values(input);
-        return mapAiRun(input);
+        await db.insert(aiRuns).values(input);
+        return input as AiRun;
       },
       async getById(id: string) {
-        const rows = await database
-          .select()
-          .from(aiRuns)
-          .where(eq(aiRuns.id, id));
+        const rows = await db.select().from(aiRuns).where(eq(aiRuns.id, id));
         const row = rows[0];
-        return row ? mapAiRun(row as AiRun) : null;
+        return row ? (row as AiRun) : null;
       },
       async listByThread(
         input: Parameters<Database["aiRuns"]["listByThread"]>[0]
@@ -73,43 +72,40 @@ export const createPostgresRepositories = (
             ? [asc(aiRuns.createdAt), asc(aiRuns.id)]
             : [desc(aiRuns.createdAt), desc(aiRuns.id)];
 
-        const rows = await database
+        const rows = await db
           .select()
           .from(aiRuns)
           .where(whereClause)
           .orderBy(...orderBy)
           .limit(limit);
 
-        return rows.map((row) => mapAiRun(row as AiRun));
+        return rows.map((row: unknown) => row as AiRun);
       },
       async update(id: string, patch: AiRunUpdate) {
-        await database.update(aiRuns).set(patch).where(eq(aiRuns.id, id));
-        const rows = await database
-          .select()
-          .from(aiRuns)
-          .where(eq(aiRuns.id, id));
+        await db.update(aiRuns).set(patch).where(eq(aiRuns.id, id));
+        const rows = await db.select().from(aiRuns).where(eq(aiRuns.id, id));
         const updated = rows[0];
         if (!updated) {
           throw new Error(`AI run not found: ${id}`);
         }
-        return mapAiRun(updated as AiRun);
+        return updated as AiRun;
       },
       async delete(id: string) {
-        await database.delete(aiRuns).where(eq(aiRuns.id, id));
+        await db.delete(aiRuns).where(eq(aiRuns.id, id));
       },
     },
     aiRunToolCalls: {
       async create(input: AiRunToolCallCreate) {
-        await database.insert(aiRunToolCalls).values(input);
-        return mapAiRunToolCall(input);
+        await db.insert(aiRunToolCalls).values(input);
+        return input as AiRunToolCall;
       },
       async getById(id: string) {
-        const rows = await database
+        const rows = await db
           .select()
           .from(aiRunToolCalls)
           .where(eq(aiRunToolCalls.id, id));
         const row = rows[0];
-        return row ? mapAiRunToolCall(row as AiRunToolCall) : null;
+        return row ? (row as AiRunToolCall) : null;
       },
       async listByRun(
         input: Parameters<Database["aiRunToolCalls"]["listByRun"]>[0]
@@ -134,21 +130,21 @@ export const createPostgresRepositories = (
             ? [asc(aiRunToolCalls.createdAt), asc(aiRunToolCalls.id)]
             : [desc(aiRunToolCalls.createdAt), desc(aiRunToolCalls.id)];
 
-        const rows = await database
+        const rows = await db
           .select()
           .from(aiRunToolCalls)
           .where(whereClause)
           .orderBy(...orderBy)
           .limit(limit);
 
-        return rows.map((row) => mapAiRunToolCall(row as AiRunToolCall));
+        return rows.map((row: unknown) => row as AiRunToolCall);
       },
       async update(id: string, patch: AiRunToolCallUpdate) {
-        await database
+        await db
           .update(aiRunToolCalls)
           .set(patch)
           .where(eq(aiRunToolCalls.id, id));
-        const rows = await database
+        const rows = await db
           .select()
           .from(aiRunToolCalls)
           .where(eq(aiRunToolCalls.id, id));
@@ -156,24 +152,21 @@ export const createPostgresRepositories = (
         if (!updated) {
           throw new Error(`AI run tool call not found: ${id}`);
         }
-        return mapAiRunToolCall(updated as AiRunToolCall);
+        return updated as AiRunToolCall;
       },
       async delete(id: string) {
-        await database.delete(aiRunToolCalls).where(eq(aiRunToolCalls.id, id));
+        await db.delete(aiRunToolCalls).where(eq(aiRunToolCalls.id, id));
       },
     },
     threads: {
       async create(input: ThreadCreate) {
-        await database.insert(threads).values(input);
-        return mapThread(input);
+        await db.insert(threads).values(input);
+        return input as Thread;
       },
       async getById(id: string) {
-        const rows = await database
-          .select()
-          .from(threads)
-          .where(eq(threads.id, id));
+        const rows = await db.select().from(threads).where(eq(threads.id, id));
         const row = rows[0];
-        return row ? mapThread(row as Thread) : null;
+        return row ? (row as Thread) : null;
       },
       async list(input: Parameters<Database["threads"]["list"]>[0]) {
         const sortDirection = input.sort ?? "desc";
@@ -196,43 +189,40 @@ export const createPostgresRepositories = (
             ? [asc(threads.createdAt), asc(threads.id)]
             : [desc(threads.createdAt), desc(threads.id)];
 
-        const rows = await database
+        const rows = await db
           .select()
           .from(threads)
           .where(whereClause)
           .orderBy(...orderBy)
           .limit(limit);
 
-        return rows.map((row) => mapThread(row as Thread));
+        return rows.map((row: unknown) => row as Thread);
       },
       async update(id: string, patch: ThreadUpdate) {
-        await database.update(threads).set(patch).where(eq(threads.id, id));
-        const rows = await database
-          .select()
-          .from(threads)
-          .where(eq(threads.id, id));
+        await db.update(threads).set(patch).where(eq(threads.id, id));
+        const rows = await db.select().from(threads).where(eq(threads.id, id));
         const updated = rows[0];
         if (!updated) {
           throw new Error(`Thread not found: ${id}`);
         }
-        return mapThread(updated as Thread);
+        return updated as Thread;
       },
       async delete(id: string) {
-        await database.delete(threads).where(eq(threads.id, id));
+        await db.delete(threads).where(eq(threads.id, id));
       },
     },
     messages: {
       async create(input: MessageCreate) {
-        await database.insert(messages).values(input);
-        return mapMessage(input);
+        await db.insert(messages).values(input);
+        return input as Message;
       },
       async getById(id: string) {
-        const rows = await database
+        const rows = await db
           .select()
           .from(messages)
           .where(eq(messages.id, id));
         const row = rows[0];
-        return row ? mapMessage(row as Message) : null;
+        return row ? (row as Message) : null;
       },
       async listByThread(
         input: Parameters<Database["messages"]["listByThread"]>[0]
@@ -257,18 +247,18 @@ export const createPostgresRepositories = (
             ? [asc(messages.createdAt), asc(messages.id)]
             : [desc(messages.createdAt), desc(messages.id)];
 
-        const rows = await database
+        const rows = await db
           .select()
           .from(messages)
           .where(whereClause)
           .orderBy(...orderBy)
           .limit(limit);
 
-        return rows.map((row) => mapMessage(row as Message));
+        return rows.map((row: unknown) => row as Message);
       },
       async update(id: string, patch: MessageUpdate) {
-        await database.update(messages).set(patch).where(eq(messages.id, id));
-        const rows = await database
+        await db.update(messages).set(patch).where(eq(messages.id, id));
+        const rows = await db
           .select()
           .from(messages)
           .where(eq(messages.id, id));
@@ -276,10 +266,10 @@ export const createPostgresRepositories = (
         if (!updated) {
           throw new Error(`Message not found: ${id}`);
         }
-        return mapMessage(updated as Message);
+        return updated as Message;
       },
       async delete(id: string) {
-        await database.delete(messages).where(eq(messages.id, id));
+        await db.delete(messages).where(eq(messages.id, id));
       },
     },
   };

@@ -208,7 +208,7 @@ describe("generator helpers", () => {
 
     expect(packageJson.dependencies["@goodchat/cli"]).toBe("next");
     expect(packageJson.dependencies["@goodchat/core"]).toBe("next");
-    expect(packageJson.dependencies["@goodchat/adapter-sqlite"]).toBe("next");
+    expect(packageJson.dependencies["@goodchat/storage"]).toBe("next");
     expect(packageJson.dependencies["@goodchat/plugins"]).toBe("next");
   });
 

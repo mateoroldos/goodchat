@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { postgresSchema } from "@goodchat/templates/schema/postgres";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
-import { createPostgresDatabase } from "../src/client";
+import { postgresSchema } from "../../schema/postgres";
+import { postgres } from "../../src/postgres";
 
 export interface TestDatabase {
   cleanup: () => Promise<void>;
@@ -60,7 +60,7 @@ export const createTestDatabase = async (
   };
 
   return {
-    database: createPostgresDatabase({
+    database: postgres({
       connectionString: buildTestConnectionString(
         connectionString,
         databaseName

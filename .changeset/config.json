@@ -7,9 +7,7 @@
       "@goodchat/core",
       "@goodchat/contracts",
       "@goodchat/templates",
-      "@goodchat/adapter-postgres",
-      "@goodchat/adapter-mysql",
-      "@goodchat/adapter-sqlite"
+      "@goodchat/storage"
     ]
   ],
   "linked": [],

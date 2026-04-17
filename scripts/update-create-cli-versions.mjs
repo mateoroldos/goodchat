@@ -21,9 +21,7 @@ const readVersion = (packagePath) => {
 };
 
 const PACKAGES = {
-  "@goodchat/adapter-mysql": "packages/adapter-mysql",
-  "@goodchat/adapter-postgres": "packages/adapter-postgres",
-  "@goodchat/adapter-sqlite": "packages/adapter-sqlite",
+  "@goodchat/storage": "packages/storage",
   "@goodchat/cli": "apps/goodchat-cli",
   "@goodchat/core": "packages/core",
   "@goodchat/plugins": "packages/plugins",

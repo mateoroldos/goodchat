@@ -182,13 +182,13 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
   const coreImports = ["createGoodchat"];
   imports.push('import { schema } from "./db/schema";');
   if (config.databaseDialect === "sqlite") {
-    imports.push('import { sqlite } from "@goodchat/adapter-sqlite";');
+    imports.push('import { sqlite } from "@goodchat/storage/sqlite";');
   }
   if (config.databaseDialect === "postgres") {
-    imports.push('import { postgres } from "@goodchat/adapter-postgres";');
+    imports.push('import { postgres } from "@goodchat/storage/postgres";');
   }
   if (config.databaseDialect === "mysql") {
-    imports.push('import { mysql } from "@goodchat/adapter-mysql";');
+    imports.push('import { mysql } from "@goodchat/storage/mysql";');
   }
   if (config.model) {
     const factoryName = resolveModelFactoryName(config.model.provider);
@@ -330,21 +330,13 @@ export const renderPackageJson = (input: {
     );
   }
 
-  if (input.databaseDialect === "sqlite") {
-    dependencies["@goodchat/adapter-sqlite"] = formatPublishedVersion(
-      dependencyManifest["@goodchat/adapter-sqlite"],
-      "^0.0.1"
-    );
-  }
-  if (input.databaseDialect === "postgres") {
-    dependencies["@goodchat/adapter-postgres"] = formatPublishedVersion(
-      dependencyManifest["@goodchat/adapter-postgres"],
-      "^0.0.1"
-    );
-  }
-  if (input.databaseDialect === "mysql") {
-    dependencies["@goodchat/adapter-mysql"] = formatPublishedVersion(
-      dependencyManifest["@goodchat/adapter-mysql"],
+  if (
+    input.databaseDialect === "sqlite" ||
+    input.databaseDialect === "postgres" ||
+    input.databaseDialect === "mysql"
+  ) {
+    dependencies["@goodchat/storage"] = formatPublishedVersion(
+      dependencyManifest["@goodchat/storage"],
       "^0.0.1"
     );
   }

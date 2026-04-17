@@ -2,7 +2,8 @@ import type { Database } from "@goodchat/contracts/database/interface";
 import type { AnyMySql2Connection } from "drizzle-orm/mysql2";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool } from "mysql2/promise";
-import { createMysqlRepositories } from "./repository";
+import { mysqlSchema } from "../schema/mysql";
+import { createRepositories } from "./repository";
 
 export interface MysqlAdapterOptions {
   client?: AnyMySql2Connection;
@@ -12,11 +13,10 @@ export interface MysqlAdapterOptions {
   schema?: Record<string, unknown>;
 }
 
-type MysqlTransaction = Parameters<
-  Parameters<ReturnType<typeof drizzle>["transaction"]>[0]
->[0];
+type MysqlDb = ReturnType<typeof drizzle>;
+type MysqlTransaction = Parameters<Parameters<MysqlDb["transaction"]>[0]>[0];
 
-export type MysqlDatabase = ReturnType<typeof drizzle> | MysqlTransaction;
+export type MysqlDatabase = MysqlDb | MysqlTransaction;
 
 type TransactionRunner = <T>(
   fn: (database: Database) => Promise<T>
@@ -30,33 +30,27 @@ const createDatabaseInterface = (
     provider: "mysql";
     schema?: Record<string, unknown>;
   }
-): Database => {
-  const repositories = createMysqlRepositories(database);
-  return {
-    ...repositories,
-    auth: {
-      getBetterAuthDatabaseConfig: () => authConfig,
-    },
-    dialect: "mysql",
-    transaction: transactionRunner,
-  };
-};
+): Database => ({
+  ...createRepositories(mysqlSchema, database),
+  auth: { getBetterAuthDatabaseConfig: () => authConfig },
+  dialect: "mysql",
+  transaction: transactionRunner,
+});
 
-export const createMysqlDatabase = (options: MysqlAdapterOptions): Database => {
+export const mysql = (options: MysqlAdapterOptions): Database => {
   const client = options.client ?? createPool(options.connectionString);
-  const database = drizzle(client, {
+  const db = drizzle(client, {
     logger: options.debugLogs,
     mode: options.mode ?? "default",
   });
   const authConfig = {
-    db: database,
+    db,
     provider: "mysql" as const,
     schema: options.schema,
   };
   const transactionRunner: TransactionRunner = (fn) =>
-    database.transaction((transaction) =>
-      fn(createDatabaseInterface(transaction, transactionRunner, authConfig))
+    db.transaction((tx) =>
+      fn(createDatabaseInterface(tx, transactionRunner, authConfig))
     );
-
-  return createDatabaseInterface(database, transactionRunner, authConfig);
+  return createDatabaseInterface(db, transactionRunner, authConfig);
 };

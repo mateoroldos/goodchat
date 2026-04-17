@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
-import { mysqlSchema } from "@goodchat/templates/schema/mysql";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createPool } from "mysql2/promise";
-import { createMysqlDatabase } from "../src/client";
+import { mysqlSchema } from "../../schema/mysql";
+import { mysql } from "../../src/mysql";
 
 export interface TestDatabase {
   cleanup: () => Promise<void>;
@@ -61,7 +61,7 @@ export const createTestDatabase = async (
   };
 
   return {
-    database: createMysqlDatabase({
+    database: mysql({
       connectionString: buildTestConnectionString(
         connectionString,
         databaseName

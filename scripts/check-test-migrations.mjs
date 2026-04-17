@@ -9,18 +9,18 @@ const shouldDebug = process.env.DEBUG_TEST_MIGRATIONS === "1";
 const tasks = [
   {
     dialect: "postgresql",
-    schema: "packages/adapter-postgres/tests/schema.ts",
-    out: "packages/adapter-postgres/tests/drizzle",
+    schema: "packages/storage/tests/postgres/schema.ts",
+    out: "packages/storage/tests/postgres/drizzle",
   },
   {
     dialect: "mysql",
-    schema: "packages/adapter-mysql/tests/schema.ts",
-    out: "packages/adapter-mysql/tests/drizzle",
+    schema: "packages/storage/tests/mysql/schema.ts",
+    out: "packages/storage/tests/mysql/drizzle",
   },
   {
     dialect: "sqlite",
-    schema: "packages/adapter-sqlite/tests/schema.ts",
-    out: "packages/adapter-sqlite/tests/drizzle",
+    schema: "packages/storage/tests/sqlite/schema.ts",
+    out: "packages/storage/tests/sqlite/drizzle",
   },
 ];
 

@@ -4,12 +4,13 @@ import { fileURLToPath } from "node:url";
 
 type Dialect = "sqlite" | "postgres" | "mysql";
 
-const PACKAGE_ROOT = resolve(
+const TEMPLATES_ROOT = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   ".."
 );
+const STORAGE_ROOT = resolve(TEMPLATES_ROOT, "../storage");
 const OUTPUT_PATH = resolve(
-  PACKAGE_ROOT,
+  TEMPLATES_ROOT,
   "scaffold/generated/db-schema-templates.ts"
 );
 
@@ -36,7 +37,7 @@ const readSchemaByDialect = async (
 ): Promise<Record<Dialect, string>> => {
   const entries = await Promise.all(
     DIALECTS.map(async (dialect) => {
-      const path = resolve(PACKAGE_ROOT, pathsByDialect[dialect]);
+      const path = resolve(STORAGE_ROOT, pathsByDialect[dialect]);
       return [dialect, await readFile(path, "utf8")] as const;
     })
   );

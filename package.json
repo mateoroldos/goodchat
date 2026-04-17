@@ -35,10 +35,10 @@
     "test": "bun run test:unit && bun run test:integration",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:unit:watch": "vitest --config vitest.unit.config.ts",
-    "test:integration:sqlite": "bun test packages/adapter-sqlite/tests/integration",
+    "test:integration:sqlite": "bun test packages/storage/tests/sqlite/integration",
     "test:integration": "node scripts/run-integration-tests.mjs",
     "test:migrations": "bunx turbo build --filter=@goodchat/core && node scripts/check-test-migrations.mjs",
-    "test:migrations:update": "bunx turbo build --filter=@goodchat/core && bunx drizzle-kit generate --schema packages/adapter-postgres/tests/schema.ts --out packages/adapter-postgres/tests/drizzle --dialect postgresql && bunx drizzle-kit generate --schema packages/adapter-mysql/tests/schema.ts --out packages/adapter-mysql/tests/drizzle --dialect mysql && bunx drizzle-kit generate --schema packages/adapter-sqlite/tests/schema.ts --out packages/adapter-sqlite/tests/drizzle --dialect sqlite",
+    "test:migrations:update": "bunx turbo build --filter=@goodchat/core && bunx drizzle-kit generate --schema packages/storage/tests/postgres/schema.ts --out packages/storage/tests/postgres/drizzle --dialect postgresql && bunx drizzle-kit generate --schema packages/storage/tests/mysql/schema.ts --out packages/storage/tests/mysql/drizzle --dialect mysql && bunx drizzle-kit generate --schema packages/storage/tests/sqlite/schema.ts --out packages/storage/tests/sqlite/drizzle --dialect sqlite",
     "test:db:up": "docker compose -f docker-compose.test.yml up -d",
     "test:db:down": "docker compose -f docker-compose.test.yml down -v",
     "ruler:apply": "bunx @intellectronica/ruler@latest apply --local-only"

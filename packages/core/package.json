@@ -59,8 +59,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@goodchat/adapter-sqlite": "workspace:*",
-    "@goodchat/templates": "workspace:*",
+    "@goodchat/storage": "workspace:*",
     "tsdown": "^0.21.4"
   }
 }

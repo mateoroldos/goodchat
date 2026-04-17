@@ -5,8 +5,9 @@ import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
 import { drizzle as drizzlePostgresJs } from "drizzle-orm/postgres-js";
 import { drizzle as drizzleVercel } from "drizzle-orm/vercel-postgres";
 import { Pool } from "pg";
-import postgres from "postgres";
-import { createPostgresRepositories } from "./repository";
+import postgresJs from "postgres";
+import { postgresSchema } from "../schema/postgres";
+import { createRepositories } from "./repository";
 
 export type PostgresDriver =
   | "postgres-js"
@@ -14,7 +15,7 @@ export type PostgresDriver =
   | "@neondatabase/serverless"
   | "@vercel/postgres";
 
-type PostgresJsClient = ReturnType<typeof postgres>;
+type PostgresJsClient = ReturnType<typeof postgresJs>;
 type NodePgClient = Pool;
 
 interface BasePostgresAdapterOptions {
@@ -71,57 +72,47 @@ const createDatabaseInterface = (
     provider: "pg";
     schema?: Record<string, unknown>;
   }
-): Database => {
-  const repositories = createPostgresRepositories(database);
-  return {
-    ...repositories,
-    auth: {
-      getBetterAuthDatabaseConfig: () => authConfig,
-    },
-    dialect: "postgres",
-    transaction: transactionRunner,
-  };
-};
+): Database => ({
+  ...createRepositories(postgresSchema, database),
+  auth: { getBetterAuthDatabaseConfig: () => authConfig },
+  dialect: "postgres",
+  transaction: transactionRunner,
+});
 
-export const createPostgresDatabase = (
-  options: PostgresAdapterOptions
-): Database => {
-  const database = createDriverDatabase(options);
+export const postgres = (options: PostgresAdapterOptions): Database => {
+  const db = createDriverDatabase(options);
   const authConfig = {
-    db: database,
+    db,
     provider: "pg" as const,
     schema: options.schema,
   };
   const transactionRunner: TransactionRunner = (fn) =>
-    database.transaction((transaction) =>
-      fn(createDatabaseInterface(transaction, transactionRunner, authConfig))
+    db.transaction((tx) =>
+      fn(createDatabaseInterface(tx, transactionRunner, authConfig))
     );
-
-  return createDatabaseInterface(database, transactionRunner, authConfig);
+  return createDatabaseInterface(db, transactionRunner, authConfig);
 };
 
 const createDriverDatabase = (
   options: PostgresAdapterOptions
 ): PostgresDatabase => {
-  const drizzleConfig = {
-    logger: options.debugLogs,
-  };
+  const config = { logger: options.debugLogs };
 
   if (options.driver === "pg") {
     const client =
       options.client ??
       new Pool({ connectionString: options.connectionString });
-    return drizzleNodePg(client, drizzleConfig);
+    return drizzleNodePg(client, config);
   }
 
   if (options.driver === "@neondatabase/serverless") {
-    return drizzleNeon(options.connectionString, drizzleConfig);
+    return drizzleNeon(options.connectionString, config);
   }
 
   if (options.driver === "@vercel/postgres") {
-    return drizzleVercel(sql, drizzleConfig);
+    return drizzleVercel(sql, config);
   }
 
-  const client = options.client ?? postgres(options.connectionString);
-  return drizzlePostgresJs(client, drizzleConfig);
+  const client = options.client ?? postgresJs(options.connectionString);
+  return drizzlePostgresJs(client, config);
 };

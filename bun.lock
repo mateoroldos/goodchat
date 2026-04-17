@@ -114,10 +114,10 @@
     "examples/minimal": {
       "name": "minimal",
       "dependencies": {
-        "@goodchat/adapter-sqlite": "workspace:*",
         "@goodchat/cli": "workspace:*",
         "@goodchat/core": "workspace:*",
         "@goodchat/plugins": "workspace:*",
+        "@goodchat/storage": "workspace:*",
         "@t3-oss/env-core": "^0.13.1",
         "dotenv": "^17.2.2",
         "drizzle-orm": "^0.45.2",
@@ -129,48 +129,6 @@
         "drizzle-kit": "^0.31.10",
         "tsdown": "^0.16.5",
         "typescript": "^5.9.3",
-      },
-    },
-    "packages/adapter-mysql": {
-      "name": "@goodchat/adapter-mysql",
-      "version": "0.0.10",
-      "dependencies": {
-        "@goodchat/contracts": "workspace:*",
-        "@goodchat/templates": "workspace:*",
-        "drizzle-orm": "^0.45.2",
-        "mysql2": "^3.20.0",
-      },
-      "devDependencies": {
-        "tsdown": "^0.21.4",
-      },
-    },
-    "packages/adapter-postgres": {
-      "name": "@goodchat/adapter-postgres",
-      "version": "0.0.10",
-      "dependencies": {
-        "@goodchat/contracts": "workspace:*",
-        "@goodchat/templates": "workspace:*",
-        "@neondatabase/serverless": "^1.0.2",
-        "@vercel/postgres": "^0.10.0",
-        "drizzle-orm": "^0.45.2",
-        "pg": "^8.20.0",
-        "postgres": "^3.4.8",
-      },
-      "devDependencies": {
-        "@types/pg": "^8.20.0",
-        "tsdown": "^0.21.4",
-      },
-    },
-    "packages/adapter-sqlite": {
-      "name": "@goodchat/adapter-sqlite",
-      "version": "0.0.10",
-      "dependencies": {
-        "@goodchat/contracts": "workspace:*",
-        "@goodchat/templates": "workspace:*",
-        "drizzle-orm": "^0.45.2",
-      },
-      "devDependencies": {
-        "tsdown": "^0.21.4",
       },
     },
     "packages/contracts": {
@@ -215,8 +173,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@goodchat/adapter-sqlite": "workspace:*",
-        "@goodchat/templates": "workspace:*",
+        "@goodchat/storage": "workspace:*",
         "tsdown": "^0.21.4",
       },
     },
@@ -232,6 +189,26 @@
         "tsdown": "^0.21.4",
       },
     },
+    "packages/storage": {
+      "name": "@goodchat/storage",
+      "version": "0.0.10",
+      "dependencies": {
+        "@goodchat/contracts": "workspace:*",
+        "@neondatabase/serverless": "^1.0.2",
+        "@vercel/postgres": "^0.10.0",
+        "better-auth": "1.3.4",
+        "drizzle-orm": "^0.45.2",
+        "mysql2": "^3.20.0",
+        "pg": "^8.20.0",
+        "postgres": "^3.4.8",
+      },
+      "devDependencies": {
+        "@goodchat/typescript-config": "workspace:*",
+        "@types/pg": "^8.20.0",
+        "tsdown": "^0.21.4",
+        "vitest": "^4.1.0",
+      },
+    },
     "packages/styles": {
       "name": "@goodchat/styles",
       "version": "0.0.0",
@@ -245,9 +222,9 @@
       "version": "0.0.10",
       "dependencies": {
         "better-auth": "1.3.4",
-        "drizzle-orm": "^0.45.2",
       },
       "devDependencies": {
+        "@goodchat/storage": "workspace:*",
         "tsdown": "^0.21.4",
       },
     },
@@ -527,12 +504,6 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
 
-    "@goodchat/adapter-mysql": ["@goodchat/adapter-mysql@workspace:packages/adapter-mysql"],
-
-    "@goodchat/adapter-postgres": ["@goodchat/adapter-postgres@workspace:packages/adapter-postgres"],
-
-    "@goodchat/adapter-sqlite": ["@goodchat/adapter-sqlite@workspace:packages/adapter-sqlite"],
-
     "@goodchat/cli": ["@goodchat/cli@workspace:apps/goodchat-cli"],
 
     "@goodchat/contracts": ["@goodchat/contracts@workspace:packages/contracts"],
@@ -542,6 +513,8 @@
     "@goodchat/create": ["@goodchat/create@workspace:apps/create-cli"],
 
     "@goodchat/plugins": ["@goodchat/plugins@workspace:packages/plugins"],
+
+    "@goodchat/storage": ["@goodchat/storage@workspace:packages/storage"],
 
     "@goodchat/styles": ["@goodchat/styles@workspace:packages/styles"],
 

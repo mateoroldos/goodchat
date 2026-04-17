@@ -5,7 +5,7 @@ export default defineConfig({
     include: ["**/*.integration.test.ts"],
     exclude: [
       "**/node_modules/**",
-      "packages/adapter-sqlite/tests/integration/**/*.integration.test.ts",
+      "packages/storage/tests/sqlite/**/*.integration.test.ts",
     ],
     environment: "node",
     clearMocks: true,

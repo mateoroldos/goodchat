@@ -20,36 +20,6 @@
     "schema:auth:check": "bun run ./scripts/manage-auth-schema-templates.ts --check"
   },
   "exports": {
-    "./schema/sqlite": {
-      "types": "./dist/schema/sqlite.d.mts",
-      "import": "./dist/schema/sqlite.mjs",
-      "require": "./dist/schema/sqlite.cjs"
-    },
-    "./schema/postgres": {
-      "types": "./dist/schema/postgres.d.mts",
-      "import": "./dist/schema/postgres.mjs",
-      "require": "./dist/schema/postgres.cjs"
-    },
-    "./schema/mysql": {
-      "types": "./dist/schema/mysql.d.mts",
-      "import": "./dist/schema/mysql.mjs",
-      "require": "./dist/schema/mysql.cjs"
-    },
-    "./schema/auth/sqlite": {
-      "types": "./dist/schema/auth/sqlite.d.mts",
-      "import": "./dist/schema/auth/sqlite.mjs",
-      "require": "./dist/schema/auth/sqlite.cjs"
-    },
-    "./schema/auth/postgres": {
-      "types": "./dist/schema/auth/postgres.d.mts",
-      "import": "./dist/schema/auth/postgres.mjs",
-      "require": "./dist/schema/auth/postgres.cjs"
-    },
-    "./schema/auth/mysql": {
-      "types": "./dist/schema/auth/mysql.d.mts",
-      "import": "./dist/schema/auth/mysql.mjs",
-      "require": "./dist/schema/auth/mysql.cjs"
-    },
     "./scaffold/db-schema-artifacts": {
       "types": "./dist/scaffold/db-schema-artifacts.d.mts",
       "import": "./dist/scaffold/db-schema-artifacts.mjs",
@@ -59,10 +29,10 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "better-auth": "1.3.4",
-    "drizzle-orm": "^0.45.2"
+    "better-auth": "1.3.4"
   },
   "devDependencies": {
+    "@goodchat/storage": "workspace:*",
     "tsdown": "^0.21.4"
   }
 }
