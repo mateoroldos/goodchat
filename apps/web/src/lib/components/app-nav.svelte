@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createQuery } from "@tanstack/svelte-query";
-  import { Bot, LayoutDashboard, MessageSquare } from "lucide-svelte";
+  import { Bot, LayoutDashboard, List, MessageSquare } from "lucide-svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { botQueries } from "$lib/api/bots/bots.queries";
@@ -45,6 +45,19 @@
   >
     <LayoutDashboard size={14} />
     Overview
+  </a>
+
+  <a
+    href="/threads"
+    class={cn(
+      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+      page.url.pathname.startsWith("/threads")
+        ? "bg-accent text-accent-foreground font-medium"
+        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+    )}
+  >
+    <List size={14} />
+    Threads
   </a>
 
   {#if hasLocal}

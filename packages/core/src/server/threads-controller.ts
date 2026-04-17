@@ -79,6 +79,60 @@ export const threadsController = ({
       }
     )
     .get(
+      "/:threadId/messages",
+      async ({ params, query, status }) => {
+        const log = logger.request();
+        log.set({
+          query: { limit: query.limit },
+          thread: { id: params.threadId },
+        });
+
+        try {
+          const messages = await database.messages.listByThread({
+            threadId: params.threadId,
+            limit: query.limit,
+            sort: "asc",
+          });
+
+          log.set({
+            outcome: { status: "success" },
+            messages: { count: messages.length },
+          });
+
+          return messages;
+        } catch (error) {
+          const requestId = createRequestId();
+          const unknownError =
+            error instanceof Error
+              ? error
+              : new Error("Unknown thread message list error");
+
+          log.error("Failed to list thread messages", {
+            error: {
+              code: "THREAD_MESSAGES_UNKNOWN",
+              message: unknownError.message,
+              type: unknownError.name,
+              why: "Database query for thread message list failed.",
+              fix: "Verify database connectivity and that message tables are migrated.",
+            },
+            requestId,
+          });
+
+          return status(500, {
+            code: "THREAD_MESSAGES_UNKNOWN",
+            message: "Unexpected error while loading thread messages.",
+            why: "Thread message listing failed due to an internal database error.",
+            fix: "Retry the request and inspect logs with the requestId.",
+            requestId,
+          });
+        }
+      },
+      {
+        params: threadParamsModel,
+        query: threadQueryModel,
+      }
+    )
+    .get(
       "/:threadId/runs",
       async ({ params, query, status }) => {
         const log = logger.request();

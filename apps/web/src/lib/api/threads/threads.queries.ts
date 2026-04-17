@@ -1,5 +1,9 @@
 import { queryOptions } from "@tanstack/svelte-query";
-import { fetchThreads } from "./threads.api";
+import {
+  fetchThreadMessages,
+  fetchThreadRuns,
+  fetchThreads,
+} from "./threads.api";
 
 interface ThreadsListParams {
   limit?: number;
@@ -12,5 +16,15 @@ export const threadsQueries = {
     queryOptions({
       queryKey: [...threadsQueries.lists(), params] as const,
       queryFn: () => fetchThreads(params.limit),
+    }),
+  messages: (threadId: string) =>
+    queryOptions({
+      queryKey: [...threadsQueries.all(), threadId, "messages"] as const,
+      queryFn: () => fetchThreadMessages(threadId),
+    }),
+  runs: (threadId: string) =>
+    queryOptions({
+      queryKey: [...threadsQueries.all(), threadId, "runs"] as const,
+      queryFn: () => fetchThreadRuns(threadId),
     }),
 };
