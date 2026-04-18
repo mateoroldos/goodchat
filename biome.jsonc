@@ -9,6 +9,7 @@
     "includes": [
       "!.agents",
       "!**/*.d.ts",
+      "!examples/*",
       "!**/lib/components/ui",
       "!**/lib/components/ai-elements"
     ]

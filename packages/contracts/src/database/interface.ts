@@ -41,6 +41,21 @@ interface AiRunToolCallListInput {
   sort?: "asc" | "desc";
 }
 
+export interface DayCount {
+  count: number;
+  date: string;
+}
+
+export interface DayTokens {
+  date: string;
+  tokens: number;
+}
+
+export interface WeeklyStats {
+  threadsByDay: DayCount[];
+  tokensByDay: DayTokens[];
+}
+
 export interface Database {
   aiRuns: {
     create: (input: AiRunCreate) => Promise<AiRun>;
@@ -55,6 +70,9 @@ export interface Database {
     getById: (id: string) => Promise<AiRunToolCall | null>;
     listByRun: (input: AiRunToolCallListInput) => Promise<AiRunToolCall[]>;
     update: (id: string, patch: AiRunToolCallUpdate) => Promise<AiRunToolCall>;
+  };
+  analytics: {
+    weeklyStats: (botId: string) => Promise<WeeklyStats>;
   };
   auth?: {
     getBetterAuthDatabaseConfig: () => {

@@ -198,4 +198,28 @@ export const threadsController = ({
         params: threadParamsModel,
         query: threadQueryModel,
       }
-    );
+    )
+    .get("/analytics", async ({ status }) => {
+      try {
+        return await database.analytics.weeklyStats(botId);
+      } catch (error) {
+        const requestId = createRequestId();
+        const unknownError =
+          error instanceof Error ? error : new Error("Unknown analytics error");
+
+        logger.request().error("Failed to fetch analytics", {
+          error: {
+            code: "ANALYTICS_UNKNOWN",
+            message: unknownError.message,
+            type: unknownError.name,
+          },
+          requestId,
+        });
+
+        return status(500, {
+          code: "ANALYTICS_UNKNOWN",
+          message: "Unexpected error while loading analytics.",
+          requestId,
+        });
+      }
+    });

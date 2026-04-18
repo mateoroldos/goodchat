@@ -6,4 +6,5 @@ const getBaseUrl = () =>
 
 export const eden = treaty<GoodchatApi>(getBaseUrl(), {
   fetcher: fetch,
+  parseDate: false,
 });

@@ -21,6 +21,7 @@
     "dev": "turbo dev",
     "dev:apps": "turbo dev --filter=./apps/*",
     "dev:packages": "turbo dev --filter=./packages/*",
+    "dev:examples": "turbo dev --filter=./examples/*",
     "build": "turbo build && node ./scripts/copy-web-assets.mjs",
     "check-types": "turbo check-types",
     "dev:web": "turbo -F web dev",

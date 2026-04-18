@@ -19,14 +19,14 @@ import type {
   ThreadCreate,
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { postgresSchema } from "../schema/postgres";
 import type { PostgresDatabase } from "./postgres";
 import { buildCursorFilter, DEFAULT_LIST_LIMIT } from "./repository-shared";
 
 type Repositories = Pick<
   Database,
-  "aiRuns" | "aiRunToolCalls" | "messages" | "threads"
+  "aiRuns" | "aiRunToolCalls" | "analytics" | "messages" | "threads"
 >;
 
 export const createPostgresRepositories = (
@@ -35,6 +35,40 @@ export const createPostgresRepositories = (
   const { aiRunToolCalls, aiRuns, messages, threads } = postgresSchema;
 
   return {
+    analytics: {
+      async weeklyStats(botId: string) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 6);
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+        const threadsByDay = await db
+          .select({
+            date: sql<string>`${threads.createdAt}::date::text`,
+            count: sql<number>`cast(count(*) as integer)`,
+          })
+          .from(threads)
+          .where(
+            and(eq(threads.botId, botId), gte(threads.createdAt, cutoffStr))
+          )
+          .groupBy(sql`${threads.createdAt}::date`)
+          .orderBy(sql`${threads.createdAt}::date`);
+
+        const tokensByDay = await db
+          .select({
+            date: sql<string>`${aiRuns.createdAt}::date::text`,
+            tokens: sql<number>`cast(coalesce(sum(${aiRuns.totalTokens}), 0) as integer)`,
+          })
+          .from(aiRuns)
+          .innerJoin(threads, eq(aiRuns.threadId, threads.id))
+          .where(
+            and(eq(threads.botId, botId), gte(aiRuns.createdAt, cutoffStr))
+          )
+          .groupBy(sql`${aiRuns.createdAt}::date`)
+          .orderBy(sql`${aiRuns.createdAt}::date`);
+
+        return { threadsByDay, tokensByDay };
+      },
+    },
     aiRuns: {
       async create(input: AiRunCreate) {
         await db.insert(aiRuns).values(input);
