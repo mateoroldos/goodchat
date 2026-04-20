@@ -1,6 +1,8 @@
+import type { Platform } from "@goodchat/contracts/config/types";
 import type { ModelProvider } from "@goodchat/contracts/model/model-ref";
 import { MODEL_PROVIDERS } from "@goodchat/contracts/model/model-ref";
 import { PROVIDER_METADATA } from "@goodchat/contracts/model/provider-metadata";
+import { PLATFORM_METADATA } from "@goodchat/contracts/platform/platform-metadata";
 
 export type Provider = ModelProvider;
 
@@ -28,6 +30,20 @@ const ENV_METADATA: EnvVariableMeta[] = [
       docsUrl: variable.docsUrl,
       schema: `z.string().min(1, "${variable.requiredMessage}")`,
       providers: [provider],
+    }));
+  }),
+  ...(
+    Object.entries(PLATFORM_METADATA) as [
+      Platform,
+      (typeof PLATFORM_METADATA)[Platform],
+    ][]
+  ).flatMap(([platform, metadata]): EnvVariableMeta[] => {
+    return metadata.envVariables.map((variable) => ({
+      key: variable.key,
+      description: variable.description,
+      category: "platform",
+      docsUrl: variable.docsUrl,
+      platforms: [platform],
     }));
   }),
   {
@@ -75,121 +91,6 @@ const ENV_METADATA: EnvVariableMeta[] = [
     description: "Set to true when running on serverless platforms",
     category: "core",
     schema: 'z.enum(["true", "false"]).optional()',
-  },
-  {
-    key: "SLACK_BOT_TOKEN",
-    description: "Slack bot token",
-    category: "platform",
-    docsUrl: "https://api.slack.com/apps",
-    platforms: ["slack"],
-  },
-  {
-    key: "SLACK_SIGNING_SECRET",
-    description: "Slack signing secret",
-    category: "platform",
-    docsUrl: "https://api.slack.com/apps",
-    platforms: ["slack"],
-  },
-  {
-    key: "SLACK_CLIENT_ID",
-    description: "Slack OAuth client id",
-    category: "platform",
-    docsUrl: "https://api.slack.com/apps",
-    platforms: ["slack"],
-  },
-  {
-    key: "SLACK_CLIENT_SECRET",
-    description: "Slack OAuth client secret",
-    category: "platform",
-    docsUrl: "https://api.slack.com/apps",
-    platforms: ["slack"],
-  },
-  {
-    key: "SLACK_ENCRYPTION_KEY",
-    description: "Slack token encryption key",
-    category: "platform",
-    docsUrl: "https://api.slack.com/apps",
-    platforms: ["slack"],
-  },
-  {
-    key: "DISCORD_BOT_TOKEN",
-    description: "Discord bot token",
-    category: "platform",
-    docsUrl: "https://discord.com/developers/applications",
-    platforms: ["discord"],
-  },
-  {
-    key: "DISCORD_PUBLIC_KEY",
-    description: "Discord interaction public key",
-    category: "platform",
-    docsUrl: "https://discord.com/developers/applications",
-    platforms: ["discord"],
-  },
-  {
-    key: "DISCORD_APPLICATION_ID",
-    description: "Discord application id",
-    category: "platform",
-    docsUrl: "https://discord.com/developers/applications",
-    platforms: ["discord"],
-  },
-  {
-    key: "DISCORD_MENTION_ROLE_IDS",
-    description: "Comma-separated role ids to treat as mention triggers",
-    category: "platform",
-    docsUrl: "https://discord.com/developers/applications",
-    platforms: ["discord"],
-  },
-  {
-    key: "TEAMS_APP_ID",
-    description: "Microsoft Teams app id",
-    category: "platform",
-    docsUrl:
-      "https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps",
-    platforms: ["teams"],
-  },
-  {
-    key: "TEAMS_APP_PASSWORD",
-    description: "Microsoft Teams app password",
-    category: "platform",
-    docsUrl:
-      "https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps",
-    platforms: ["teams"],
-  },
-  {
-    key: "TEAMS_APP_TENANT_ID",
-    description: "Microsoft Teams tenant id",
-    category: "platform",
-    docsUrl:
-      "https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/Properties",
-    platforms: ["teams"],
-  },
-  {
-    key: "GOOGLE_CHAT_CREDENTIALS",
-    description: "Google Chat service account credentials JSON",
-    category: "platform",
-    docsUrl: "https://developers.google.com/workspace/chat",
-    platforms: ["gchat"],
-  },
-  {
-    key: "GOOGLE_CHAT_USE_ADC",
-    description: "Set true to use Application Default Credentials",
-    category: "platform",
-    docsUrl: "https://cloud.google.com/docs/authentication/production",
-    platforms: ["gchat"],
-  },
-  {
-    key: "GOOGLE_CHAT_PUBSUB_TOPIC",
-    description: "Pub/Sub topic for Google Chat events",
-    category: "platform",
-    docsUrl: "https://cloud.google.com/pubsub/docs",
-    platforms: ["gchat"],
-  },
-  {
-    key: "GOOGLE_CHAT_IMPERSONATE_USER",
-    description: "User email to impersonate for Google Chat",
-    category: "platform",
-    docsUrl: "https://developers.google.com/workspace/chat",
-    platforms: ["gchat"],
   },
 ];
 

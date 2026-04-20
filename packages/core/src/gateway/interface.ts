@@ -5,8 +5,10 @@ import type {
   MentionHandler,
   SubscribedMessageHandler,
 } from "chat";
+import type { LoggerService } from "../logger/interface";
 
 export interface ChatGatewayConfig {
+  logger: LoggerService;
   platforms: readonly Platform[];
   userName: string;
 }

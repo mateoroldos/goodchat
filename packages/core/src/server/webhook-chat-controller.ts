@@ -50,17 +50,16 @@ interface WebhookChatControllerOptions {
   gateway: ChatGatewayService;
   isServerless: Bot["isServerless"];
   logger: LoggerService;
-  platforms: Bot["platforms"];
 }
 
 export const webhookChatController = ({
   botId,
-  platforms,
   isServerless,
   gateway,
   logger,
 }: WebhookChatControllerOptions) => {
   const app = new Elysia({ prefix: "/webhook" });
+  const platforms = gateway.getPlatformIds();
   const hasDiscordBots = platforms.includes("discord");
 
   const env = {

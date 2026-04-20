@@ -37,6 +37,7 @@ export const createChatRuntime = ({
   });
 
   const gateway = new DefaultChatGatewayService({
+    logger,
     userName: bot.name,
     platforms: bot.platforms,
   });

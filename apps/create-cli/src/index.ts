@@ -24,6 +24,7 @@ import {
   MODEL_PROVIDER_PROMPT_DOCS_URL,
   MODEL_PROVIDER_PROMPT_ENV_KEY,
 } from "@goodchat/contracts/model/provider-metadata";
+import { PLATFORM_METADATA } from "@goodchat/contracts/platform/platform-metadata";
 import type { Provider } from "./env-metadata";
 import {
   createProjectFiles,
@@ -364,6 +365,75 @@ const promptModel = async (): Promise<{
   };
 };
 
+const promptPlatformEnvVars = async (
+  selectedPlatforms: Platform[]
+): Promise<{
+  defaults: Map<string, string>;
+  skippedRequiredKeys: Set<string>;
+}> => {
+  const collected = new Map<string, string>();
+  const skippedRequiredKeys = new Set<string>();
+  for (const platform of selectedPlatforms) {
+    if (platform === "local") {
+      continue;
+    }
+    const { envVariables, label } = PLATFORM_METADATA[platform];
+    const requiredVariables = envVariables.filter(
+      (variable) => variable.required
+    );
+    for (const variable of requiredVariables) {
+      const value = handleCancel(
+        await password({
+          message: `[${label}] ${variable.key} (Enter to skip for now)\n  → ${variable.docsUrl}`,
+        })
+      );
+      if (value.trim().length > 0) {
+        collected.set(variable.key, value);
+      } else {
+        skippedRequiredKeys.add(variable.key);
+      }
+    }
+  }
+  return {
+    defaults: collected,
+    skippedRequiredKeys,
+  };
+};
+
+const renderDeferredPlatformEnvGuidance = (
+  selectedPlatforms: Platform[],
+  pendingKeys?: ReadonlySet<string>
+): string[] => {
+  const lines: string[] = [];
+
+  for (const platform of selectedPlatforms) {
+    if (platform === "local") {
+      continue;
+    }
+
+    const metadata = PLATFORM_METADATA[platform];
+    const requiredVariables = metadata.envVariables.filter((variable) => {
+      if (!variable.required) {
+        return false;
+      }
+      if (!pendingKeys) {
+        return true;
+      }
+      return pendingKeys.has(variable.key);
+    });
+    if (requiredVariables.length === 0) {
+      continue;
+    }
+
+    lines.push(`  [${metadata.label}]`);
+    for (const variable of requiredVariables) {
+      lines.push(`  - ${variable.key} (${variable.docsUrl})`);
+    }
+  }
+
+  return lines;
+};
+
 const run = async (): Promise<void> => {
   const cliArgs = process.argv.slice(2);
   handleLifecycleCommandAttempt(cliArgs);
@@ -413,7 +483,38 @@ const run = async (): Promise<void> => {
       initialValues: ["local"],
       required: true,
     })
+  ) as Platform[];
+
+  const selectedRemotePlatforms = platforms.filter(
+    (platform) => platform !== "local"
   );
+  const shouldConfigurePlatformsNow =
+    selectedRemotePlatforms.length === 0
+      ? false
+      : handleCancel(
+          await select({
+            message: "Configure platform integrations",
+            options: [
+              {
+                label: "Now (recommended)",
+                value: true,
+              },
+              {
+                label: "Later",
+                value: false,
+              },
+            ],
+            initialValue: true,
+          })
+        );
+
+  const platformEnvPromptResult = shouldConfigurePlatformsNow
+    ? await promptPlatformEnvVars(platforms)
+    : {
+        defaults: new Map<string, string>(),
+        skippedRequiredKeys: new Set<string>(),
+      };
+  const platformEnvDefaults = platformEnvPromptResult.defaults;
 
   const withDashboard = handleCancel(
     await confirm({
@@ -474,7 +575,7 @@ const run = async (): Promise<void> => {
     databaseDialect,
     name: botName,
     prompt,
-    platforms: platforms as Platform[],
+    platforms,
     withDashboard,
     isServerless,
     id,
@@ -485,7 +586,7 @@ const run = async (): Promise<void> => {
 
   const envMetadata = getEnvMetadataForConfig({
     authEnabled: withDashboard,
-    platforms: platforms as Platform[],
+    platforms,
     plugins,
     provider,
   });
@@ -499,6 +600,9 @@ const run = async (): Promise<void> => {
   }
   if (apiKeyEnvKey && apiKey !== undefined) {
     envDefaults.set(apiKeyEnvKey, apiKey);
+  }
+  for (const [key, value] of platformEnvDefaults) {
+    envDefaults.set(key, value);
   }
 
   const envMetadataWithDefaults = envMetadata.map((meta) => {
@@ -524,8 +628,20 @@ const run = async (): Promise<void> => {
   await writeFiles(targetDir, files);
   writer.stop("Project created");
 
+  const deferredPlatformEnvLines = shouldConfigurePlatformsNow
+    ? renderDeferredPlatformEnvGuidance(
+        platforms,
+        platformEnvPromptResult.skippedRequiredKeys
+      )
+    : renderDeferredPlatformEnvGuidance(platforms);
+
+  const deferredPlatformMessage =
+    deferredPlatformEnvLines.length > 0
+      ? `\n\nBefore enabling webhook handlers, set these required platform variables:\n${deferredPlatformEnvLines.join("\n")}`
+      : "";
+
   outro(
-    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run db:generate\n  bun run db:migrate\n  bun run dev`
+    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run db:generate\n  bun run db:migrate\n  bun run dev${deferredPlatformMessage}`
   );
 };
 

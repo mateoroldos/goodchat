@@ -16,6 +16,8 @@
     discord: "bg-[#5865f2]/20 text-[#8b9bff] border-[#5865f2]/50",
     teams: "bg-[#6264a7]/20 text-[#9b9ecc] border-[#6264a7]/50",
     gchat: "bg-[#00ac47]/20 text-[#4ade80] border-[#00ac47]/40",
+    linear: "bg-[#f11a7b]/20 text-[#f87bb8] border-[#f11a7b]/40",
+    github: "bg-zinc-700/30 text-zinc-400 border-zinc-600/50",
   };
 
   const PLATFORM_LABELS: Record<BotPlatform, string> = {
@@ -24,6 +26,8 @@
     discord: "Discord",
     teams: "Teams",
     gchat: "Google Chat",
+    linear: "Linear",
+    github: "GitHub",
   };
 
   const styles = $derived.by(

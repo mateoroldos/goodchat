@@ -20,6 +20,7 @@ export default defineConfig({
     "database/interface": "./src/database/interface.ts",
     "model/model-ref": "./src/model/model-ref.ts",
     "model/provider-metadata": "./src/model/provider-metadata.ts",
+    "platform/platform-metadata": "./src/platform/platform-metadata.ts",
     "model/catalog/openai": "./src/model/catalog/openai.ts",
     "model/catalog/anthropic": "./src/model/catalog/anthropic.ts",
     "model/catalog/google": "./src/model/catalog/google.ts",

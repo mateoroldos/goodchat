@@ -6,7 +6,15 @@ import { schema } from "./db/schema";
 export const goodchat = createGoodchat({
   name: "Minimal",
   prompt: "You are a helpful assistant",
-  platforms: ["local"],
+  platforms: [
+    "local",
+    "discord",
+    "slack",
+    "gchat",
+    "linear",
+    "github",
+    "teams",
+  ],
   model: openai("gpt-4.1-mini"),
   withDashboard: true,
   auth: {

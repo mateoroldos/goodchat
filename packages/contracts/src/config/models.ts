@@ -16,6 +16,8 @@ export const CHAT_PLATFORMS = [
   "discord",
   "teams",
   "gchat",
+  "linear",
+  "github",
 ] as const;
 
 export const platformSchema = z.enum(CHAT_PLATFORMS);

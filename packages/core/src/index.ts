@@ -147,7 +147,6 @@ export const createGoodchat = (options: BotConfigInput) => {
       .use(
         webhookChatController({
           botId: bot.id,
-          platforms: bot.platforms,
           isServerless: bot.isServerless,
           logger,
           gateway: chatRuntime.gateway,
