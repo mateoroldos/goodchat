@@ -17,6 +17,25 @@ export interface PlatformMetadata {
   webhookPath: string | null;
 }
 
+export interface PlatformSetupLink {
+  label: string;
+  url: string;
+}
+
+export interface PlatformSetupStep {
+  description: string;
+  title: string;
+  type?: "standard" | "webhook";
+}
+
+export interface PlatformSetupInstructions {
+  checklist: readonly string[];
+  intro: string;
+  links: readonly PlatformSetupLink[];
+  pitfalls: readonly string[];
+  steps: readonly PlatformSetupStep[];
+}
+
 export const PLATFORM_METADATA: Record<Platform, PlatformMetadata> = {
   local: {
     label: "Local",
@@ -252,6 +271,306 @@ export const PLATFORM_METADATA: Record<Platform, PlatformMetadata> = {
           "https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/about-creating-github-apps",
         required: false,
         requiredMessage: "",
+      },
+    ],
+  },
+};
+
+export const PLATFORM_SETUP_INSTRUCTIONS: Record<
+  Platform,
+  PlatformSetupInstructions
+> = {
+  local: {
+    intro: "Run locally with no external platform setup.",
+    steps: [
+      {
+        title: "Start the dev runtime",
+        description: "Run goodchat in dev mode and keep the server running.",
+      },
+      {
+        title: "Open the dashboard",
+        description: "Use the web app to test prompts, tools, and context.",
+      },
+      {
+        title: "Send a local test message",
+        description:
+          "Trigger one full request/response cycle and confirm logs appear.",
+      },
+    ],
+    checklist: [
+      "Server starts without env errors",
+      "You can send and receive messages in the dashboard",
+      "Logs show the request lifecycle",
+    ],
+    pitfalls: [
+      "Forgetting to run both server and web app",
+      "Assuming local mode validates external webhook flows",
+    ],
+    links: [
+      { label: "Chat SDK docs", url: "https://chat-sdk.dev/docs" },
+      { label: "SvelteKit docs", url: "https://svelte.dev/docs/kit" },
+    ],
+  },
+  slack: {
+    intro: "Create a Slack app, configure events, then add required secrets.",
+    steps: [
+      {
+        title: "Create or select a Slack app",
+        description: "Open Slack API apps and pick the workspace for testing.",
+      },
+      {
+        title: "Enable bot features",
+        description:
+          "Enable Event Subscriptions and required bot scopes, then install the app.",
+      },
+      {
+        title: "Register the Request URL",
+        description:
+          "Paste your webhook URL into Event Subscriptions and save changes.",
+        type: "webhook",
+      },
+      {
+        title: "Add env variables",
+        description:
+          "Set bot token and signing secret. Add OAuth values if using multi-workspace installs.",
+      },
+    ],
+    checklist: [
+      "Slack marks the Request URL as verified",
+      "App is installed to your target workspace",
+      "Mentions/messages reach your webhook logs",
+    ],
+    pitfalls: [
+      "Missing bot scopes before reinstalling",
+      "Using a signing secret from a different app",
+    ],
+    links: [
+      {
+        label: "Chat SDK Slack",
+        url: "https://chat-sdk.dev/adapters/slack",
+      },
+      { label: "Slack API apps", url: "https://api.slack.com/apps" },
+    ],
+  },
+  discord: {
+    intro:
+      "Use a Discord application with interactions enabled and bot credentials configured.",
+    steps: [
+      {
+        title: "Create a Discord application",
+        description:
+          "Open the Discord Developer Portal and create/select your app.",
+      },
+      {
+        title: "Collect app credentials",
+        description:
+          "Copy Application ID, Public Key, and Bot Token from portal settings.",
+      },
+      {
+        title: "Register Interactions Endpoint URL",
+        description:
+          "Paste your webhook URL in General Information and save to validate.",
+        type: "webhook",
+      },
+      {
+        title: "Invite bot to your server",
+        description:
+          "Generate an OAuth2 URL with bot + application.commands scopes and invite it.",
+      },
+    ],
+    checklist: [
+      "Endpoint validates successfully in Developer Portal",
+      "Bot appears online in your server",
+      "Slash commands or mentions trigger responses",
+    ],
+    pitfalls: [
+      "Not enabling Message Content intent when needed",
+      "Rotating token without updating env",
+    ],
+    links: [
+      {
+        label: "Chat SDK Discord",
+        url: "https://chat-sdk.dev/adapters/discord",
+      },
+      {
+        label: "Discord Developer Portal",
+        url: "https://discord.com/developers/applications",
+      },
+    ],
+  },
+  teams: {
+    intro:
+      "Register an Azure bot and connect Teams messaging endpoint settings.",
+    steps: [
+      {
+        title: "Register your Azure bot app",
+        description:
+          "Create/select an app registration and capture App ID and secret.",
+      },
+      {
+        title: "Configure Teams channel",
+        description:
+          "Enable Microsoft Teams channel for your bot in Azure Bot settings.",
+      },
+      {
+        title: "Set messaging endpoint",
+        description: "Set the bot messaging endpoint to your webhook URL.",
+        type: "webhook",
+      },
+      {
+        title: "Set env variables",
+        description:
+          "Add app ID/password and tenant ID when using a single-tenant setup.",
+      },
+    ],
+    checklist: [
+      "Bot endpoint is reachable from Azure",
+      "Teams channel shows connected",
+      "Direct message to bot returns a response",
+    ],
+    pitfalls: [
+      "Using wrong tenant for SingleTenant config",
+      "Forgetting to redeploy after endpoint changes",
+    ],
+    links: [
+      {
+        label: "Chat SDK Teams",
+        url: "https://chat-sdk.dev/adapters/teams",
+      },
+      {
+        label: "Azure portal",
+        url: "https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps",
+      },
+    ],
+  },
+  gchat: {
+    intro:
+      "Configure a Google Chat app and service-account based authentication.",
+    steps: [
+      {
+        title: "Create a Google Chat app",
+        description:
+          "Use Google Cloud console to configure app details and interaction settings.",
+      },
+      {
+        title: "Configure event delivery",
+        description:
+          "Set event endpoint settings for HTTP or Pub/Sub delivery as needed.",
+      },
+      {
+        title: "Register endpoint URL",
+        description:
+          "Use your webhook URL for HTTP callbacks when endpoint mode is selected.",
+        type: "webhook",
+      },
+      {
+        title: "Add credentials env vars",
+        description:
+          "Provide GOOGLE_CHAT_CREDENTIALS or ADC setup, plus optional Pub/Sub settings.",
+      },
+    ],
+    checklist: [
+      "Google Chat app is published to intended users/spaces",
+      "Incoming events arrive at your runtime",
+      "Bot can send replies in threads",
+    ],
+    pitfalls: [
+      "Invalid base64 JSON in GOOGLE_CHAT_CREDENTIALS",
+      "Cloud IAM permissions missing for service account",
+    ],
+    links: [
+      {
+        label: "Chat SDK Google Chat",
+        url: "https://chat-sdk.dev/adapters/google-chat",
+      },
+      {
+        label: "Google Chat developer docs",
+        url: "https://developers.google.com/workspace/chat",
+      },
+    ],
+  },
+  linear: {
+    intro: "Create a Linear webhook and authorize API access for bot actions.",
+    steps: [
+      {
+        title: "Open Linear webhook settings",
+        description:
+          "Create a webhook for your workspace and choose target events.",
+      },
+      {
+        title: "Register webhook URL",
+        description: "Set the webhook target URL to your runtime endpoint.",
+        type: "webhook",
+      },
+      {
+        title: "Copy webhook secret",
+        description: "Save webhook secret and set LINEAR_WEBHOOK_SECRET.",
+      },
+      {
+        title: "Add API auth",
+        description:
+          "Set LINEAR_API_KEY or LINEAR_ACCESS_TOKEN for follow-up API operations.",
+      },
+    ],
+    checklist: [
+      "Webhook delivery succeeds in Linear logs",
+      "Bot can post comments or sessions based on LINEAR_MODE",
+      "Workspace events map to expected automations",
+    ],
+    pitfalls: [
+      "Using API key without required workspace permissions",
+      "Forgetting to set LINEAR_MODE when expecting agent sessions",
+    ],
+    links: [
+      {
+        label: "Chat SDK Linear",
+        url: "https://chat-sdk.dev/adapters/linear",
+      },
+      { label: "Linear webhooks", url: "https://linear.app/settings/webhooks" },
+    ],
+  },
+  github: {
+    intro:
+      "Configure a GitHub webhook and choose PAT or GitHub App credentials.",
+    steps: [
+      {
+        title: "Create webhook in repository or organization",
+        description: "Choose event types your bot should react to.",
+      },
+      {
+        title: "Set payload URL",
+        description:
+          "Paste your webhook URL and set the same webhook secret as env.",
+        type: "webhook",
+      },
+      {
+        title: "Choose authentication mode",
+        description:
+          "Use GITHUB_TOKEN (simple) or GitHub App credentials for production setups.",
+      },
+      {
+        title: "Verify delivery",
+        description:
+          "Send a test ping and confirm signature verification passes.",
+      },
+    ],
+    checklist: [
+      "Webhook ping returns 2xx",
+      "Expected issue/PR events appear in logs",
+      "Bot actions succeed with configured auth mode",
+    ],
+    pitfalls: [
+      "Secret mismatch between GitHub and .env",
+      "Missing installation ID when using GitHub App mode",
+    ],
+    links: [
+      {
+        label: "Chat SDK GitHub",
+        url: "https://chat-sdk.dev/adapters/github",
+      },
+      {
+        label: "GitHub webhooks docs",
+        url: "https://docs.github.com/en/webhooks/using-webhooks/creating-webhooks",
       },
     ],
   },

@@ -4,7 +4,6 @@
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import DiscordSetupGuide from "./discord-setup-guide.svelte";
   import PlatformBadge from "./platform-badge.svelte";
 
   interface Props {
@@ -74,9 +73,5 @@
         </div>
       </Card.Content>
     </Card.Root>
-
-    {#if bot.platforms.includes("discord")}
-      <div class="mt-6"><DiscordSetupGuide {bot} /></div>
-    {/if}
   {/if}
 </section>

@@ -15,13 +15,16 @@
   import CopyButton from "$lib/components/copy-button.svelte";
   import PageHeader from "$lib/components/page-header.svelte";
   import PlatformBadge from "$lib/components/platform-badge.svelte";
+  import PlatformSetupGuide from "$lib/components/platform-setup-guide.svelte";
   import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import { cn } from "$lib/utils";
 
-  const platformId = $derived(page.params.platformId as Platform);
+  const platformId = $derived(
+    (page.params as Record<string, string>).platformId as Platform
+  );
   const meta = $derived(PLATFORM_METADATA[platformId]);
 
   const statusQuery = createQuery(() => platformsQueries.status(platformId));
@@ -148,6 +151,8 @@
         </div>
       </div>
     {/if}
+
+    <PlatformSetupGuide {platformId} {webhookUrl} />
 
     {#if webhookUrl}
       <Card.Root class="mb-6">
