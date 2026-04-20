@@ -104,7 +104,7 @@ const createTestApp = async (overrides: Partial<BotConfigInput> = {}) => {
     database: createDatabaseStub(),
     auth: defaultAuth,
     isServerless: false,
-    withDashboard: true,
+    dashboard: true,
   });
 
   const resolvedAuth: BotConfigInput["auth"] = {

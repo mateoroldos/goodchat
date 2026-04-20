@@ -60,7 +60,7 @@ export const createGoodchatHarness = async (
       localChatPublic: false,
     },
     isServerless: true,
-    withDashboard: false,
+    dashboard: false,
   });
   const { app } = await ready;
 

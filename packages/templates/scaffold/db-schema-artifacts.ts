@@ -45,9 +45,9 @@ const getDrizzleDialect = (dialect: DatabaseDialect): string => {
 
 const renderDrizzleCredentials = (dialect: DatabaseDialect): string => {
   if (dialect === "sqlite") {
-    return '    url: process.env.DATABASE_URL || "./goodchat.db",';
+    return "    url: process.env.DATABASE_URL,";
   }
-  return '    url: process.env.DATABASE_URL || "",';
+  return "    url: process.env.DATABASE_URL,";
 };
 
 const renderCoreSchemaFile = async (input: {

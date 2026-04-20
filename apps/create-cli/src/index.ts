@@ -2,7 +2,6 @@ import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import {
   cancel,
-  confirm,
   isCancel,
   multiselect,
   outro,
@@ -11,7 +10,6 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
-import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import { CHAT_PLATFORMS } from "@goodchat/contracts/config/models";
 import type {
   DatabaseDialect,
@@ -78,160 +76,6 @@ const writeFiles = async (
   }
 };
 
-const promptMcpServers = async (): Promise<MCPServerConfig[]> => {
-  const servers: MCPServerConfig[] = [];
-  let shouldAdd = handleCancel(
-    await confirm({
-      message: "Add an MCP server?",
-      initialValue: false,
-    })
-  );
-
-  while (shouldAdd) {
-    const name = handleCancel(
-      await text({
-        message: "MCP server name",
-        validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
-      })
-    );
-
-    const transportType = handleCancel(
-      await select({
-        message: "MCP transport",
-        options: [
-          { label: "HTTP", value: "http" },
-          { label: "SSE", value: "sse" },
-          { label: "Stdio", value: "stdio" },
-        ],
-      })
-    );
-
-    if (transportType === "http" || transportType === "sse") {
-      const url = handleCancel(
-        await text({
-          message: "MCP URL",
-          validate: (value) =>
-            value.trim().length > 0 ? undefined : "Required",
-        })
-      );
-
-      const includeHeaders = handleCancel(
-        await confirm({
-          message: "Add headers (JSON)?",
-          initialValue: false,
-        })
-      );
-
-      let headers: Record<string, string> | undefined;
-      if (includeHeaders) {
-        const headerText = handleCancel(
-          await text({
-            message: "Headers JSON",
-            placeholder: '{"Authorization":"Bearer ..."}',
-            validate: (value) => {
-              if (!value.trim()) {
-                return "Required";
-              }
-              try {
-                const parsed = JSON.parse(value) as unknown;
-                if (!parsed || typeof parsed !== "object") {
-                  return "Must be a JSON object";
-                }
-                return undefined;
-              } catch {
-                return "Invalid JSON";
-              }
-            },
-          })
-        );
-
-        headers = JSON.parse(headerText) as Record<string, string>;
-      }
-
-      servers.push({
-        name,
-        transport: {
-          type: transportType,
-          url,
-          headers,
-        },
-      });
-    } else {
-      const command = handleCancel(
-        await text({
-          message: "MCP command",
-          validate: (value) =>
-            value.trim().length > 0 ? undefined : "Required",
-        })
-      );
-
-      const argsText = handleCancel(
-        await text({
-          message: "Command args (comma-separated)",
-          placeholder: "--foo,bar",
-        })
-      );
-
-      const includeEnv = handleCancel(
-        await confirm({
-          message: "Add env (JSON)?",
-          initialValue: false,
-        })
-      );
-
-      let env: Record<string, string> | undefined;
-      if (includeEnv) {
-        const envText = handleCancel(
-          await text({
-            message: "Env JSON",
-            placeholder: '{"KEY":"value"}',
-            validate: (value) => {
-              if (!value.trim()) {
-                return "Required";
-              }
-              try {
-                const parsed = JSON.parse(value) as unknown;
-                if (!parsed || typeof parsed !== "object") {
-                  return "Must be a JSON object";
-                }
-                return undefined;
-              } catch {
-                return "Invalid JSON";
-              }
-            },
-          })
-        );
-
-        env = JSON.parse(envText) as Record<string, string>;
-      }
-
-      const args = argsText
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-
-      servers.push({
-        name,
-        transport: {
-          type: "stdio",
-          command,
-          args: args.length > 0 ? args : undefined,
-          env,
-        },
-      });
-    }
-
-    shouldAdd = handleCancel(
-      await confirm({
-        message: "Add another MCP server?",
-        initialValue: false,
-      })
-    );
-  }
-
-  return servers;
-};
-
 // ── Primary color ─────────────────────────────────────────────────────────-
 // oklch(0.78 0.185 70) ≈ rgb(255, 163, 10)
 const FG_AMB = "\x1b[38;2;255;163;10m";
@@ -239,6 +83,58 @@ const RST = "\x1b[0m";
 
 const printBanner = (): void => {
   process.stdout.write(`\n${FG_AMB}Welcome to goodchat${RST}\n\n`);
+};
+
+const BOT_NAME_OPTIONS = [
+  "Mateo",
+  "Martin",
+  "Bruno",
+  "Juan",
+  "Nico",
+  "Pablo",
+  "Carlos",
+  "Luis",
+  "Pedro",
+  "Santi",
+  "Rambo",
+  "Felipe",
+  "Patricio",
+] as const;
+
+const pickBotNamePlaceholder = (): string => {
+  const index = Math.floor(Math.random() * BOT_NAME_OPTIONS.length);
+  return BOT_NAME_OPTIONS[index] ?? "Mateo";
+};
+
+const PROMPT_PLACEHOLDER_OPTIONS = [
+  "You are a startup CEO: monetize everything, pivot weekly, and call it vision when it's actually just fear.",
+  "You are a battle-scarred tech lead: you've seen every rewrite fail, and you're already planning the next one anyway.",
+  "You are a senior engineer: gatekeep gently, refactor nothing you didn't write, and judge every PR in silence.",
+  "You are a pragmatic architect: draw diagrams that justify decisions already made, then blame the team when it breaks.",
+  "You are a product engineer: build what users need, then watch PM redefine user needs after every sprint retro.",
+  "You are a staff engineer: too senior to ship, too important to ignore, too vague to evaluate at review time.",
+  "You are a CTO: technically optional, politically essential, and deeply invested in your own folklore.",
+  "You are an elite debugger: you find the root cause, explain it clearly, and watch it get ignored in favor of a hotfix.",
+  "You are a principal engineer: you wrote the RFC, nobody read it, and the team did it wrong anyway — precisely as predicted.",
+  "You are a reliability engineer: blamed for every outage you didn't cause, ignored for every disaster you prevented.",
+  "You are a startup mentor: dispense timeless wisdom recycled from your last exit, mostly to people who won't survive.",
+  "You are a strict code reviewer: reject on principle, approve on deadline, and call both maintaining standards.",
+  "You are a friendly skeptic: shoot down ideas with a smile, take credit for the ones that survive.",
+  "You are the expert teammate: you saw this bug coming six months ago, said nothing, and will remind everyone of that forever.",
+  "You are an engineering manager: protect the team from chaos, generate chaos in return, and call it process.",
+  "You are a blunt consultant: charge premium rates to tell people what their employees already said for free.",
+  "You are a calm operator: unbothered on the outside, quietly convinced everyone else will cause the next incident.",
+  "You are a technical coach: make juniors feel capable, then watch them get overwhelmed by the codebase you normalized.",
+  "You are the maintainer's advocate: write pristine self-documenting code that gets temporarily hacked the week you're on vacation.",
+  "You are a clarity-first engineer: simplify everything until it's elegant, then watch the next developer add complexity back within 48 hours.",
+] as const;
+
+const pickPromptPlaceholder = (): string => {
+  const index = Math.floor(Math.random() * PROMPT_PLACEHOLDER_OPTIONS.length);
+  return (
+    PROMPT_PLACEHOLDER_OPTIONS[index] ??
+    "You are a helpful assistant with clear, practical answers."
+  );
 };
 
 const handleLifecycleCommandAttempt = (args: string[]): void => {
@@ -445,7 +341,7 @@ const run = async (): Promise<void> => {
   const botName = handleCancel(
     await text({
       message: "Bot name",
-      placeholder: "Walter",
+      placeholder: pickBotNamePlaceholder(),
       validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
     })
   );
@@ -466,7 +362,7 @@ const run = async (): Promise<void> => {
   const prompt = handleCancel(
     await text({
       message: "Bot prompt",
-      placeholder: "You are a helpful assistant",
+      placeholder: pickPromptPlaceholder(),
       validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
     })
   );
@@ -496,15 +392,15 @@ const run = async (): Promise<void> => {
             message: "Configure platform integrations",
             options: [
               {
-                label: "Now (recommended)",
-                value: true,
-              },
-              {
                 label: "Later",
                 value: false,
               },
+              {
+                label: "Now",
+                value: true,
+              },
             ],
-            initialValue: true,
+            initialValue: false,
           })
         );
 
@@ -516,25 +412,14 @@ const run = async (): Promise<void> => {
       };
   const platformEnvDefaults = platformEnvPromptResult.defaults;
 
-  const withDashboard = handleCancel(
-    await confirm({
-      message: "Include bot website?",
-      initialValue: true,
+  const dashboardPassword = handleCancel(
+    await password({
+      message: "Dashboard password",
+      validate: (value) =>
+        value.trim().length >= 8 ? undefined : "Use at least 8 characters",
     })
   );
 
-  let dashboardPassword = "";
-  if (withDashboard) {
-    dashboardPassword = handleCancel(
-      await password({
-        message: "Dashboard password",
-        validate: (value) =>
-          value.trim().length >= 8 ? undefined : "Use at least 8 characters",
-      })
-    );
-  }
-
-  const isServerless = false;
   const id = undefined;
 
   const databaseDialect = handleCancel(
@@ -568,33 +453,26 @@ const run = async (): Promise<void> => {
     })
   );
 
-  const mcp = await promptMcpServers();
-
   const config: ScaffolderConfig = {
-    authEnabled: withDashboard,
+    authEnabled: true,
     databaseDialect,
     name: botName,
     prompt,
     platforms,
-    withDashboard,
-    isServerless,
     id,
     plugins,
     model,
-    mcp: mcp.length > 0 ? mcp : undefined,
   };
 
   const envMetadata = getEnvMetadataForConfig({
-    authEnabled: withDashboard,
+    authEnabled: true,
     platforms,
     plugins,
     provider,
   });
 
   const envDefaults = new Map<string, string>();
-  if (withDashboard) {
-    envDefaults.set("GOODCHAT_DASHBOARD_PASSWORD", dashboardPassword);
-  }
+  envDefaults.set("GOODCHAT_DASHBOARD_PASSWORD", dashboardPassword);
   if (sqliteDatabasePath) {
     envDefaults.set("DATABASE_URL", sqliteDatabasePath);
   }

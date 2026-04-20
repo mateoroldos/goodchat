@@ -12,6 +12,7 @@ export const env = createEnv({
     WEBHOOK_FORWARD_URL: z.string().url().optional(),
     REDIS_URL: z.string().url().optional(),
     CRON_SECRET: z.string().optional(),
+    ENVIRONMENT: z.enum(["development", "test", "production"]).optional(),
     SERVERLESS: z.enum(["true", "false"]).optional(),
     OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY key is required"),
   },

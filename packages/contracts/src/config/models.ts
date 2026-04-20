@@ -103,6 +103,6 @@ export const botConfigSchema = z.object({
     )
     .default([]),
   tools: z.record(z.string(), toolSchema).default({}),
-  withDashboard: z.boolean().default(true),
+  dashboard: z.boolean().default(true),
   auth: authConfigSchema,
 });

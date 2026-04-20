@@ -27,14 +27,12 @@ export interface GeneratorConfig {
   authEnabled: boolean;
   databaseDialect: DatabaseDialect;
   id?: string;
-  isServerless: boolean;
   mcp?: MCPServerConfig[];
   model?: SelectedModel;
   name: string;
   platforms: Platform[];
   plugins?: string[];
   prompt: string;
-  withDashboard: boolean;
 }
 
 export type ScaffolderConfig = GeneratorConfig;
@@ -181,6 +179,7 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
   const imports: string[] = [];
   const coreImports = ["createGoodchat"];
   imports.push('import { schema } from "./db/schema";');
+  imports.push('import { env } from "./env";');
   if (config.databaseDialect === "sqlite") {
     imports.push('import { sqlite } from "@goodchat/storage/sqlite";');
   }
@@ -203,14 +202,13 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
   }
 
   let databaseExpression =
-    'mysql({ connectionString: process.env.DATABASE_URL || "", schema })';
+    "mysql({ connectionString: env.DATABASE_URL, schema })";
   if (config.databaseDialect === "sqlite") {
-    databaseExpression =
-      'sqlite({ path: process.env.DATABASE_URL || "./goodchat.db", schema })';
+    databaseExpression = "sqlite({ path: env.DATABASE_URL, schema })";
   }
   if (config.databaseDialect === "postgres") {
     databaseExpression =
-      'postgres({ connectionString: process.env.DATABASE_URL || "", schema })';
+      "postgres({ connectionString: env.DATABASE_URL, schema })";
   }
 
   const entries: string[] = [
@@ -218,6 +216,10 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
     `  prompt: ${JSON.stringify(config.prompt)},`,
     `  platforms: ${JSON.stringify(config.platforms)},`,
   ];
+
+  const authEnabledExpression = config.authEnabled
+    ? 'env.ENVIRONMENT !== "development"'
+    : "false";
 
   if (config.id) {
     entries.push(`  id: ${JSON.stringify(config.id)},`);
@@ -242,19 +244,13 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
     entries.push(`  mcp: ${mcpValue.trimStart()},`);
   }
 
-  entries.push(`  withDashboard: ${config.withDashboard},`);
   entries.push("  auth: {");
-  entries.push(`    enabled: ${config.authEnabled},`);
-  entries.push('    mode: "password",');
-  entries.push("    localChatPublic: false,");
+  entries.push(`    enabled: ${authEnabledExpression},`);
   if (config.authEnabled) {
-    entries.push("    password: process.env.GOODCHAT_DASHBOARD_PASSWORD,");
+    entries.push("    password: env.GOODCHAT_DASHBOARD_PASSWORD,");
   }
   entries.push("  },");
   entries.push(`  database: ${databaseExpression},`);
-  entries.push(
-    '  isServerless: process.env.SERVERLESS === "true" || process.env.VERCEL === "1",'
-  );
 
   return `${imports.join("\n")}
 
@@ -288,7 +284,7 @@ export const renderSqliteMigrateFile = (): string => {
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 
-const sqlite = new Database(process.env.DATABASE_URL || "./goodchat.db");
+const sqlite = new Database(process.env.DATABASE_URL);
 const database = drizzle(sqlite);
 
 migrate(database, { migrationsFolder: "./drizzle" });

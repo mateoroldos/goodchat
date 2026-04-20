@@ -64,7 +64,7 @@ const createBot = ({
   plugins: [],
   prompt: "Be helpful",
   tools: {},
-  withDashboard: true,
+  dashboard: true,
 });
 
 const createLoggerService = (

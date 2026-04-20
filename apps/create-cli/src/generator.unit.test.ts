@@ -31,8 +31,6 @@ describe("generator helpers", () => {
       name: "Support Bot",
       prompt: "Be helpful",
       platforms: ["local", "slack"],
-      withDashboard: true,
-      isServerless: false,
       model: { provider: "openai", modelId: "gpt-4.1-mini" },
       plugins: ["linear"],
       mcp: [
@@ -49,14 +47,17 @@ describe("generator helpers", () => {
     expect(result).toContain('name: "Support Bot"');
     expect(result).toContain("export const goodchat = createGoodchat({");
     expect(result).toContain('import { schema } from "./db/schema";');
+    expect(result).toContain('import { env } from "./env";');
     expect(result).toContain("auth: {");
-    expect(result).toContain("enabled: true,");
+    expect(result).toContain('enabled: env.ENVIRONMENT !== "development",');
+    expect(result).toContain("password: env.GOODCHAT_DASHBOARD_PASSWORD,");
     expect(result).toContain(
-      "password: process.env.GOODCHAT_DASHBOARD_PASSWORD,"
+      "database: sqlite({ path: env.DATABASE_URL, schema }),"
     );
-    expect(result).toContain(
-      'database: sqlite({ path: process.env.DATABASE_URL || "./goodchat.db", schema }),'
-    );
+    expect(result).not.toContain("mode:");
+    expect(result).not.toContain("localChatPublic:");
+    expect(result).not.toContain("dashboard:");
+    expect(result).not.toContain("isServerless:");
   });
 
   it("renders env schema for provided variables", () => {
@@ -86,8 +87,6 @@ describe("generator helpers", () => {
         name: "goodchat",
         prompt: "Be helpful",
         platforms: ["local"],
-        withDashboard: true,
-        isServerless: false,
       },
       envMetadata: [
         {
@@ -114,8 +113,6 @@ describe("generator helpers", () => {
         name: "goodchat",
         prompt: "Be helpful",
         platforms: ["local"],
-        withDashboard: true,
-        isServerless: false,
       },
       envMetadata: [
         {
@@ -217,19 +214,17 @@ describe("generator helpers", () => {
       authEnabled: true,
       databaseDialect: "postgres",
       id: "test-id",
-      isServerless: false,
       model: { provider: "openai", modelId: "gpt-4.1-mini" },
       name: "Test Bot",
       platforms: ["local", "discord"],
       plugins: ["linear"],
       prompt: "Be precise",
-      withDashboard: true,
       mcp: [],
     });
 
     expect(configFile).toContain("export const goodchat = createGoodchat({");
     expect(configFile).toContain(
-      'database: postgres({ connectionString: process.env.DATABASE_URL || "", schema }),'
+      "database: postgres({ connectionString: env.DATABASE_URL, schema }),"
     );
     expect(configFile).toContain('name: "Test Bot"');
     expect(configFile).toContain("plugins: [linear]");
@@ -278,12 +273,10 @@ describe("generator helpers", () => {
     const output = renderGoodchatFile({
       authEnabled: false,
       databaseDialect: "sqlite",
-      isServerless: false,
       model: { provider, modelId },
       name: "Provider Bot",
       platforms: ["local"],
       prompt: "Be helpful",
-      withDashboard: false,
     });
 
     expect(output).toContain(

@@ -87,6 +87,12 @@ const ENV_METADATA: EnvVariableMeta[] = [
     schema: "z.string().optional()",
   },
   {
+    key: "ENVIRONMENT",
+    description: "Runtime environment",
+    category: "core",
+    schema: 'z.enum(["development", "test", "production"]).optional()',
+  },
+  {
     key: "SERVERLESS",
     description: "Set to true when running on serverless platforms",
     category: "core",

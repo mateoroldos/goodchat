@@ -122,16 +122,16 @@ export const createLocalChatApi = ({
 
 export const setupDashboard = async ({
   app,
+  dashboard,
   isServerless,
   webBuildPath,
-  withDashboard,
 }: {
   app: Elysia;
+  dashboard: boolean;
   isServerless: boolean;
   webBuildPath: string;
-  withDashboard: boolean;
 }) => {
-  if (!withDashboard || isServerless) {
+  if (!dashboard || isServerless) {
     return;
   }
 

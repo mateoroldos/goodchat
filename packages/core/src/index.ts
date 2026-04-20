@@ -205,7 +205,7 @@ export const createGoodchat = (options: BotConfigInput) => {
     await setupDashboard({
       app,
       webBuildPath,
-      withDashboard: bot.withDashboard,
+      dashboard: bot.dashboard,
       isServerless: bot.isServerless,
     });
 

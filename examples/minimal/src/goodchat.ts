@@ -2,6 +2,7 @@ import { createGoodchat, openai } from "@goodchat/core";
 import { linear } from "@goodchat/plugins/linear";
 import { sqlite } from "@goodchat/storage/sqlite";
 import { schema } from "./db/schema";
+import { env } from "./env";
 
 export const goodchat = createGoodchat({
   name: "Minimal",
@@ -16,17 +17,14 @@ export const goodchat = createGoodchat({
     "teams",
   ],
   model: openai("gpt-4.1-mini"),
-  withDashboard: true,
+  dashboard: true,
   auth: {
-    enabled: true,
-    mode: "password",
-    localChatPublic: false,
-    password: process.env.GOODCHAT_DASHBOARD_PASSWORD,
+    enabled: env.ENVIRONMENT !== "development",
+    password: env.GOODCHAT_DASHBOARD_PASSWORD,
   },
   plugins: [linear({ team: "EME" })],
   database: sqlite({
-    path: process.env.DATABASE_URL || "./goodchat.db",
+    path: env.DATABASE_URL,
     schema,
   }),
-  isServerless: process.env.SERVERLESS === "true" || process.env.VERCEL === "1",
 });
