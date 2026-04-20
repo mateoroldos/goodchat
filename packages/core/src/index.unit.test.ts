@@ -1,10 +1,12 @@
 import type { BotConfigInput } from "@goodchat/contracts/config/types";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createGoodchat } from "./index";
 import { createDatabaseStub } from "./test-utils/database-stub";
 
 describe("createGoodchat", () => {
-  process.env.OPENAI_API_KEY = "test-openai-key";
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = "test-openai-key";
+  });
 
   const baseConfig: BotConfigInput = {
     id: "local-bot",

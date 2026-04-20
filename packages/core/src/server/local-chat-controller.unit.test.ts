@@ -70,4 +70,42 @@ describe("localChatController", () => {
     expect(threadId).toBe("thread-1");
     await expect(response.text()).resolves.toContain("text-delta");
   });
+
+  it("returns 400 when no message text is in the request", async () => {
+    const app = createApp(["Hello"]);
+
+    const response = await app.handle(
+      new Request("http://localhost/local/chat/stream", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "thread-1",
+          trigger: "submit-message",
+          messages: [],
+        }),
+      })
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Message is required",
+    });
+  });
+
+  it("returns text and threadId from sync endpoint", async () => {
+    const app = createApp(["Hello ", "world"]);
+
+    const response = await app.handle(
+      new Request("http://localhost/local/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: "thread-1", message: "Hi" }),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { text: string; threadId: string };
+    expect(body.text).toBe("Hello world");
+    expect(body.threadId).toBe("thread-1");
+  });
 });

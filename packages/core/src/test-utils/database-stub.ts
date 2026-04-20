@@ -134,6 +134,13 @@ export const createDatabaseStub = (): Database => {
         return Promise.resolve();
       },
     },
+    analytics: {
+      weeklyStats: () =>
+        Promise.resolve({
+          threadsByDay: [],
+          tokensByDay: [],
+        }),
+    },
     threads: {
       create: (input: ThreadCreate) => {
         threadStore.set(input.id, input);

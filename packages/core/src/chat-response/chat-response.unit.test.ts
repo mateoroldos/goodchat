@@ -8,6 +8,7 @@ import { AiResponseGenerationError } from "../ai-response/errors";
 import type { AiResponseService } from "../ai-response/interface";
 import type { AiRunTelemetry } from "../ai-response/models";
 import type { LoggerService } from "../logger/interface";
+import { createDatabaseStub } from "../test-utils/database-stub";
 import type { MessageContext } from "../types";
 import { DefaultChatResponseService } from "./index";
 
@@ -29,32 +30,6 @@ const createTelemetry = (mode: "stream" | "sync"): AiRunTelemetry => ({
   toolCalls: [],
 });
 
-const createDatabase = (
-  overrides: { transaction?: Database["transaction"] } = {}
-): Database => {
-  const database = {
-    aiRunToolCalls: { create: vi.fn() },
-    aiRuns: { create: vi.fn() },
-    dialect: "sqlite",
-    messages: { create: vi.fn() },
-    threads: {
-      create: vi.fn(),
-      getById: vi.fn(async () => null),
-      update: vi.fn(),
-    },
-  } as unknown as Database;
-
-  const transaction =
-    overrides.transaction ??
-    (async (callback: Parameters<Database["transaction"]>[0]) =>
-      callback(database));
-
-  return {
-    ...database,
-    transaction,
-  };
-};
-
 const createContext = (text = "Hello"): MessageContext => ({
   adapterName: "local",
   botId: "bot-id",
@@ -65,57 +40,85 @@ const createContext = (text = "Hello"): MessageContext => ({
   userId: "user-1",
 });
 
+const createBot = ({
+  database,
+  hooks,
+}: {
+  database: Database;
+  hooks?: Bot["hooks"];
+}): Bot => ({
+  auth: { enabled: false, localChatPublic: false, mode: "password" },
+  corsOrigin: undefined,
+  database,
+  hooks: hooks ?? {
+    afterMessage: [],
+    beforeMessage: [],
+  },
+  id: "bot-id",
+  isServerless: false,
+  logging: { enabled: true },
+  mcp: [],
+  model: { modelId: "gpt-4.1-mini", provider: "openai" },
+  name: "Echo",
+  platforms: ["local"],
+  plugins: [],
+  prompt: "Be helpful",
+  tools: {},
+  withDashboard: true,
+});
+
+const createLoggerService = (
+  requestLogger = createLogger(),
+  backgroundLogger = createLogger()
+): LoggerService => ({
+  event: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+  request: vi.fn(() => requestLogger),
+  wide: vi.fn(() => backgroundLogger),
+});
+
+const createStreamAiResponse = (
+  telemetry: AiRunTelemetry = createTelemetry("stream")
+): AiResponseService => ({
+  generate: vi.fn(),
+  stream: vi.fn(async () =>
+    Result.ok({
+      telemetry: Promise.resolve(telemetry),
+      uiStream: createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: "text-start", id: "response" });
+          writer.write({
+            type: "text-delta",
+            delta: "Hello",
+            id: "response",
+          });
+          writer.write({ type: "text-end", id: "response" });
+        },
+      }),
+    })
+  ),
+});
+
 const createService = ({
   aiResponse,
   logger,
+  database,
   bot,
 }: {
   aiResponse: AiResponseService;
+  database?: Database;
   bot?: Bot;
   logger: LoggerService;
 }) => {
-  const database = createDatabase();
+  const db = database ?? createDatabaseStub();
   return new DefaultChatResponseService({
     aiResponse,
-    bot:
-      bot ??
-      ({
-        auth: { enabled: false, localChatPublic: false, mode: "password" },
-        corsOrigin: undefined,
-        database,
-        hooks: {
-          afterMessage: [],
-          beforeMessage: [],
-        },
-        id: "bot-id",
-        isServerless: false,
-        logging: { enabled: true },
-        mcp: [],
-        model: { modelId: "gpt-4.1-mini", provider: "openai" },
-        name: "Echo",
-        platforms: ["local"],
-        plugins: [],
-        prompt: "Be helpful",
-        tools: {},
-        withDashboard: true,
-      } as Bot),
+    bot: bot ?? createBot({ database: db }),
     logger,
   });
-};
-
-const waitForAssertion = async (assertion: () => void) => {
-  for (let attempt = 0; attempt < 20; attempt++) {
-    try {
-      assertion();
-      return;
-    } catch {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 10);
-      });
-    }
-  }
-
-  assertion();
 };
 
 describe("DefaultChatResponseService", () => {
@@ -124,15 +127,7 @@ describe("DefaultChatResponseService", () => {
       generate: vi.fn(),
       stream: vi.fn(),
     };
-    const logger: LoggerService = {
-      event: {
-        error: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-      },
-      request: vi.fn(() => createLogger()),
-      wide: vi.fn(() => createLogger()),
-    };
+    const logger = createLoggerService();
 
     const service = createService({ aiResponse, logger });
     const result = await service.handleMessage(createContext("   "));
@@ -149,15 +144,7 @@ describe("DefaultChatResponseService", () => {
       generate: vi.fn(async () => Result.err(aiError)),
       stream: vi.fn(),
     };
-    const logger: LoggerService = {
-      event: {
-        error: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-      },
-      request: vi.fn(() => requestLogger),
-      wide: vi.fn(() => createLogger()),
-    };
+    const logger = createLoggerService(requestLogger);
 
     const service = createService({ aiResponse, logger });
     const result = await service.handleMessage(createContext());
@@ -174,68 +161,22 @@ describe("DefaultChatResponseService", () => {
   it("uses background logger for stream persistence failures", async () => {
     const requestLogger = createLogger({ requestId: "req-1" });
     const backgroundLogger = createLogger();
-    const db = createDatabase({
-      transaction: () => Promise.reject(new Error("db down")),
-    });
+    const db = createDatabaseStub();
+    db.transaction = async () => Promise.reject(new Error("db down"));
 
-    const aiResponse: AiResponseService = {
-      generate: vi.fn(),
-      stream: vi.fn(async () =>
-        Result.ok({
-          telemetry: Promise.resolve(createTelemetry("stream")),
-          uiStream: createUIMessageStream({
-            execute: ({ writer }) => {
-              writer.write({ type: "text-start", id: "response" });
-              writer.write({
-                type: "text-delta",
-                delta: "Hello",
-                id: "response",
-              });
-              writer.write({ type: "text-end", id: "response" });
-            },
-          }),
-        })
-      ),
-    };
-    const logger: LoggerService = {
-      event: {
-        error: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-      },
-      request: vi.fn(() => requestLogger),
-      wide: vi.fn(() => backgroundLogger),
-    };
+    const aiResponse = createStreamAiResponse();
+    const logger = createLoggerService(requestLogger, backgroundLogger);
 
     const service = createService({
       aiResponse,
-      bot: {
-        auth: { enabled: false, localChatPublic: false, mode: "password" },
-        corsOrigin: undefined,
-        database: db,
-        hooks: {
-          afterMessage: [],
-          beforeMessage: [],
-        },
-        id: "bot-id",
-        isServerless: false,
-        logging: { enabled: true },
-        mcp: [],
-        model: { modelId: "gpt-4.1-mini", provider: "openai" },
-        name: "Echo",
-        platforms: ["local"],
-        plugins: [],
-        prompt: "Be helpful",
-        tools: {},
-        withDashboard: true,
-      },
+      database: db,
       logger,
     });
 
     const result = await service.handleMessageStream(createContext());
 
     expect(result.isOk()).toBe(true);
-    await waitForAssertion(() => {
+    await vi.waitFor(() => {
       expect(backgroundLogger.emit).toHaveBeenCalledTimes(1);
     });
     expect(backgroundLogger.error).toHaveBeenCalledTimes(1);
@@ -263,172 +204,130 @@ describe("DefaultChatResponseService", () => {
     const backgroundLogger = createLogger();
     const afterHook = vi.fn(async () => undefined);
 
-    const aiResponse: AiResponseService = {
-      generate: vi.fn(),
-      stream: vi.fn(async () =>
-        Result.ok({
-          telemetry: Promise.resolve(createTelemetry("stream")),
-          uiStream: createUIMessageStream({
-            execute: ({ writer }) => {
-              writer.write({ type: "text-start", id: "response" });
-              writer.write({
-                type: "text-delta",
-                delta: "Hello",
-                id: "response",
-              });
-              writer.write({ type: "text-end", id: "response" });
-            },
-          }),
-        })
-      ),
-    };
-    const logger: LoggerService = {
-      event: {
-        error: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-      },
-      request: vi.fn(() => requestLogger),
-      wide: vi.fn(() => backgroundLogger),
-    };
+    const aiResponse = createStreamAiResponse();
+    const db = createDatabaseStub();
+    const logger = createLoggerService(requestLogger, backgroundLogger);
 
     const service = createService({
       aiResponse,
-      bot: {
-        auth: { enabled: false, localChatPublic: false, mode: "password" },
-        corsOrigin: undefined,
-        database: createDatabase(),
+      bot: createBot({
+        database: db,
         hooks: {
           afterMessage: [afterHook],
           beforeMessage: [],
         },
-        id: "bot-id",
-        isServerless: false,
-        logging: { enabled: true },
-        mcp: [],
-        model: { modelId: "gpt-4.1-mini", provider: "openai" },
-        name: "Echo",
-        platforms: ["local"],
-        plugins: [],
-        prompt: "Be helpful",
-        tools: {},
-        withDashboard: true,
-      },
+      }),
       logger,
     });
 
     const result = await service.handleMessageStream(createContext());
 
     expect(result.isOk()).toBe(true);
-    await waitForAssertion(() => {
+    await vi.waitFor(() => {
       expect(afterHook).toHaveBeenCalledTimes(1);
-      expect(backgroundLogger.emit).toHaveBeenCalledTimes(1);
     });
-    expect(afterHook.mock.calls[0]?.[0]?.log).toBe(backgroundLogger);
+    expect(backgroundLogger.emit).toHaveBeenCalledTimes(1);
+    expect(afterHook).toHaveBeenCalledWith(
+      expect.objectContaining({ log: backgroundLogger }),
+      expect.objectContaining({ text: "Hello" })
+    );
   });
 
   it("sanitizes non-json telemetry before persisting ai run data", async () => {
     const requestLogger = createLogger({ requestId: "req-1" });
     const backgroundLogger = createLogger();
-    const db = createDatabase();
+    const db = createDatabaseStub();
 
     const circular: Record<string, unknown> = {};
     circular.self = circular;
 
-    const aiResponse: AiResponseService = {
-      generate: vi.fn(),
-      stream: vi.fn(async () =>
-        Result.ok({
-          telemetry: Promise.resolve({
-            ...createTelemetry("stream"),
-            providerMetadata: circular,
-            toolCalls: [
-              {
-                createdAt: new Date().toISOString(),
-                error: circular,
-                input: { count: BigInt(4) },
-                output: { ok: true },
-                status: "success",
-                toolName: "list_issues",
-              },
-            ],
-            usage: { count: BigInt(2), ok: true },
-          }),
-          uiStream: createUIMessageStream({
-            execute: ({ writer }) => {
-              writer.write({ type: "text-start", id: "response" });
-              writer.write({
-                type: "text-delta",
-                delta: "Hello",
-                id: "response",
-              });
-              writer.write({ type: "text-end", id: "response" });
-            },
-          }),
-        })
-      ),
+    const telemetry: AiRunTelemetry = {
+      ...createTelemetry("stream"),
+      providerMetadata: circular,
+      toolCalls: [
+        {
+          createdAt: new Date().toISOString(),
+          error: circular,
+          input: { count: BigInt(4) },
+          output: { ok: true },
+          status: "success",
+          toolName: "list_issues",
+        },
+      ],
+      usage: { count: BigInt(2), ok: true },
     };
 
-    const logger: LoggerService = {
-      event: {
-        error: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-      },
-      request: vi.fn(() => requestLogger),
-      wide: vi.fn(() => backgroundLogger),
-    };
+    const aiResponse = createStreamAiResponse(telemetry);
+
+    const logger = createLoggerService(requestLogger, backgroundLogger);
 
     const service = createService({
       aiResponse,
-      bot: {
-        auth: { enabled: false, localChatPublic: false, mode: "password" },
-        corsOrigin: undefined,
-        database: db,
-        hooks: {
-          afterMessage: [],
-          beforeMessage: [],
-        },
-        id: "bot-id",
-        isServerless: false,
-        logging: { enabled: true },
-        mcp: [],
-        model: { modelId: "gpt-4.1-mini", provider: "openai" },
-        name: "Echo",
-        platforms: ["local"],
-        plugins: [],
-        prompt: "Be helpful",
-        tools: {},
-        withDashboard: true,
-      },
+      database: db,
       logger,
     });
 
     const result = await service.handleMessageStream(createContext());
 
     expect(result.isOk()).toBe(true);
-    await waitForAssertion(() => {
+    await vi.waitFor(() => {
       expect(backgroundLogger.emit).toHaveBeenCalledTimes(1);
-      expect(
-        db.aiRuns.create as unknown as ReturnType<typeof vi.fn>
-      ).toHaveBeenCalledTimes(1);
-      expect(
-        db.aiRunToolCalls.create as unknown as ReturnType<typeof vi.fn>
-      ).toHaveBeenCalledTimes(1);
     });
     expect(backgroundLogger.error).not.toHaveBeenCalled();
 
-    const aiRunInsert = (
-      db.aiRuns.create as unknown as ReturnType<typeof vi.fn>
-    ).mock.calls[0]?.[0];
+    const [aiRunInsert] = await db.aiRuns.listByThread({
+      threadId: createContext().threadId,
+    });
+    expect(aiRunInsert).toBeDefined();
+    if (!aiRunInsert) {
+      throw new Error("Expected AI run to be persisted");
+    }
     expect(aiRunInsert.providerMetadata).toBeUndefined();
     expect(aiRunInsert.usage).toEqual({ count: "2", ok: true });
 
-    const toolCallInsert = (
-      db.aiRunToolCalls.create as unknown as ReturnType<typeof vi.fn>
-    ).mock.calls[0]?.[0];
+    const [toolCallInsert] = await db.aiRunToolCalls.listByRun({
+      aiRunId: aiRunInsert.id,
+    });
+    expect(toolCallInsert).toBeDefined();
+    if (!toolCallInsert) {
+      throw new Error("Expected AI run tool call to be persisted");
+    }
     expect(toolCallInsert.error).toBeUndefined();
     expect(toolCallInsert.input).toEqual({ count: "4" });
     expect(toolCallInsert.output).toEqual({ ok: true });
+  });
+
+  it("persists thread, messages and ai run after stream completes", async () => {
+    const db = createDatabaseStub();
+    const context = createContext();
+    const aiResponse = createStreamAiResponse();
+    const logger = createLoggerService();
+
+    const service = createService({ aiResponse, database: db, logger });
+    const result = await service.handleMessageStream(context);
+
+    expect(result.isOk()).toBe(true);
+    await vi.waitFor(async () => {
+      const thread = await db.threads.getById(context.threadId);
+      expect(thread).not.toBeNull();
+    });
+
+    const thread = await db.threads.getById(context.threadId);
+    expect(thread?.text).toBe("Hello");
+    expect(thread?.responseText).toBe("Hello");
+
+    const messages = await db.messages.listByThread({
+      threadId: context.threadId,
+    });
+    expect(messages).toHaveLength(2);
+    expect(messages.map((m) => m.role)).toEqual(
+      expect.arrayContaining(["user", "assistant"])
+    );
+
+    const [aiRun] = await db.aiRuns.listByThread({
+      threadId: context.threadId,
+    });
+    expect(aiRun?.mode).toBe("stream");
+    expect(aiRun?.hadError).toBe(false);
   });
 });
