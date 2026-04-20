@@ -1,5 +1,13 @@
 # @goodchat/contracts
 
+## 0.0.11
+
+### Patch Changes
+
+- 51df141: Add new storage package
+- 73d39d0: Better provider/model handling
+- 01ff4ed: Add analytics
+
 ## 0.0.10
 
 ## 0.0.9

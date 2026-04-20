@@ -45,8 +45,8 @@
     "ruler:apply": "bunx @intellectronica/ruler@latest apply --local-only"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.11",
-    "@changesets/cli": "^2.30.0",
+    "@biomejs/biome": "^2.4.12",
+    "@changesets/cli": "^2.31.0",
     "@goodchat/typescript-config": "workspace:*",
     "@types/bun": "^1.3.12",
     "@vitest/ui": "^4.1.4",
