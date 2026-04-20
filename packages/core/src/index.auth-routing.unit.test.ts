@@ -169,6 +169,42 @@ describe("createGoodchat auth route integration", () => {
     expect(mocks.authHandler).toHaveBeenCalledTimes(1);
   });
 
+  it("returns auth status when auth is disabled", async () => {
+    const { app, mocks } = await createTestApp({
+      auth: {
+        enabled: false,
+        mode: "password",
+        localChatPublic: false,
+      },
+    });
+
+    const response = await app.handle(
+      new Request("http://localhost/api/auth-status")
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      authenticated: true,
+      enabled: false,
+    });
+    expect(mocks.authHandler).toHaveBeenCalledTimes(0);
+  });
+
+  it("returns auth status when auth is enabled", async () => {
+    const { app, mocks } = await createTestApp();
+
+    const response = await app.handle(
+      new Request("http://localhost/api/auth-status")
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      authenticated: false,
+      enabled: true,
+    });
+    expect(mocks.authHandler).toHaveBeenCalledTimes(0);
+  });
+
   it("serves dashboard routes without overriding auth and api responses", async () => {
     const { app, mocks } = await createTestApp();
 
@@ -202,6 +238,24 @@ describe("createGoodchat auth route integration", () => {
     await expect(response.json()).resolves.toEqual({
       message: "Unauthorized",
     });
+  });
+
+  it("keeps /api/bot public when auth is disabled", async () => {
+    const { app, mocks } = await createTestApp({
+      auth: {
+        enabled: false,
+        mode: "password",
+        localChatPublic: false,
+      },
+    });
+
+    const response = await app.handle(new Request("http://localhost/api/bot/"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      name: "Test Bot",
+    });
+    expect(mocks.bootstrapSharedAccount).toHaveBeenCalledTimes(0);
   });
 
   it("protects local chat when auth is enabled and localChatPublic is false", async () => {

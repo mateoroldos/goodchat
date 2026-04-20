@@ -13,6 +13,7 @@ import {
 import {
   createAuthRuntime,
   getBetterAuthOpenApiDocumentation,
+  isSharedAuthPrincipal,
 } from "./auth/better-auth";
 import { bootstrapSharedAccount } from "./auth/bootstrap-shared-account";
 import { mergePlugins, resolvePlugins } from "./extensions/merge";
@@ -152,10 +153,27 @@ export const createGoodchat = (options: BotConfigInput) => {
           gateway: chatRuntime.gateway,
         })
       )
+      .get("/auth-status", async ({ request }) => {
+        if (!(bot.auth.enabled && authRuntime)) {
+          return { authenticated: true, enabled: false };
+        }
+
+        try {
+          const session = await authRuntime.auth.api.getSession({
+            headers: request.headers,
+          });
+
+          return {
+            authenticated: isSharedAuthPrincipal(session),
+            enabled: true,
+          };
+        } catch {
+          return { authenticated: false, enabled: true };
+        }
+      })
       .get("/health", () => "OK");
 
-    const protectedApi = new Elysia()
-      .onBeforeHandle(requireSessionGuard(authRuntime))
+    const protectedApiRoutes = new Elysia()
       .use(
         botController({
           id: bot.id,
@@ -172,6 +190,12 @@ export const createGoodchat = (options: BotConfigInput) => {
           logger,
         })
       );
+
+    const protectedApi = bot.auth.enabled
+      ? new Elysia()
+          .onBeforeHandle(requireSessionGuard(authRuntime))
+          .use(protectedApiRoutes)
+      : protectedApiRoutes;
 
     const localChatApi = new Elysia().use(
       localChatController({

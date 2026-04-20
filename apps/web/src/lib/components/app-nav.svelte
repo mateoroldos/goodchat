@@ -9,16 +9,22 @@
   } from "lucide-svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { authStatusContext } from "$lib/api/auth/auth.context";
   import { botQueries } from "$lib/api/bots/bots.queries";
   import { betterAuthClient } from "$lib/better-auth-client";
   import { Button } from "$lib/components/ui/button";
   import { cn } from "$lib/utils";
 
   const botQuery = createQuery(() => botQueries.detail());
+  const authStatus = authStatusContext.getOr({
+    authenticated: true,
+    enabled: false,
+  });
 
   const hasLocal = $derived(
     botQuery.data?.platforms.includes("local") ?? false
   );
+  const canLogout = $derived(authStatus.enabled);
 
   const handleLogout = async () => {
     try {
@@ -94,12 +100,14 @@
     </a>
   {/if}
 
-  <Button
-    variant="ghost"
-    size="sm"
-    class="ml-auto"
-    onclick={() => handleLogout()}
-  >
-    Logout
-  </Button>
+  {#if canLogout}
+    <Button
+      variant="ghost"
+      size="sm"
+      class="ml-auto"
+      onclick={() => handleLogout()}
+    >
+      Logout
+    </Button>
+  {/if}
 </nav>

@@ -2,13 +2,27 @@
   import "../app.css";
   import { QueryClientProvider } from "@tanstack/svelte-query";
   import { page } from "$app/state";
+  import { authStatusContext } from "$lib/api/auth/auth.context";
+  import type { AuthStatus } from "$lib/api/auth/auth.types";
   import AppNav from "$lib/components/app-nav.svelte";
   import type { LayoutData } from "./$types";
 
   let {
     data,
     children,
-  }: { data: LayoutData; children: import("svelte").Snippet } = $props();
+  }: {
+    data: LayoutData & { authStatus: AuthStatus };
+    children: import("svelte").Snippet;
+  } = $props();
+
+  authStatusContext.set({
+    get authenticated() {
+      return data.authStatus.authenticated;
+    },
+    get enabled() {
+      return data.authStatus.enabled;
+    },
+  });
 </script>
 
 <QueryClientProvider client={data.queryClient}>

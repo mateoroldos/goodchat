@@ -75,6 +75,7 @@ export const setupOpenApiDocumentation = ({
 
 export const createAuthApi = (authRuntime: DashboardAuthRuntime | null) => {
   const authApi = new Elysia();
+
   if (!authRuntime) {
     return authApi;
   }
