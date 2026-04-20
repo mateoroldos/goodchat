@@ -1,5 +1,12 @@
 # @goodchat/contracts
 
+## 0.0.12
+
+### Patch Changes
+
+- 0071bed: Platform configuration improvements
+- eedec1e: Add website step by step platform integration instructions
+
 ## 0.0.11
 
 ### Patch Changes
