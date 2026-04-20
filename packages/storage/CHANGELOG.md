@@ -1,5 +1,13 @@
 # @goodchat/storage
 
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [0071bed]
+- Updated dependencies [eedec1e]
+  - @goodchat/contracts@0.0.12
+
 ## 0.0.11
 
 ### Patch Changes

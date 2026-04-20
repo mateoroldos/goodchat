@@ -1,5 +1,15 @@
 # @goodchat/core
 
+## 0.0.12
+
+### Patch Changes
+
+- 0071bed: Platform configuration improvements
+- eedec1e: Add website step by step platform integration instructions
+- Updated dependencies [0071bed]
+- Updated dependencies [eedec1e]
+  - @goodchat/contracts@0.0.12
+
 ## 0.0.11
 
 ### Patch Changes
