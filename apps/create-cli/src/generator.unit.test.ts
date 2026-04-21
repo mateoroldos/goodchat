@@ -172,6 +172,9 @@ describe("generator helpers", () => {
       "goodchat db schema sync --check"
     );
     expect(packageJson.scripts["db:migrate"]).toBe("bun run src/db/migrate.ts");
+    expect(packageJson.scripts["db:studio"]).toBe(
+      "drizzle-kit studio --config=drizzle.config.ts"
+    );
   });
 
   it("renders drizzle-kit migrate script for non-sqlite dialects", () => {
@@ -228,6 +231,36 @@ describe("generator helpers", () => {
     );
     expect(configFile).toContain('name: "Test Bot"');
     expect(configFile).toContain("plugins: [linear]");
+  });
+
+  it("renders Neon postgres driver for managed profile", () => {
+    const configFile = renderGoodchatFile({
+      authEnabled: true,
+      databaseDialect: "postgres",
+      databaseProfileId: "postgres-neon",
+      name: "Test Bot",
+      platforms: ["web"],
+      prompt: "Be precise",
+    });
+
+    expect(configFile).toContain(
+      'database: postgres({ connectionString: env.DATABASE_URL, driver: "@neondatabase/serverless", schema }),'
+    );
+  });
+
+  it("renders PlanetScale mysql mode for managed profile", () => {
+    const configFile = renderGoodchatFile({
+      authEnabled: true,
+      databaseDialect: "mysql",
+      databaseProfileId: "mysql-planetscale",
+      name: "Test Bot",
+      platforms: ["web"],
+      prompt: "Be precise",
+    });
+
+    expect(configFile).toContain(
+      'database: mysql({ connectionString: env.DATABASE_URL, mode: "planetscale", schema }),'
+    );
   });
 
   it.each<{

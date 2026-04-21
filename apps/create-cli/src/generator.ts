@@ -7,6 +7,7 @@ import type {
 import type { ModelProvider } from "@goodchat/contracts/model/model-ref";
 import { resolveModelFactoryName } from "@goodchat/contracts/model/provider-metadata";
 import { renderDbSchemaArtifacts } from "@goodchat/templates/scaffold/db-schema-artifacts";
+import type { DatabaseProfileId } from "./database-profiles";
 import {
   type EnvVariableMeta,
   getEnvMetadata,
@@ -26,6 +27,7 @@ export interface SelectedModel {
 export interface GeneratorConfig {
   authEnabled: boolean;
   databaseDialect: DatabaseDialect;
+  databaseProfileId?: DatabaseProfileId;
   id?: string;
   mcp?: MCPServerConfig[];
   model?: SelectedModel;
@@ -208,7 +210,15 @@ export const renderGoodchatFile = (config: GeneratorConfig): string => {
   }
   if (config.databaseDialect === "postgres") {
     databaseExpression =
-      "postgres({ connectionString: env.DATABASE_URL, schema })";
+      config.databaseProfileId === "postgres-neon"
+        ? 'postgres({ connectionString: env.DATABASE_URL, driver: "@neondatabase/serverless", schema })'
+        : "postgres({ connectionString: env.DATABASE_URL, schema })";
+  }
+  if (config.databaseDialect === "mysql") {
+    databaseExpression =
+      config.databaseProfileId === "mysql-planetscale"
+        ? 'mysql({ connectionString: env.DATABASE_URL, mode: "planetscale", schema })'
+        : "mysql({ connectionString: env.DATABASE_URL, schema })";
   }
 
   const entries: string[] = [
@@ -362,6 +372,7 @@ export const renderPackageJson = (input: {
       "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
       "db:migrate": migrateCommand,
       "db:push": "drizzle-kit push --config=drizzle.config.ts",
+      "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
       start: "bun run dist/index.mjs",
     },
     dependencies,
