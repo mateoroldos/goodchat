@@ -1,5 +1,17 @@
 # @goodchat/core
 
+## 0.0.13
+
+### Patch Changes
+
+- fb37db0: Rename local chat to web chat
+- a6a4915: Improve scaffolding DX
+- f326188: Fix auth in frontend
+- Updated dependencies [fb37db0]
+- Updated dependencies [a6a4915]
+- Updated dependencies [f326188]
+  - @goodchat/contracts@0.0.13
+
 ## 0.0.12
 
 ### Patch Changes

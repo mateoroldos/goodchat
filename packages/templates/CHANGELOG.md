@@ -1,5 +1,12 @@
 # @goodchat/templates
 
+## 0.0.13
+
+### Patch Changes
+
+- a6a4915: Improve scaffolding DX
+- f326188: Fix auth in frontend
+
 ## 0.0.12
 
 ## 0.0.11

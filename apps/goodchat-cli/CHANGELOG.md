@@ -1,5 +1,16 @@
 # @goodchat/cli
 
+## 0.0.7
+
+### Patch Changes
+
+- fb37db0: Rename local chat to web chat
+- Updated dependencies [fb37db0]
+- Updated dependencies [a6a4915]
+- Updated dependencies [f326188]
+  - @goodchat/contracts@0.0.13
+  - @goodchat/templates@0.0.13
+
 ## 0.0.6
 
 ### Patch Changes

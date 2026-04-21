@@ -1,5 +1,14 @@
 # @goodchat/plugins
 
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [fb37db0]
+- Updated dependencies [a6a4915]
+- Updated dependencies [f326188]
+  - @goodchat/contracts@0.0.13
+
 ## 0.0.10
 
 ### Patch Changes
