@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.14
+
+### Patch Changes
+
+- 614f1b2: Improve database scaffolding and create cli dx
+
 ## 0.0.13
 
 ### Patch Changes
