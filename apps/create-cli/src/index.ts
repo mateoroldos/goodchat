@@ -8,10 +8,10 @@ import {
   confirm,
   intro,
   isCancel,
+  log,
   multiselect,
   outro,
   password,
-  S_BAR,
   select,
   spinner,
   text,
@@ -139,6 +139,7 @@ const runCommand = async (
 const FG_INK = "\x1b[38;2;16;16;16m";
 const FG_MUTED = "\x1b[38;2;190;190;190m";
 const FG_SOFT = "\x1b[38;2;220;220;220m";
+const GUIDE_BAR = "│";
 const BG_AMB = "\x1b[48;2;255;163;10m";
 const BG_SOFT = "\x1b[48;2;52;52;52m";
 const BOLD = "\x1b[1m";
@@ -147,14 +148,14 @@ const RST = "\x1b[0m";
 
 const printBanner = (): void => {
   process.stdout.write("\n");
-  intro(`${BG_AMB}${FG_INK}${BOLD} goodchat ${RST}`, { withGuide: true });
+  intro(`${BG_AMB}${FG_INK}${BOLD} goodchat ${RST}`);
 };
 
 const renderPromptMessage = (title: string, helperLines: string[]): string => {
   if (helperLines.length === 0) {
     return title;
   }
-  const helperPrefix = `${styleText("gray", S_BAR)}  `;
+  const helperPrefix = `${styleText("gray", GUIDE_BAR)}  `;
   const helperRows = helperLines.map(
     (line) => `${helperPrefix}${DIM}${line}${RST}`
   );
@@ -264,7 +265,6 @@ const runOptionalSetup = async (
     await confirm({
       message: "Install dependencies and run database setup now?",
       initialValue: true,
-      withGuide: true,
     })
   );
 
@@ -299,7 +299,7 @@ const runOptionalSetup = async (
   ];
 
   for (const step of setupSteps) {
-    const stepSpinner = spinner({ withGuide: true });
+    const stepSpinner = spinner();
     stepSpinner.start(step.title);
 
     try {
@@ -312,7 +312,8 @@ const runOptionalSetup = async (
           ? error.message
           : "Unknown setup error while running bun commands.";
       setupErrorMessage = `Automatic setup failed at \`${SETUP_COMMAND_LABELS[step.key]}\`: ${message}`;
-      stepSpinner.error(`Failed: ${SETUP_COMMAND_LABELS[step.key]}`);
+      stepSpinner.stop("Failed");
+      log.error(`Failed: ${SETUP_COMMAND_LABELS[step.key]}`);
       break;
     }
   }
@@ -771,7 +772,7 @@ const run = async (): Promise<void> => {
     `${DIM}Contribute to the project: https://github.com/mateoroldos/goodchat${RST}`
   );
 
-  outro(summaryLines.join("\n"), { withGuide: true });
+  outro(summaryLines.join("\n"));
 };
 
 await run();
