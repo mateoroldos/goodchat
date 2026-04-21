@@ -163,6 +163,42 @@ const printBanner = (): void => {
   intro(`${BG_AMB}${FG_INK}${BOLD} goodchat ${RST}`);
 };
 
+const SLOGAN = "An almost good chatbot for every platform";
+
+const renderScaffoldIncludes = (): { detail: string; label: string }[] => {
+  return [
+    {
+      label: "Goodchat server",
+      detail: " with platform webhooks",
+    },
+    {
+      label: "Goodchat dashboard",
+      detail: " for spying your bot",
+    },
+    {
+      label: "Database schemas",
+      detail: " so we don't forget stuff",
+    },
+    {
+      label: "Single goodchat config",
+      detail: " so your team has one place to argue",
+    },
+  ];
+};
+
+const printScaffoldOverview = (): void => {
+  const helperPrefix = `${styleText("gray", GUIDE_BAR)}  `;
+  process.stdout.write(`${helperPrefix}${DIM}${SLOGAN}${RST}\n`);
+  process.stdout.write(`${helperPrefix}\n`);
+  process.stdout.write(`${helperPrefix}${FG_AMB}${BOLD}What you get${RST}\n`);
+  for (const item of renderScaffoldIncludes()) {
+    process.stdout.write(
+      `${helperPrefix}◆ ${BOLD}${item.label}${RST}${DIM}${item.detail}${RST}\n`
+    );
+  }
+  process.stdout.write(`${helperPrefix}\n`);
+};
+
 const renderPromptMessage = (title: string, helperLines: string[]): string => {
   if (helperLines.length === 0) {
     return title;
@@ -753,6 +789,7 @@ const run = async (): Promise<void> => {
     parseDependencyChannelArg(cliArgs) ?? resolveDefaultDependencyChannel();
 
   printBanner();
+  printScaffoldOverview();
 
   const botName = handleCancel(
     await text({
