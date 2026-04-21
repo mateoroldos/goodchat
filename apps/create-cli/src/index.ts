@@ -158,9 +158,21 @@ const BOLD = "\x1b[1m";
 const DIM = "\x1b[2m";
 const RST = "\x1b[0m";
 
+const renderAsciiWordmark = (): string => {
+  const sidePadding = " ";
+  const wordmarkLines = [
+    "░█▀▀░█▀█░█▀█░█▀▄░█▀▀░█░█░█▀█░▀█▀",
+    "░█░█░█░█░█░█░█░█░█░░░█▀█░█▀█░░█░",
+    "░▀▀▀░▀▀▀░▀▀▀░▀▀░░▀▀▀░▀░▀░▀░▀░░▀░",
+  ];
+  return [...wordmarkLines, "", SLOGAN]
+    .map((line) => `${sidePadding}${line}${sidePadding}`)
+    .join("\n");
+};
+
 const printBanner = (): void => {
   process.stdout.write("\n");
-  intro(`${BG_AMB}${FG_INK}${BOLD} goodchat ${RST}`);
+  process.stdout.write(`${FG_AMB}${BOLD}${renderAsciiWordmark()}${RST}\n\n`);
 };
 
 const SLOGAN = "An almost good chatbot for every platform";
@@ -187,16 +199,10 @@ const renderScaffoldIncludes = (): { detail: string; label: string }[] => {
 };
 
 const printScaffoldOverview = (): void => {
-  const helperPrefix = `${styleText("gray", GUIDE_BAR)}  `;
-  process.stdout.write(`${helperPrefix}${DIM}${SLOGAN}${RST}\n`);
-  process.stdout.write(`${helperPrefix}\n`);
-  process.stdout.write(`${helperPrefix}${FG_AMB}${BOLD}What you get${RST}\n`);
-  for (const item of renderScaffoldIncludes()) {
-    process.stdout.write(
-      `${helperPrefix}◆ ${BOLD}${item.label}${RST}${DIM}${item.detail}${RST}\n`
-    );
-  }
-  process.stdout.write(`${helperPrefix}\n`);
+  const lines = renderScaffoldIncludes().map(
+    (item) => `◆ ${BOLD}${item.label}${RST}${DIM}${item.detail}${RST}`
+  );
+  process.stdout.write(`${renderCard("What you get", lines)}\n\n`);
 };
 
 const renderPromptMessage = (title: string, helperLines: string[]): string => {
@@ -273,6 +279,7 @@ const stripAnsi = (value: string): string =>
     .replaceAll(FG_MUTED, "")
     .replaceAll(BG_AMB, "")
     .replaceAll(FG_INK, "")
+    .replaceAll(BOLD, "")
     .replaceAll(DIM, "")
     .replaceAll(RST, "");
 
@@ -790,6 +797,7 @@ const run = async (): Promise<void> => {
 
   printBanner();
   printScaffoldOverview();
+  intro(`${BG_AMB}${FG_INK}${BOLD} goodchat ${RST}`);
 
   const botName = handleCancel(
     await text({
