@@ -21,7 +21,7 @@
     },
     "apps/create-cli": {
       "name": "@goodchat/create",
-      "version": "0.0.14",
+      "version": "0.0.15",
       "bin": {
         "create-goodchat": "dist/index.mjs",
       },

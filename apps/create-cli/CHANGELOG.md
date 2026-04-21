@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.15
+
+### Patch Changes
+
+- b797b7a: Better create-cli intro
+
 ## 0.0.14
 
 ### Patch Changes
