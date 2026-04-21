@@ -1,5 +1,18 @@
 # @goodchat/create
 
+## 0.0.13
+
+### Patch Changes
+
+- fdb849d: Improve create cli DX
+- fb37db0: Rename local chat to web chat
+- a6a4915: Improve scaffolding DX
+- f326188: Fix auth in frontend
+- eeb05c8: Fix clack import
+- Updated dependencies [a6a4915]
+- Updated dependencies [f326188]
+  - @goodchat/templates@0.0.13
+
 ## 0.0.12
 
 ### Patch Changes
