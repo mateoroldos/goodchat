@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.16
+
+### Patch Changes
+
+- 0befecb: Even better create cli intro
+
 ## 0.0.15
 
 ### Patch Changes
