@@ -26,7 +26,7 @@
 
   const chat = new Chat({
     transport: new DefaultChatTransport({
-      api: "/api/local/chat/stream",
+      api: "/api/web/chat/stream",
     }),
   });
 
@@ -48,7 +48,7 @@
     </div>
     <div>
       <h1 class="text-sm font-semibold">{botQuery.data?.name ?? "Bot"}</h1>
-      <p class="text-xs text-muted-foreground">Local chat session</p>
+      <p class="text-xs text-muted-foreground">Web chat session</p>
     </div>
   </div>
 </div>

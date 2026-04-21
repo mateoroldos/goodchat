@@ -8,7 +8,7 @@ Extensible to add new auth methods in future.
 We will:
 
 - Protect dashboard and internal APIs with session auth.
-- Keep local chat optionally public via explicit toggle.
+- Keep web chat optionally public via explicit toggle.
 - Use Better Auth as internal session engine.
 - Keep all auth logic inside `@goodchat/core` (consumer apps only configure and consume).
 
@@ -32,7 +32,7 @@ Non-goals (v0):
 
 ### Simple explanation
 
-`@goodchat/core` exposes dashboard auth endpoints and guards. Login accepts only password, then signs in against Better Auth using internal shared email + password. Better Auth issues session cookie. Core guards protect dashboard routes. Local chat routes are public only if `auth.localChatPublic=true`.
+`@goodchat/core` exposes dashboard auth endpoints and guards. Login accepts only password, then signs in against Better Auth using internal shared email + password. Better Auth issues session cookie. Core guards protect dashboard routes. Web chat routes are public only if `auth.webChatPublic=true`.
 
 ### Diagram
 
@@ -50,8 +50,8 @@ Browser
       -> allow or 401
 
 Browser
-  -> /api/local/chat*
-      -> if auth.localChatPublic=true: allow anonymous
+  -> /api/web/chat*
+      -> if auth.webChatPublic=true: allow anonymous
       -> else: requireSession
 ```
 
@@ -71,7 +71,7 @@ packages/core/src/
     dashboard-auth-controller.ts             # /api/dashboard/login|logout|session
     bot-controller.ts                        # guarded
     threads-controller.ts                    # guarded
-    local-chat-controller.ts                 # public/guarded toggle
+    web-chat-controller.ts                 # public/guarded toggle
 
 apps/server/src/
   app.ts                                     # consumer example only (no auth logic)
@@ -81,7 +81,7 @@ apps/web/src/
   routes/+layout.ts                          # redirect/session bootstrap
   lib/components/app-nav.svelte              # login/logout UI actions
 
-apps/goodchat-cli/ 
+apps/goodchat-cli/
   src/commands/db-schema-sync-command.ts     # include auth schema generation - reading from goodchat config
 ```
 
@@ -105,9 +105,9 @@ Protected:
 
 Conditional:
 
-- `/api/local/chat`
-- `/api/local/chat/stream`
-  - public only when `auth.localChatPublic=true`
+- `/api/web/chat`
+- `/api/web/chat/stream`
+  - public only when `auth.webChatPublic=true`
   - otherwise protected
 
 #### Runtime invariants
@@ -119,7 +119,7 @@ Conditional:
 - Shared account bootstrap is idempotent.
 - Signup is disabled in shared-password mode.
 - Guard is fail-closed on session/auth errors.
-- `auth.localChatPublic` defaults to `false`.
+- `auth.webChatPublic` defaults to `false`.
 - Consumer apps must not implement duplicate auth logic.
 
 #### Config/env contract (v0)
@@ -129,7 +129,7 @@ Conditional:
 auth: {
   enabled: true,
   mode: "password",                                         # only mode for the time
-  localChatPublic: false,
+  webChatPublic: false,
   password: env.GOODCHAT_DASHBOARD_PASSWORD,
 }
 ```
@@ -178,7 +178,7 @@ Migration ownership rule:
 - Wrong password returns `401` and sets no cookie.
 - Protected routes deny unauthenticated requests.
 - Protected routes allow authenticated requests.
-- `/api/local/chat*` respects public/private toggle.
+- `/api/web/chat*` respects public/private toggle.
 - Signup route blocked in shared-password mode.
 
 ## End-to-end
@@ -187,4 +187,4 @@ Migration ownership rule:
 - Password login unlocks threads/logs/bot views.
 - Session persists on refresh.
 - Logout re-locks protected routes.
-- Production warning emitted when local chat is public.
+- Production warning emitted when web chat is public.

@@ -11,7 +11,7 @@
   const props: Props = $props();
 
   const PLATFORM_STYLES: Record<BotPlatform, string> = {
-    local: "bg-zinc-800 text-zinc-300 border-zinc-700",
+    web: "bg-zinc-800 text-zinc-300 border-zinc-700",
     slack: "bg-[#611f69]/20 text-[#d9a5e8] border-[#611f69]/50",
     discord: "bg-[#5865f2]/20 text-[#8b9bff] border-[#5865f2]/50",
     teams: "bg-[#6264a7]/20 text-[#9b9ecc] border-[#6264a7]/50",
@@ -21,7 +21,7 @@
   };
 
   const PLATFORM_LABELS: Record<BotPlatform, string> = {
-    local: "Local",
+    web: "Web",
     slack: "Slack",
     discord: "Discord",
     teams: "Teams",

@@ -474,7 +474,7 @@ const promptPlatformEnvVars = async (
   const collected = new Map<string, string>();
   const skippedRequiredKeys = new Set<string>();
   for (const platform of selectedPlatforms) {
-    if (platform === "local") {
+    if (platform === "web") {
       continue;
     }
     const { envVariables, label } = PLATFORM_METADATA[platform];
@@ -511,7 +511,7 @@ const renderDeferredPlatformEnvGuidance = (
   let hasSection = false;
 
   for (const platform of selectedPlatforms) {
-    if (platform === "local") {
+    if (platform === "web") {
       continue;
     }
 
@@ -588,13 +588,13 @@ const run = async (): Promise<void> => {
         value: platform,
         label: platform,
       })),
-      initialValues: ["local"],
+      initialValues: ["web"],
       required: true,
     })
   ) as Platform[];
 
   const selectedRemotePlatforms = platforms.filter(
-    (platform) => platform !== "local"
+    (platform) => platform !== "web"
   );
   const shouldConfigurePlatformsNow =
     selectedRemotePlatforms.length === 0

@@ -50,14 +50,14 @@ export const createGoodchatHarness = async (
   const { ready } = createGoodchat({
     name: "Integration Bot",
     prompt: "Be helpful",
-    platforms: ["local"],
+    platforms: ["web"],
     model: { provider: "openai", modelId: "gpt-4.1-mini" },
     database,
     auth: {
       enabled: true,
       mode: "password",
       password: authPassword,
-      localChatPublic: false,
+      webChatPublic: false,
     },
     isServerless: true,
     dashboard: false,

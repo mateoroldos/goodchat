@@ -5,7 +5,7 @@ import { Elysia, t } from "elysia";
 import type { ChatResponseService } from "../chat-response/interface";
 import type { LoggerService } from "../logger/interface";
 
-interface LocalChatControllerOptions {
+interface WebChatControllerOptions {
   botId: Bot["id"];
   botName: Bot["name"];
   logger: LoggerService;
@@ -13,14 +13,14 @@ interface LocalChatControllerOptions {
   responseHandler: ChatResponseService;
 }
 
-export const localChatController = ({
+export const webChatController = ({
   botId,
   botName,
   logger,
   platforms,
   responseHandler,
-}: LocalChatControllerOptions) => {
-  const controller = new Elysia({ prefix: "/local" });
+}: WebChatControllerOptions) => {
+  const controller = new Elysia({ prefix: "/web" });
 
   const getLatestUserText = (messages: unknown) => {
     if (!Array.isArray(messages)) {
@@ -83,22 +83,21 @@ export const localChatController = ({
         },
       });
 
-      if (!platforms.includes("local")) {
+      if (!platforms.includes("web")) {
         log.warn(
-          "Local chat endpoint requested while local platform is disabled",
+          "Local chat endpoint requested while web platform is disabled",
           {
             error: {
               code: "LOCAL_PLATFORM_NOT_CONFIGURED",
-              fix: "Enable the 'local' platform in createGoodchat().",
-              why: "The request targeted local chat but local is not configured.",
+              fix: "Enable the 'web' platform in createGoodchat().",
+              why: "The request targeted web chat but web is not configured.",
             },
           }
         );
-        return status(404, { message: "Local platform not configured" });
+        return status(404, { message: "Web platform not configured" });
       }
 
-      const threadId =
-        body.threadId ?? body.id ?? `local:${crypto.randomUUID()}`;
+      const threadId = body.threadId ?? body.id ?? `web:${crypto.randomUUID()}`;
       const userId = body.userId ?? "dashboard-user";
       const messageText = resolveMessageText(body);
 
@@ -109,7 +108,7 @@ export const localChatController = ({
       });
 
       if (!messageText) {
-        log.warn("Local chat request is missing message text", {
+        log.warn("Web chat request is missing message text", {
           error: {
             code: "LOCAL_CHAT_INPUT_INVALID",
             fix: "Provide 'message' or a user text part in 'messages'.",
@@ -120,10 +119,10 @@ export const localChatController = ({
       }
 
       const context: MessageContext = {
-        adapterName: "local",
+        adapterName: "web",
         botId,
         botName,
-        platform: "local",
+        platform: "web",
         text: messageText,
         threadId,
         userId,
@@ -132,7 +131,7 @@ export const localChatController = ({
       const result = await responseHandler.handleMessage(context);
 
       if (result.isErr()) {
-        log.error("Local chat generation failed", {
+        log.error("Web chat generation failed", {
           error: {
             code: result.error.code,
             message: result.error.message,
@@ -178,22 +177,21 @@ export const localChatController = ({
         },
       });
 
-      if (!platforms.includes("local")) {
+      if (!platforms.includes("web")) {
         log.warn(
-          "Local stream endpoint requested while local platform is disabled",
+          "Local stream endpoint requested while web platform is disabled",
           {
             error: {
               code: "LOCAL_PLATFORM_NOT_CONFIGURED",
-              fix: "Enable the 'local' platform in createGoodchat().",
-              why: "The request targeted local chat stream but local is not configured.",
+              fix: "Enable the 'web' platform in createGoodchat().",
+              why: "The request targeted web chat stream but web is not configured.",
             },
           }
         );
-        return status(404, { message: "Local platform not configured" });
+        return status(404, { message: "Web platform not configured" });
       }
 
-      const threadId =
-        body.threadId ?? body.id ?? `local:${crypto.randomUUID()}`;
+      const threadId = body.threadId ?? body.id ?? `web:${crypto.randomUUID()}`;
       const userId = body.userId ?? "dashboard-user";
       const messageText = resolveMessageText(body);
 
@@ -215,10 +213,10 @@ export const localChatController = ({
       }
 
       const context: MessageContext = {
-        adapterName: "local",
+        adapterName: "web",
         botId,
         botName,
-        platform: "local",
+        platform: "web",
         text: messageText,
         threadId,
         userId,
@@ -227,7 +225,7 @@ export const localChatController = ({
       const result = await responseHandler.handleMessageStream(context);
 
       if (result.isErr()) {
-        log.error("Local stream generation failed", {
+        log.error("Web stream generation failed", {
           error: {
             code: result.error.code,
             message: result.error.message,

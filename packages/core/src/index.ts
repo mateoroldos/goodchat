@@ -21,16 +21,16 @@ import { ElysiaLoggerService, NoopLoggerService } from "./logger/service";
 import { createChatRuntime } from "./runtime/create-chat-runtime";
 import {
   createAuthApi,
-  createLocalChatApi,
-  type LocalChatAccess,
+  createWebChatApi,
   setupDashboard,
   setupOpenApiDocumentation,
   setupRequestLogging,
+  type WebChatAccess,
 } from "./server/app-bootstrap";
 import { requireSessionGuard } from "./server/auth-guard";
 import { botController } from "./server/bot-controller";
-import { localChatController } from "./server/local-chat-controller";
 import { threadsController } from "./server/threads-controller";
+import { webChatController } from "./server/web-chat-controller";
 import { webhookChatController } from "./server/webhook-chat-controller";
 
 const sameOriginCors = (request: Request) => {
@@ -51,17 +51,17 @@ const sameOriginCors = (request: Request) => {
   }
 };
 
-type ResolvedLocalChatAccess = "disabled" | LocalChatAccess;
+type ResolvedWebChatAccess = "disabled" | WebChatAccess;
 
-const resolveLocalChatAccess = (input: {
+const resolveWebChatAccess = (input: {
   platforms: Bot["platforms"];
   auth: Bot["auth"];
-}): ResolvedLocalChatAccess => {
-  if (!input.platforms.includes("local")) {
+}): ResolvedWebChatAccess => {
+  if (!input.platforms.includes("web")) {
     return "disabled";
   }
 
-  if (input.auth.enabled && !input.auth.localChatPublic) {
+  if (input.auth.enabled && !input.auth.webChatPublic) {
     return "protected";
   }
 
@@ -118,7 +118,7 @@ export const createGoodchat = (options: BotConfigInput) => {
       });
     }
 
-    const localChatAccess = resolveLocalChatAccess({
+    const webChatAccess = resolveWebChatAccess({
       platforms: bot.platforms,
       auth: bot.auth,
     });
@@ -197,8 +197,8 @@ export const createGoodchat = (options: BotConfigInput) => {
           .use(protectedApiRoutes)
       : protectedApiRoutes;
 
-    const localChatApi = new Elysia().use(
-      localChatController({
+    const webChatApi = new Elysia().use(
+      webChatController({
         botId: bot.id,
         botName: bot.name,
         logger,
@@ -209,20 +209,20 @@ export const createGoodchat = (options: BotConfigInput) => {
 
     const authApi = createAuthApi(authRuntime);
 
-    const maybeLocalApi =
-      localChatAccess === "disabled"
+    const maybeWebApi =
+      webChatAccess === "disabled"
         ? new Elysia()
-        : createLocalChatApi({
-            localApi: localChatApi,
+        : createWebChatApi({
+            webApi: webChatApi,
             authRuntime,
-            access: localChatAccess,
+            access: webChatAccess,
           });
 
     const api = new Elysia({ prefix: "/api" })
       .use(authApi)
       .use(publicApi)
       .use(protectedApi)
-      .use(maybeLocalApi);
+      .use(maybeWebApi);
 
     app.use(api);
 

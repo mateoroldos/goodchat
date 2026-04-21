@@ -5,12 +5,12 @@ import { Elysia } from "elysia";
 import { describe, expect, it } from "vitest";
 import type { ChatResponseService } from "../chat-response/interface";
 import { NoopLoggerService } from "../logger/service";
-import { localChatController } from "./local-chat-controller";
+import { webChatController } from "./web-chat-controller";
 
 const bot: Pick<Bot, "id" | "name" | "platforms"> = {
-  id: "local-bot",
+  id: "web-bot",
   name: "Local Bot",
-  platforms: ["local"],
+  platforms: ["web"],
 };
 
 const createResponseHandler = (chunks: string[]): ChatResponseService => ({
@@ -32,7 +32,7 @@ const createResponseHandler = (chunks: string[]): ChatResponseService => ({
 
 const createApp = (chunks: string[]) =>
   new Elysia().use(
-    localChatController({
+    webChatController({
       botId: bot.id,
       botName: bot.name,
       logger: new NoopLoggerService(),
@@ -41,12 +41,12 @@ const createApp = (chunks: string[]) =>
     })
   );
 
-describe("localChatController", () => {
+describe("webChatController", () => {
   it("streams responses and sets the thread id header", async () => {
     const app = createApp(["Hello ", "world"]);
 
     const response = await app.handle(
-      new Request("http://localhost/local/chat/stream", {
+      new Request("http://localhost/web/chat/stream", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -75,7 +75,7 @@ describe("localChatController", () => {
     const app = createApp(["Hello"]);
 
     const response = await app.handle(
-      new Request("http://localhost/local/chat/stream", {
+      new Request("http://localhost/web/chat/stream", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -96,7 +96,7 @@ describe("localChatController", () => {
     const app = createApp(["Hello ", "world"]);
 
     const response = await app.handle(
-      new Request("http://localhost/local/chat", {
+      new Request("http://localhost/web/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: "thread-1", message: "Hi" }),

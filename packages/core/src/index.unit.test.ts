@@ -9,10 +9,10 @@ describe("createGoodchat", () => {
   });
 
   const baseConfig: BotConfigInput = {
-    id: "local-bot",
+    id: "web-bot",
     name: "Local Bot",
     prompt: "Be helpful",
-    platforms: ["local"],
+    platforms: ["web"],
     model: { provider: "openai" as const, modelId: "gpt-4.1-mini" },
     database: createDatabaseStub(),
     isServerless: true,
@@ -45,7 +45,7 @@ describe("createGoodchat", () => {
         auth: {
           enabled: true,
           mode: "password",
-          localChatPublic: false,
+          webChatPublic: false,
         },
       }).ready
     ).rejects.toThrow("Auth password is required when auth is enabled");

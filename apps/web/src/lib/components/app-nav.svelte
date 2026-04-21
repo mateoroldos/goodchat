@@ -21,9 +21,7 @@
     enabled: false,
   });
 
-  const hasLocal = $derived(
-    botQuery.data?.platforms.includes("local") ?? false
-  );
+  const hasWeb = $derived(botQuery.data?.platforms.includes("web") ?? false);
   const canLogout = $derived(authStatus.enabled);
 
   const handleLogout = async () => {
@@ -85,7 +83,7 @@
     Platforms
   </a>
 
-  {#if hasLocal}
+  {#if hasWeb}
     <a
       href="/chat"
       class={cn(

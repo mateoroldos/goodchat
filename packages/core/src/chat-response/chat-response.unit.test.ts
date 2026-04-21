@@ -31,10 +31,10 @@ const createTelemetry = (mode: "stream" | "sync"): AiRunTelemetry => ({
 });
 
 const createContext = (text = "Hello"): MessageContext => ({
-  adapterName: "local",
+  adapterName: "web",
   botId: "bot-id",
   botName: "Echo",
-  platform: "local",
+  platform: "web",
   text,
   threadId: "thread-1",
   userId: "user-1",
@@ -47,7 +47,7 @@ const createBot = ({
   database: Database;
   hooks?: Bot["hooks"];
 }): Bot => ({
-  auth: { enabled: false, localChatPublic: false, mode: "password" },
+  auth: { enabled: false, webChatPublic: false, mode: "password" },
   corsOrigin: undefined,
   database,
   hooks: hooks ?? {
@@ -60,7 +60,7 @@ const createBot = ({
   mcp: [],
   model: { modelId: "gpt-4.1-mini", provider: "openai" },
   name: "Echo",
-  platforms: ["local"],
+  platforms: ["web"],
   plugins: [],
   prompt: "Be helpful",
   tools: {},

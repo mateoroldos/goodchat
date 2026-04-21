@@ -13,7 +13,7 @@ describe("generator helpers", () => {
   it("includes platform env keys", () => {
     const variables = getEnvMetadataForConfig({
       authEnabled: true,
-      platforms: ["local", "discord"],
+      platforms: ["web", "discord"],
       plugins: ["linear"],
     }).map((meta) => meta.key);
 
@@ -30,7 +30,7 @@ describe("generator helpers", () => {
       databaseDialect: "sqlite",
       name: "Support Bot",
       prompt: "Be helpful",
-      platforms: ["local", "slack"],
+      platforms: ["web", "slack"],
       model: { provider: "openai", modelId: "gpt-4.1-mini" },
       plugins: ["linear"],
       mcp: [
@@ -55,7 +55,7 @@ describe("generator helpers", () => {
       "database: sqlite({ path: env.DATABASE_URL, schema }),"
     );
     expect(result).not.toContain("mode:");
-    expect(result).not.toContain("localChatPublic:");
+    expect(result).not.toContain("webChatPublic:");
     expect(result).not.toContain("dashboard:");
     expect(result).not.toContain("isServerless:");
   });
@@ -86,7 +86,7 @@ describe("generator helpers", () => {
         databaseDialect: "sqlite",
         name: "goodchat",
         prompt: "Be helpful",
-        platforms: ["local"],
+        platforms: ["web"],
       },
       envMetadata: [
         {
@@ -112,7 +112,7 @@ describe("generator helpers", () => {
         databaseDialect: "sqlite",
         name: "goodchat",
         prompt: "Be helpful",
-        platforms: ["local"],
+        platforms: ["web"],
       },
       envMetadata: [
         {
@@ -216,7 +216,7 @@ describe("generator helpers", () => {
       id: "test-id",
       model: { provider: "openai", modelId: "gpt-4.1-mini" },
       name: "Test Bot",
-      platforms: ["local", "discord"],
+      platforms: ["web", "discord"],
       plugins: ["linear"],
       prompt: "Be precise",
       mcp: [],
@@ -275,7 +275,7 @@ describe("generator helpers", () => {
       databaseDialect: "sqlite",
       model: { provider, modelId },
       name: "Provider Bot",
-      platforms: ["local"],
+      platforms: ["web"],
       prompt: "Be helpful",
     });
 

@@ -101,24 +101,24 @@ export const createAuthApi = (authRuntime: DashboardAuthRuntime | null) => {
   return authApi;
 };
 
-export type LocalChatAccess = "public" | "protected";
+export type WebChatAccess = "public" | "protected";
 
-export const createLocalChatApi = ({
+export const createWebChatApi = ({
   authRuntime,
-  localApi,
+  webApi,
   access,
 }: {
   authRuntime: DashboardAuthRuntime | null;
-  localApi: Elysia;
-  access: LocalChatAccess;
+  webApi: Elysia;
+  access: WebChatAccess;
 }) => {
   if (access === "public") {
-    return localApi;
+    return webApi;
   }
 
   return new Elysia()
     .onBeforeHandle(requireSessionGuard(authRuntime))
-    .use(localApi);
+    .use(webApi);
 };
 
 export const setupDashboard = async ({

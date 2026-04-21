@@ -8,7 +8,7 @@ export const goodchat = createGoodchat({
   name: "Minimal",
   prompt: "You are a helpful assistant",
   platforms: [
-    "local",
+    "web",
     "discord",
     "slack",
     "gchat",

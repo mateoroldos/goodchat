@@ -167,8 +167,8 @@ export const webhookChatController = ({
     app.post("/gchat", createPlatformHandler("gchat"));
   }
 
-  if (platforms.includes("local")) {
-    app.post("/local", createPlatformHandler("local"));
+  if (platforms.includes("web")) {
+    app.post("/local", createPlatformHandler("web"));
   }
 
   if (hasDiscordBots) {

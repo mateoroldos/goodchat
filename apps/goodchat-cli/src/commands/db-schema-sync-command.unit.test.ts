@@ -12,7 +12,7 @@ const createTempProject = async (dialect: string): Promise<string> => {
   await mkdir(join(directory, "src"), { recursive: true });
   await writeFile(
     join(directory, "src/goodchat.ts"),
-    `export const goodchat = { database: { dialect: "${dialect}" as const }, auth: { enabled: false, mode: "password" as const, localChatPublic: false } };\n`,
+    `export const goodchat = { database: { dialect: "${dialect}" as const }, auth: { enabled: false, mode: "password" as const, webChatPublic: false } };\n`,
     "utf8"
   );
   return directory;
@@ -105,7 +105,7 @@ describe("db schema sync command", () => {
     const projectRoot = await createTempProject("sqlite");
     await writeFile(
       join(projectRoot, "src/custom-goodchat.ts"),
-      'export const goodchat = { database: { dialect: "mysql" as const }, auth: { enabled: false, mode: "password" as const, localChatPublic: false } };\n',
+      'export const goodchat = { database: { dialect: "mysql" as const }, auth: { enabled: false, mode: "password" as const, webChatPublic: false } };\n',
       "utf8"
     );
 
@@ -142,7 +142,7 @@ describe("db schema sync command", () => {
     const projectRoot = await createTempProject("sqlite");
     await writeFile(
       join(projectRoot, "src/goodchat.ts"),
-      'export const goodchat = { database: { dialect: "sqlite" as const }, auth: { enabled: true, mode: "password" as const, localChatPublic: false, password: "secret" } };\n',
+      'export const goodchat = { database: { dialect: "sqlite" as const }, auth: { enabled: true, mode: "password" as const, webChatPublic: false, password: "secret" } };\n',
       "utf8"
     );
 

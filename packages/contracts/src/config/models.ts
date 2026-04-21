@@ -11,7 +11,7 @@ import {
 } from "../plugins/models";
 
 export const CHAT_PLATFORMS = [
-  "local",
+  "web",
   "slack",
   "discord",
   "teams",
@@ -40,13 +40,13 @@ export const authConfigSchema = z
   .object({
     enabled: z.boolean().default(false),
     mode: authModeSchema.default("password"),
-    localChatPublic: z.boolean().default(false),
+    webChatPublic: z.boolean().default(false),
     password: z.string().min(1).optional(),
   })
   .default({
     enabled: false,
     mode: "password",
-    localChatPublic: false,
+    webChatPublic: false,
   })
   .superRefine((value, context) => {
     if (!value.enabled) {

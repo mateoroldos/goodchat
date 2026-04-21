@@ -37,8 +37,8 @@ export interface PlatformSetupInstructions {
 }
 
 export const PLATFORM_METADATA: Record<Platform, PlatformMetadata> = {
-  local: {
-    label: "Local",
+  web: {
+    label: "Web",
     color: "#71717a",
     webhookPath: null,
     canVerifyConnection: false,
@@ -280,7 +280,7 @@ export const PLATFORM_SETUP_INSTRUCTIONS: Record<
   Platform,
   PlatformSetupInstructions
 > = {
-  local: {
+  web: {
     intro: "Run locally with no external platform setup.",
     steps: [
       {
@@ -292,7 +292,7 @@ export const PLATFORM_SETUP_INSTRUCTIONS: Record<
         description: "Use the web app to test prompts, tools, and context.",
       },
       {
-        title: "Send a local test message",
+        title: "Send a web test message",
         description:
           "Trigger one full request/response cycle and confirm logs appear.",
       },
@@ -304,7 +304,7 @@ export const PLATFORM_SETUP_INSTRUCTIONS: Record<
     ],
     pitfalls: [
       "Forgetting to run both server and web app",
-      "Assuming local mode validates external webhook flows",
+      "Assuming web mode validates external webhook flows",
     ],
     links: [
       { label: "Chat SDK docs", url: "https://chat-sdk.dev/docs" },

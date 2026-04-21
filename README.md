@@ -17,7 +17,7 @@ const { app } = await createGoodchat({
   name: "Linear Assistant",
   prompt:
     "You are a Linear assistant. Respond briefly with what I have on Linear.",
-  platforms: ["local", "discord"],
+  platforms: ["web", "discord"],
   plugins: [linear],
   withDashboard: true,
   isServerless,

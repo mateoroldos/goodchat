@@ -93,13 +93,13 @@ const createTestApp = async (overrides: Partial<BotConfigInput> = {}) => {
     enabled: true,
     mode: "password",
     password: "secret",
-    localChatPublic: false,
+    webChatPublic: false,
   };
 
   const defaultOptions = botConfigSchema.parse({
     name: "Test Bot",
     prompt: "Be helpful",
-    platforms: ["local"],
+    platforms: ["web"],
     model: { provider: "openai", modelId: "gpt-4.1-mini" },
     database: createDatabaseStub(),
     auth: defaultAuth,
@@ -110,8 +110,7 @@ const createTestApp = async (overrides: Partial<BotConfigInput> = {}) => {
   const resolvedAuth: BotConfigInput["auth"] = {
     enabled: overrides.auth?.enabled ?? defaultAuth.enabled,
     mode: overrides.auth?.mode ?? defaultAuth.mode,
-    localChatPublic:
-      overrides.auth?.localChatPublic ?? defaultAuth.localChatPublic,
+    webChatPublic: overrides.auth?.webChatPublic ?? defaultAuth.webChatPublic,
     password: overrides.auth?.password ?? defaultAuth.password,
   };
 
@@ -174,7 +173,7 @@ describe("createGoodchat auth route integration", () => {
       auth: {
         enabled: false,
         mode: "password",
-        localChatPublic: false,
+        webChatPublic: false,
       },
     });
 
@@ -245,7 +244,7 @@ describe("createGoodchat auth route integration", () => {
       auth: {
         enabled: false,
         mode: "password",
-        localChatPublic: false,
+        webChatPublic: false,
       },
     });
 
@@ -258,18 +257,18 @@ describe("createGoodchat auth route integration", () => {
     expect(mocks.bootstrapSharedAccount).toHaveBeenCalledTimes(0);
   });
 
-  it("protects local chat when auth is enabled and localChatPublic is false", async () => {
+  it("protects web chat when auth is enabled and webChatPublic is false", async () => {
     const { app } = await createTestApp({
       auth: {
         enabled: true,
         mode: "password",
         password: "secret",
-        localChatPublic: false,
+        webChatPublic: false,
       },
     });
 
     const response = await app.handle(
-      new Request("http://localhost/api/local/chat", {
+      new Request("http://localhost/api/web/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({}),
@@ -282,18 +281,18 @@ describe("createGoodchat auth route integration", () => {
     });
   });
 
-  it("keeps local chat public when localChatPublic is true", async () => {
+  it("keeps local chat public when webChatPublic is true", async () => {
     const { app } = await createTestApp({
       auth: {
         enabled: true,
         mode: "password",
         password: "secret",
-        localChatPublic: true,
+        webChatPublic: true,
       },
     });
 
     const response = await app.handle(
-      new Request("http://localhost/api/local/chat", {
+      new Request("http://localhost/api/web/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({}),
