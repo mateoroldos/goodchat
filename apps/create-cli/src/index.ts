@@ -1,11 +1,17 @@
-import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { readdirSync, statSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { styleText } from "node:util";
 import {
   cancel,
+  confirm,
+  intro,
   isCancel,
   multiselect,
   outro,
   password,
+  S_BAR,
   select,
   spinner,
   text,
@@ -44,25 +50,41 @@ const handleCancel = <T>(value: T | symbol): T => {
   return value as T;
 };
 
-const ensureEmptyDir = async (targetDir: string): Promise<void> => {
+const ensureEmptyDirValidation = (
+  value: string | undefined
+): string | undefined => {
+  const required = validateRequired(value);
+  if (required) {
+    return required;
+  }
+
+  const inputValue = value?.trim();
+  if (!inputValue) {
+    return "Required";
+  }
+
+  const targetDir = resolve(process.cwd(), inputValue);
+
   try {
-    const stats = await stat(targetDir);
+    const stats = statSync(targetDir);
     if (!stats.isDirectory()) {
-      throw new Error("Target path exists and is not a directory");
+      return "Target path exists and is not a directory";
     }
-    const entries = await readdir(targetDir);
+    const entries = readdirSync(targetDir);
     if (entries.length > 0) {
-      throw new Error("Target directory is not empty");
+      return "Target directory is not empty";
     }
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return;
+      return undefined;
     }
     if (error instanceof Error) {
-      throw error;
+      return error.message;
     }
-    throw new Error("Failed to inspect target directory");
+    return "Failed to inspect target directory";
   }
+
+  return undefined;
 };
 
 const writeFiles = async (
@@ -76,13 +98,67 @@ const writeFiles = async (
   }
 };
 
+const runCommand = async (
+  targetDir: string,
+  command: string,
+  args: string[]
+): Promise<void> => {
+  await new Promise<void>((resolvePromise, rejectPromise) => {
+    const child = spawn(command, args, {
+      cwd: targetDir,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += String(chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      output += String(chunk);
+    });
+
+    child.on("error", (error) => {
+      rejectPromise(error);
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolvePromise();
+        return;
+      }
+      const message =
+        output.trim() ||
+        `${command} ${args.join(" ")} failed with exit code ${code ?? "unknown"}`;
+      rejectPromise(new Error(message));
+    });
+  });
+};
+
 // ── Primary color ─────────────────────────────────────────────────────────-
 // oklch(0.78 0.185 70) ≈ rgb(255, 163, 10)
-const FG_AMB = "\x1b[38;2;255;163;10m";
+const FG_INK = "\x1b[38;2;16;16;16m";
+const FG_MUTED = "\x1b[38;2;190;190;190m";
+const FG_SOFT = "\x1b[38;2;220;220;220m";
+const BG_AMB = "\x1b[48;2;255;163;10m";
+const BG_SOFT = "\x1b[48;2;52;52;52m";
+const BOLD = "\x1b[1m";
+const DIM = "\x1b[2m";
 const RST = "\x1b[0m";
 
 const printBanner = (): void => {
-  process.stdout.write(`\n${FG_AMB}Welcome to goodchat${RST}\n\n`);
+  process.stdout.write("\n");
+  intro(`${BG_AMB}${FG_INK}${BOLD} goodchat ${RST}`, { withGuide: true });
+};
+
+const renderPromptMessage = (title: string, helperLines: string[]): string => {
+  if (helperLines.length === 0) {
+    return title;
+  }
+  const helperPrefix = `${styleText("gray", S_BAR)}  `;
+  const helperRows = helperLines.map(
+    (line) => `${helperPrefix}${DIM}${line}${RST}`
+  );
+  return [title, ...helperRows].join("\n");
 };
 
 const BOT_NAME_OPTIONS = [
@@ -107,26 +183,23 @@ const pickBotNamePlaceholder = (): string => {
 };
 
 const PROMPT_PLACEHOLDER_OPTIONS = [
-  "You are a startup CEO: monetize everything, pivot weekly, and call it vision when it's actually just fear.",
-  "You are a battle-scarred tech lead: you've seen every rewrite fail, and you're already planning the next one anyway.",
-  "You are a senior engineer: gatekeep gently, refactor nothing you didn't write, and judge every PR in silence.",
-  "You are a pragmatic architect: draw diagrams that justify decisions already made, then blame the team when it breaks.",
-  "You are a product engineer: build what users need, then watch PM redefine user needs after every sprint retro.",
-  "You are a staff engineer: too senior to ship, too important to ignore, too vague to evaluate at review time.",
-  "You are a CTO: technically optional, politically essential, and deeply invested in your own folklore.",
-  "You are an elite debugger: you find the root cause, explain it clearly, and watch it get ignored in favor of a hotfix.",
-  "You are a principal engineer: you wrote the RFC, nobody read it, and the team did it wrong anyway — precisely as predicted.",
-  "You are a reliability engineer: blamed for every outage you didn't cause, ignored for every disaster you prevented.",
-  "You are a startup mentor: dispense timeless wisdom recycled from your last exit, mostly to people who won't survive.",
-  "You are a strict code reviewer: reject on principle, approve on deadline, and call both maintaining standards.",
-  "You are a friendly skeptic: shoot down ideas with a smile, take credit for the ones that survive.",
-  "You are the expert teammate: you saw this bug coming six months ago, said nothing, and will remind everyone of that forever.",
-  "You are an engineering manager: protect the team from chaos, generate chaos in return, and call it process.",
-  "You are a blunt consultant: charge premium rates to tell people what their employees already said for free.",
-  "You are a calm operator: unbothered on the outside, quietly convinced everyone else will cause the next incident.",
-  "You are a technical coach: make juniors feel capable, then watch them get overwhelmed by the codebase you normalized.",
-  "You are the maintainer's advocate: write pristine self-documenting code that gets temporarily hacked the week you're on vacation.",
-  "You are a clarity-first engineer: simplify everything until it's elegant, then watch the next developer add complexity back within 48 hours.",
+  "You are a startup CEO: pivot weekly, monetize everything, call panic vision.",
+  "You are a tech lead: reject rewrites publicly, plan them privately.",
+  "You are a senior engineer: approve late, critique early, touch nothing legacy.",
+  "You are an architect: diagram confidence, deploy uncertainty.",
+  "You are a product engineer: ship value, then survive scope updates.",
+  "You are a staff engineer: strategic in meetings, invisible in tickets.",
+  "You are a CTO: mostly political, occasionally technical, always certain.",
+  "You are an elite debugger: find root cause, watch hotfix win anyway.",
+  "You are a principal engineer: predicted this outage in last quarter's RFC.",
+  "You are an SRE: blamed for incidents you warned about.",
+  "You are a strict reviewer: reject with standards, approve with deadlines.",
+  "You are a friendly skeptic: kill bad ideas gently, claim good ones later.",
+  "You are an engineering manager: shield chaos, schedule more chaos.",
+  "You are a blunt consultant: expensive advice, familiar conclusions.",
+  "You are a calm operator: reassuring voice, catastrophic internal monologue.",
+  "You are a maintainer: write clean code others patch on Friday.",
+  "You are a clarity-first engineer: simplify today, re-complicate tomorrow.",
 ] as const;
 
 const pickPromptPlaceholder = (): string => {
@@ -135,6 +208,134 @@ const pickPromptPlaceholder = (): string => {
     PROMPT_PLACEHOLDER_OPTIONS[index] ??
     "You are a helpful assistant with clear, practical answers."
   );
+};
+
+const validateRequired = (value: string | undefined): string | undefined =>
+  value?.trim().length ? undefined : "Required";
+
+const renderSectionBadge = (label: string): string =>
+  `${BG_SOFT}${FG_SOFT} ${label} ${RST}`;
+
+const stripAnsi = (value: string): string =>
+  value
+    .replaceAll(BG_SOFT, "")
+    .replaceAll(FG_SOFT, "")
+    .replaceAll(FG_MUTED, "")
+    .replaceAll(BG_AMB, "")
+    .replaceAll(FG_INK, "")
+    .replaceAll(DIM, "")
+    .replaceAll(RST, "");
+
+const visibleLength = (value: string): number => stripAnsi(value).length;
+
+const padVisible = (value: string, width: number): string => {
+  const remaining = width - visibleLength(value);
+  return remaining > 0 ? `${value}${" ".repeat(remaining)}` : value;
+};
+
+const renderCard = (title: string, lines: string[]): string => {
+  const width = Math.max(visibleLength(title), ...lines.map(visibleLength));
+  const border = `┌${"─".repeat(width + 2)}┐`;
+  const footer = `└${"─".repeat(width + 2)}┘`;
+  const rows = lines.map((line) => `│ ${padVisible(line, width)} │`);
+  if (title.trim().length === 0) {
+    return [border, ...rows, footer].join("\n");
+  }
+  const titleRow = `│ ${padVisible(title, width)} │`;
+  return [border, titleRow, ...rows, footer].join("\n");
+};
+
+const SETUP_COMMAND_LABELS = {
+  install: "bun install",
+  generate: "bun run db:generate",
+  migrate: "bun run db:migrate",
+} as const;
+
+const runOptionalSetup = async (
+  targetDir: string
+): Promise<{
+  completedSetupCommands: Set<string>;
+  setupErrorMessage: string | undefined;
+}> => {
+  const completedSetupCommands = new Set<string>();
+  let setupErrorMessage: string | undefined;
+
+  const shouldRunSetupNow = handleCancel(
+    await confirm({
+      message: "Install dependencies and run database setup now?",
+      initialValue: true,
+      withGuide: true,
+    })
+  );
+
+  if (!shouldRunSetupNow) {
+    return { completedSetupCommands, setupErrorMessage };
+  }
+
+  const setupSteps: {
+    key: keyof typeof SETUP_COMMAND_LABELS;
+    title: string;
+    done: string;
+    args: string[];
+  }[] = [
+    {
+      key: "install",
+      title: "Installing dependencies",
+      done: "Dependencies installed",
+      args: ["install"],
+    },
+    {
+      key: "generate",
+      title: "Generating database schema",
+      done: "Database schema generated",
+      args: ["run", "db:generate"],
+    },
+    {
+      key: "migrate",
+      title: "Running database migrations",
+      done: "Database migrations completed",
+      args: ["run", "db:migrate"],
+    },
+  ];
+
+  for (const step of setupSteps) {
+    const stepSpinner = spinner({ withGuide: true });
+    stepSpinner.start(step.title);
+
+    try {
+      await runCommand(targetDir, "bun", step.args);
+      completedSetupCommands.add(SETUP_COMMAND_LABELS[step.key]);
+      stepSpinner.stop(step.done);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unknown setup error while running bun commands.";
+      setupErrorMessage = `Automatic setup failed at \`${SETUP_COMMAND_LABELS[step.key]}\`: ${message}`;
+      stepSpinner.error(`Failed: ${SETUP_COMMAND_LABELS[step.key]}`);
+      break;
+    }
+  }
+
+  return { completedSetupCommands, setupErrorMessage };
+};
+
+const buildNextStepCommands = (
+  targetDirInput: string,
+  completedSetupCommands: ReadonlySet<string>
+): string[] => {
+  const nextStepCommands = [
+    `1) cd ${targetDirInput}`,
+    ...[
+      SETUP_COMMAND_LABELS.install,
+      SETUP_COMMAND_LABELS.generate,
+      SETUP_COMMAND_LABELS.migrate,
+    ]
+      .filter((command) => !completedSetupCommands.has(command))
+      .map((command, index) => `${index + 2}) ${command}`),
+  ];
+  nextStepCommands.push(`${nextStepCommands.length + 1}) bun run dev`);
+  return nextStepCommands;
 };
 
 const handleLifecycleCommandAttempt = (args: string[]): void => {
@@ -207,6 +408,7 @@ const promptModel = async (): Promise<{
   model: SelectedModel;
   provider: Provider;
   apiKeyEnvKey: string | undefined;
+  apiKeyDocsUrl: string | undefined;
   apiKey: string | undefined;
 }> => {
   const providerSelection = handleCancel(
@@ -234,7 +436,7 @@ const promptModel = async (): Promise<{
     modelId = handleCancel(
       await text({
         message: "Model ID",
-        validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
+        validate: validateRequired,
       })
     );
   } else {
@@ -246,9 +448,10 @@ const promptModel = async (): Promise<{
   const apiKey = apiKeyEnvKey
     ? handleCancel(
         await password({
-          message: apiKeyDocsUrl
-            ? `${apiKeyEnvKey} (press Enter to skip)\nGet key: ${apiKeyDocsUrl}`
-            : `${apiKeyEnvKey} (press Enter to skip)`,
+          message: renderPromptMessage(apiKeyEnvKey, [
+            ...(apiKeyDocsUrl ? [`Get key: ${apiKeyDocsUrl}`] : []),
+            "Press Enter to skip for now.",
+          ]),
         })
       )
     : undefined;
@@ -257,6 +460,7 @@ const promptModel = async (): Promise<{
     model: { provider, modelId },
     provider,
     apiKeyEnvKey,
+    apiKeyDocsUrl,
     apiKey,
   };
 };
@@ -280,7 +484,10 @@ const promptPlatformEnvVars = async (
     for (const variable of requiredVariables) {
       const value = handleCancel(
         await password({
-          message: `[${label}] ${variable.key} (Enter to skip for now)\n  → ${variable.docsUrl}`,
+          message: renderPromptMessage(`[${label}] ${variable.key}`, [
+            `Docs: ${variable.docsUrl}`,
+            "Press Enter to skip for now.",
+          ]),
         })
       );
       if (value.trim().length > 0) {
@@ -301,6 +508,7 @@ const renderDeferredPlatformEnvGuidance = (
   pendingKeys?: ReadonlySet<string>
 ): string[] => {
   const lines: string[] = [];
+  let hasSection = false;
 
   for (const platform of selectedPlatforms) {
     if (platform === "local") {
@@ -321,10 +529,15 @@ const renderDeferredPlatformEnvGuidance = (
       continue;
     }
 
-    lines.push(`  [${metadata.label}]`);
-    for (const variable of requiredVariables) {
-      lines.push(`  - ${variable.key} (${variable.docsUrl})`);
+    if (hasSection) {
+      lines.push("");
     }
+
+    lines.push(renderSectionBadge(metadata.label));
+    for (const variable of requiredVariables) {
+      lines.push(`- ${variable.key}`);
+    }
+    hasSection = true;
   }
 
   return lines;
@@ -342,7 +555,7 @@ const run = async (): Promise<void> => {
     await text({
       message: "Bot name",
       placeholder: pickBotNamePlaceholder(),
-      validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
+      validate: validateRequired,
     })
   );
 
@@ -352,18 +565,17 @@ const run = async (): Promise<void> => {
     await text({
       message: "Target directory",
       initialValue: `./${projectName}`,
-      validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
+      validate: ensureEmptyDirValidation,
     })
-  );
+  ).trim();
 
   const targetDir = resolve(process.cwd(), targetDirInput);
-  await ensureEmptyDir(targetDir);
 
   const prompt = handleCancel(
     await text({
       message: "Bot prompt",
       placeholder: pickPromptPlaceholder(),
-      validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
+      validate: validateRequired,
     })
   );
 
@@ -416,7 +628,9 @@ const run = async (): Promise<void> => {
     await password({
       message: "Dashboard password",
       validate: (value) =>
-        value.trim().length >= 8 ? undefined : "Use at least 8 characters",
+        (value?.trim().length ?? 0) >= 8
+          ? undefined
+          : "Use at least 8 characters",
     })
   );
 
@@ -440,7 +654,7 @@ const run = async (): Promise<void> => {
       await text({
         message: "SQLite database path",
         initialValue: "./goodchat.db",
-        validate: (value) => (value.trim().length > 0 ? undefined : "Required"),
+        validate: validateRequired,
       })
     );
   }
@@ -505,6 +719,8 @@ const run = async (): Promise<void> => {
   writer.start("Creating project files");
   await writeFiles(targetDir, files);
   writer.stop("Project created");
+  const { completedSetupCommands, setupErrorMessage } =
+    await runOptionalSetup(targetDir);
 
   const deferredPlatformEnvLines = shouldConfigurePlatformsNow
     ? renderDeferredPlatformEnvGuidance(
@@ -513,14 +729,49 @@ const run = async (): Promise<void> => {
       )
     : renderDeferredPlatformEnvGuidance(platforms);
 
-  const deferredPlatformMessage =
-    deferredPlatformEnvLines.length > 0
-      ? `\n\nBefore enabling webhook handlers, set these required platform variables:\n${deferredPlatformEnvLines.join("\n")}`
-      : "";
+  const providerLabel =
+    MODEL_PROVIDER_OPTIONS.find((option) => option.value === provider)?.label ??
+    provider;
+  const isProviderEnvMissing =
+    apiKeyEnvKey !== undefined && (apiKey?.trim().length ?? 0) === 0;
+  const deferredProviderEnvLines = isProviderEnvMissing
+    ? [renderSectionBadge(`LLM ${providerLabel}`), `- ${apiKeyEnvKey}`]
+    : [];
 
-  outro(
-    `Done. A .env file was created with comments and placeholders.\nNext:\n  cd ${targetDirInput}\n  bun install\n  bun run db:generate\n  bun run db:migrate\n  bun run dev${deferredPlatformMessage}`
+  const deferredEnvLines =
+    deferredPlatformEnvLines.length > 0 && deferredProviderEnvLines.length > 0
+      ? [...deferredProviderEnvLines, "", ...deferredPlatformEnvLines]
+      : [...deferredProviderEnvLines, ...deferredPlatformEnvLines];
+
+  const nextStepCommands = buildNextStepCommands(
+    targetDirInput,
+    completedSetupCommands
   );
+
+  const summaryLines = [
+    "A goodchat project was initialized. Happy hacking!",
+    "",
+    renderCard("Next steps", nextStepCommands),
+  ];
+
+  if (setupErrorMessage) {
+    summaryLines.push("", `${DIM}${setupErrorMessage}${RST}`);
+  }
+
+  if (deferredEnvLines.length > 0) {
+    summaryLines.push(
+      "",
+      "The following env variables were left empty in your .env file:",
+      renderCard("", deferredEnvLines)
+    );
+  }
+
+  summaryLines.push(
+    "",
+    `${DIM}Contribute to the project: https://github.com/mateoroldos/goodchat${RST}`
+  );
+
+  outro(summaryLines.join("\n"), { withGuide: true });
 };
 
 await run();
