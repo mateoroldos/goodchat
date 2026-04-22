@@ -180,6 +180,10 @@ const SLOGAN = "An almost good chatbot for every platform";
 const renderScaffoldIncludes = (): { detail: string; label: string }[] => {
   return [
     {
+      label: "Goodchat agent",
+      detail: " configurable and smart",
+    },
+    {
       label: "Goodchat server",
       detail: " with platform webhooks",
     },
