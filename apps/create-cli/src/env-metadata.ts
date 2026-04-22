@@ -75,12 +75,6 @@ const ENV_METADATA: EnvVariableMeta[] = [
     schema: "z.string().url().optional()",
   },
   {
-    key: "REDIS_URL",
-    description: "Redis connection URL for state persistence",
-    category: "core",
-    schema: "z.string().url().optional()",
-  },
-  {
     key: "CRON_SECRET",
     description: "Secret used to authorize cron requests",
     category: "core",

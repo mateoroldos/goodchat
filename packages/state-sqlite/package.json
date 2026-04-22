@@ -1,0 +1,44 @@
+{
+  "name": "@goodchat/state-sqlite",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "check-types": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "dependencies": {
+    "chat": "^4.26.0"
+  },
+  "devDependencies": {
+    "@goodchat/typescript-config": "workspace:*",
+    "tsdown": "^0.21.4",
+    "vitest": "^4.1.0"
+  },
+  "keywords": [
+    "goodchat",
+    "chat",
+    "state",
+    "sqlite"
+  ],
+  "license": "MIT"
+}

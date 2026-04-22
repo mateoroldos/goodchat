@@ -1,4 +1,5 @@
-import type { Platform } from "@goodchat/contracts/config/types";
+import type { Platform, StateConfig } from "@goodchat/contracts/config/types";
+import type { Database } from "@goodchat/contracts/database/interface";
 import type {
   Adapter,
   Chat,
@@ -8,8 +9,10 @@ import type {
 import type { LoggerService } from "../logger/interface";
 
 export interface ChatGatewayConfig {
+  database: Database;
   logger: LoggerService;
   platforms: readonly Platform[];
+  state: StateConfig;
   userName: string;
 }
 

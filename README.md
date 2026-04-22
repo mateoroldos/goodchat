@@ -38,6 +38,30 @@ goodchat dev
 
 Your bot is live. Connect it to Slack or Discord in the dashboard at `http://localhost:3000` with one click — no webhook URLs, no API key copying.
 
+### Chat state backend
+
+Goodchat now chooses Chat SDK state from your configured database dialect:
+
+- `postgres` -> `@chat-adapter/state-pg`
+- `mysql` -> `@goodchat/state-mysql`
+- `sqlite` -> `@goodchat/state-sqlite` (single-node oriented)
+
+This is the default path (`state.adapter = "database"`) and removes Redis as a required dependency.
+
+You can still opt into Redis explicitly:
+
+```ts
+createGoodchat({
+  // ...
+  state: {
+    adapter: "redis",
+    redisUrl: process.env.REDIS_URL,
+  },
+});
+```
+
+If the selected state adapter cannot initialize (for example, missing DB URL), Goodchat falls back to in-memory state and logs a warning.
+
 ---
 
 ## Features

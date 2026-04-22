@@ -3,8 +3,6 @@ import { createGoogleChatAdapter } from "@chat-adapter/gchat";
 import { createGitHubAdapter } from "@chat-adapter/github";
 import { createLinearAdapter } from "@chat-adapter/linear";
 import { createSlackAdapter } from "@chat-adapter/slack";
-import { createMemoryState } from "@chat-adapter/state-memory";
-import { createRedisState } from "@chat-adapter/state-redis";
 import { createTeamsAdapter } from "@chat-adapter/teams";
 import { CHAT_PLATFORMS } from "@goodchat/contracts/config/models";
 import type { Platform } from "@goodchat/contracts/config/types";
@@ -21,14 +19,12 @@ import type {
   ChatGatewayHandlers,
   ChatGatewayService,
 } from "./interface";
+import { createStateAdapter } from "./state-adapter";
 
 const CHAT_PLATFORM_SET = new Set<string>(CHAT_PLATFORMS);
 
 const isChatPlatform = (platform: Platform): platform is Platform =>
   CHAT_PLATFORM_SET.has(platform);
-
-const createStateAdapter = () =>
-  process.env.REDIS_URL ? createRedisState() : createMemoryState();
 
 const ADAPTER_FACTORIES: Partial<Record<Platform, () => Adapter>> = {
   discord: () => createDiscordAdapter() as unknown as Adapter,
@@ -101,7 +97,7 @@ export class DefaultChatGatewayService implements ChatGatewayService {
     this.#chat = new Chat({
       userName: config.userName,
       adapters,
-      state: createStateAdapter(),
+      state: createStateAdapter(config),
     });
   }
 

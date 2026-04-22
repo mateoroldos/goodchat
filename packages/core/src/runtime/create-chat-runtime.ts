@@ -37,9 +37,11 @@ export const createChatRuntime = ({
   });
 
   const gateway = new DefaultChatGatewayService({
+    database: bot.database,
     logger,
     userName: bot.name,
     platforms: bot.platforms,
+    state: bot.state,
   });
 
   const handleMessage = async (

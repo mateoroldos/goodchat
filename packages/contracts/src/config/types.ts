@@ -6,12 +6,16 @@ import type {
   botConfigSchema,
   databaseDialectSchema,
   platformSchema,
+  stateAdapterSchema,
+  stateConfigSchema,
 } from "./models";
 
 export type Platform = z.infer<typeof platformSchema>;
 export type DatabaseDialect = z.infer<typeof databaseDialectSchema>;
 export type AuthMode = z.infer<typeof authModeSchema>;
 export type AuthConfig = z.infer<typeof authConfigSchema>;
+export type StateAdapter = z.infer<typeof stateAdapterSchema>;
+export type StateConfig = z.infer<typeof stateConfigSchema>;
 export type BotConfigInput = z.input<typeof botConfigSchema>;
 export type BotConfig = z.infer<typeof botConfigSchema>;
 

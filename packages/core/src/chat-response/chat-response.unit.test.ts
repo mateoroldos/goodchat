@@ -63,6 +63,7 @@ const createBot = ({
   platforms: ["web"],
   plugins: [],
   prompt: "Be helpful",
+  state: { adapter: "database" },
   tools: {},
   dashboard: true,
 });

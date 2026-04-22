@@ -7,15 +7,7 @@ import { env } from "./env";
 export const goodchat = createGoodchat({
   name: "Minimal",
   prompt: "You are a helpful assistant",
-  platforms: [
-    "web",
-    "discord",
-    "slack",
-    "gchat",
-    "linear",
-    "github",
-    "teams",
-  ],
+  platforms: ["web", "discord", "slack", "gchat", "linear", "github", "teams"],
   model: openai("gpt-4.1-mini"),
   dashboard: true,
   auth: {

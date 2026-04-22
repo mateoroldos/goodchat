@@ -10,7 +10,6 @@ export const env = createEnv({
       .min(1, "Dashboard password is required"),
     GOODCHAT_AUTH_SECRET: z.string().min(1, "GOODCHAT_AUTH_SECRET is required"),
     WEBHOOK_FORWARD_URL: z.string().url().optional(),
-    REDIS_URL: z.string().url().optional(),
     CRON_SECRET: z.string().optional(),
     ENVIRONMENT: z.enum(["development", "test", "production"]).optional(),
     SERVERLESS: z.enum(["true", "false"]).optional(),

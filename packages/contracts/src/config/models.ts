@@ -30,6 +30,17 @@ export const AUTH_MODES = ["password"] as const;
 
 export const authModeSchema = z.enum(AUTH_MODES);
 
+export const STATE_ADAPTERS = ["database", "memory", "redis"] as const;
+
+export const stateAdapterSchema = z.enum(STATE_ADAPTERS);
+
+export const stateConfigSchema = z
+  .object({
+    adapter: stateAdapterSchema.default("database"),
+    redisUrl: z.string().url().optional(),
+  })
+  .default({ adapter: "database" });
+
 export const loggingSchema = z.object({
   enabled: z.boolean().default(true),
   service: z.string().optional(),
@@ -105,4 +116,5 @@ export const botConfigSchema = z.object({
   tools: z.record(z.string(), toolSchema).default({}),
   dashboard: z.boolean().default(true),
   auth: authConfigSchema,
+  state: stateConfigSchema,
 });
