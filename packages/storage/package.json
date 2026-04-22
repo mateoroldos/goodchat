@@ -33,7 +33,8 @@
     },
     "./schema/sqlite": {
       "types": "./dist/schema/sqlite.d.mts",
-      "import": "./dist/schema/sqlite.mjs"
+      "import": "./dist/schema/sqlite.mjs",
+      "default": "./dist/schema/sqlite.mjs"
     },
     "./schema/postgres": {
       "types": "./dist/schema/postgres.d.mts",
@@ -45,7 +46,8 @@
     },
     "./schema/auth/sqlite": {
       "types": "./dist/schema/auth/sqlite.d.mts",
-      "import": "./dist/schema/auth/sqlite.mjs"
+      "import": "./dist/schema/auth/sqlite.mjs",
+      "default": "./dist/schema/auth/sqlite.mjs"
     },
     "./schema/auth/postgres": {
       "types": "./dist/schema/auth/postgres.d.mts",
