@@ -450,18 +450,24 @@ export class MysqlStateAdapter implements StateAdapter {
       )
     `);
 
-    await this.pool.execute(
-      "CREATE INDEX IF NOT EXISTS chat_state_locks_expires_idx ON chat_state_locks (expires_at)"
-    );
-    await this.pool.execute(
-      "CREATE INDEX IF NOT EXISTS chat_state_cache_expires_idx ON chat_state_cache (expires_at)"
-    );
-    await this.pool.execute(
-      "CREATE INDEX IF NOT EXISTS chat_state_lists_expires_idx ON chat_state_lists (expires_at)"
-    );
-    await this.pool.execute(
-      "CREATE INDEX IF NOT EXISTS chat_state_queues_expires_idx ON chat_state_queues (expires_at)"
-    );
+    const expiresIndexes: [string, string][] = [
+      ["chat_state_locks_expires_idx", "chat_state_locks"],
+      ["chat_state_cache_expires_idx", "chat_state_cache"],
+      ["chat_state_lists_expires_idx", "chat_state_lists"],
+      ["chat_state_queues_expires_idx", "chat_state_queues"],
+    ];
+    for (const [name, table] of expiresIndexes) {
+      try {
+        await this.pool.execute(
+          `CREATE INDEX ${name} ON ${table} (expires_at)`
+        );
+      } catch (err: unknown) {
+        // ER_DUP_KEYNAME (1061) — index already exists, safe to ignore
+        if ((err as { errno?: number }).errno !== 1061) {
+          throw err;
+        }
+      }
+    }
   }
 
   private ensureConnected(): void {

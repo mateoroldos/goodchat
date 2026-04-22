@@ -14,6 +14,21 @@ export interface SqliteStateAdapterOptions {
   path?: string;
 }
 
+export interface SqliteStateClientOptions {
+  /** Existing BunSqliteDatabase instance */
+  client: BunSqliteDatabase;
+  /** Key prefix for all rows (default: "chat-sdk") */
+  keyPrefix?: string;
+  /** Logger instance for error reporting */
+  logger?: Logger;
+}
+
+export type CreateSqliteStateOptions =
+  | (Partial<SqliteStateAdapterOptions> & { client?: never })
+  | (Partial<Omit<SqliteStateClientOptions, "client">> & {
+      client: BunSqliteDatabase;
+    });
+
 interface LockRow {
   expires_at: number;
   thread_id: string;
@@ -45,12 +60,22 @@ export class SqliteStateAdapter implements StateAdapter {
   private db!: BunSqliteDatabase;
   private readonly keyPrefix: string;
   private readonly logger: Logger;
+  private readonly ownsClient: boolean;
   private readonly path: string;
   private connected = false;
   private connectPromise: Promise<void> | null = null;
 
-  constructor(options: SqliteStateAdapterOptions = {}) {
-    this.path = options.path ?? ":memory:";
+  constructor(
+    options: SqliteStateAdapterOptions | SqliteStateClientOptions = {}
+  ) {
+    if ("client" in options) {
+      this.db = options.client;
+      this.ownsClient = false;
+      this.path = ":memory:";
+    } else {
+      this.path = options.path ?? ":memory:";
+      this.ownsClient = true;
+    }
     this.keyPrefix = options.keyPrefix ?? "chat-sdk";
     this.logger = options.logger ?? new ConsoleLogger("info").child("sqlite");
   }
@@ -62,13 +87,13 @@ export class SqliteStateAdapter implements StateAdapter {
     if (!this.connectPromise) {
       this.connectPromise = (async () => {
         try {
-          if (!("Bun" in globalThis)) {
-            throw new Error("SQLite state adapter requires Bun runtime");
+          if (this.ownsClient) {
+            if (!("Bun" in globalThis)) {
+              throw new Error("SQLite state adapter requires Bun runtime");
+            }
+            const sqlite = await import("bun:sqlite");
+            this.db = new sqlite.Database(this.path);
           }
-
-          const sqlite = await import("bun:sqlite");
-          this.db = new sqlite.Database(this.path);
-
           await this.execute(() => {
             this.db.run("SELECT 1");
           });
@@ -88,9 +113,11 @@ export class SqliteStateAdapter implements StateAdapter {
     if (!this.connected) {
       return;
     }
-    await this.execute(() => {
-      this.db.close();
-    });
+    if (this.ownsClient) {
+      await this.execute(() => {
+        this.db.close();
+      });
+    }
     this.connected = false;
     this.connectPromise = null;
   }
@@ -515,7 +542,7 @@ function generateToken(): string {
 }
 
 export function createSqliteState(
-  options: SqliteStateAdapterOptions = {}
+  options: CreateSqliteStateOptions = {}
 ): SqliteStateAdapter {
   return new SqliteStateAdapter(options);
 }

@@ -7,8 +7,6 @@ import {
   setSqliteMockHandler,
 } from "./test-bun-sqlite";
 
-vi.mock("bun:sqlite", () => ({ Database }));
-
 const RE_INSERT_OR_IGNORE = /INSERT OR IGNORE/i;
 const RE_SUBSCRIPTIONS_TABLE = /chat_state_subscriptions/;
 const RE_DELETE_SUBSCRIPTIONS = /DELETE FROM chat_state_subscriptions/i;
@@ -31,7 +29,7 @@ const mockLogger: Logger = {
 
 function connectedAdapter(): InstanceType<typeof SqliteStateAdapter> {
   const adapter = new SqliteStateAdapter({
-    path: ":memory:",
+    client: new Database() as never,
     logger: mockLogger,
   });
   (adapter as unknown as { connected: boolean }).connected = true;
@@ -76,9 +74,25 @@ describe("SqliteStateAdapter", () => {
       });
       expect(adapter).toBeInstanceOf(SqliteStateAdapter);
     });
+
+    it("should create an adapter with an existing client", () => {
+      const adapter = createSqliteState({
+        client: new Database() as never,
+        logger: mockLogger,
+      });
+      expect(adapter).toBeInstanceOf(SqliteStateAdapter);
+    });
   });
 
   describe("connect / disconnect", () => {
+    beforeEach(() => {
+      vi.stubGlobal("Bun", {});
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
     it("connect() runs SELECT 1 then schema bootstrap", async () => {
       const adapter = createSqliteState({ logger: mockLogger });
       await adapter.connect();
@@ -104,6 +118,17 @@ describe("SqliteStateAdapter", () => {
       await adapter.connect();
       await adapter.disconnect();
       expect(getSqliteMockState().closeCalls).toBe(1);
+    });
+
+    it("disconnect() does not close db when client is external", async () => {
+      const db = new Database() as never;
+      const adapter = new SqliteStateAdapter({
+        client: db,
+        logger: mockLogger,
+      });
+      (adapter as unknown as { connected: boolean }).connected = true;
+      await adapter.disconnect();
+      expect(getSqliteMockState().closeCalls).toBe(0);
     });
 
     it("throws when connect() fails", async () => {
@@ -388,10 +413,7 @@ describe("SqliteStateAdapter", () => {
 
   describe("getClient()", () => {
     it("returns the underlying database", () => {
-      const adapter = new SqliteStateAdapter({
-        path: ":memory:",
-        logger: mockLogger,
-      });
+      const adapter = connectedAdapter();
       expect(adapter.getClient()).toBeDefined();
     });
   });
