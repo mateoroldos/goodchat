@@ -21,48 +21,39 @@
   "exports": {
     "./sqlite": {
       "types": "./dist/sqlite.d.mts",
-      "import": "./dist/sqlite.mjs",
-      "require": "./dist/sqlite.cjs"
+      "import": "./dist/sqlite.mjs"
     },
     "./postgres": {
       "types": "./dist/postgres.d.mts",
-      "import": "./dist/postgres.mjs",
-      "require": "./dist/postgres.cjs"
+      "import": "./dist/postgres.mjs"
     },
     "./mysql": {
       "types": "./dist/mysql.d.mts",
-      "import": "./dist/mysql.mjs",
-      "require": "./dist/mysql.cjs"
+      "import": "./dist/mysql.mjs"
     },
     "./schema/sqlite": {
       "types": "./dist/schema/sqlite.d.mts",
-      "import": "./dist/schema/sqlite.mjs",
-      "require": "./dist/schema/sqlite.cjs"
+      "import": "./dist/schema/sqlite.mjs"
     },
     "./schema/postgres": {
       "types": "./dist/schema/postgres.d.mts",
-      "import": "./dist/schema/postgres.mjs",
-      "require": "./dist/schema/postgres.cjs"
+      "import": "./dist/schema/postgres.mjs"
     },
     "./schema/mysql": {
       "types": "./dist/schema/mysql.d.mts",
-      "import": "./dist/schema/mysql.mjs",
-      "require": "./dist/schema/mysql.cjs"
+      "import": "./dist/schema/mysql.mjs"
     },
     "./schema/auth/sqlite": {
       "types": "./dist/schema/auth/sqlite.d.mts",
-      "import": "./dist/schema/auth/sqlite.mjs",
-      "require": "./dist/schema/auth/sqlite.cjs"
+      "import": "./dist/schema/auth/sqlite.mjs"
     },
     "./schema/auth/postgres": {
       "types": "./dist/schema/auth/postgres.d.mts",
-      "import": "./dist/schema/auth/postgres.mjs",
-      "require": "./dist/schema/auth/postgres.cjs"
+      "import": "./dist/schema/auth/postgres.mjs"
     },
     "./schema/auth/mysql": {
       "types": "./dist/schema/auth/mysql.d.mts",
-      "import": "./dist/schema/auth/mysql.mjs",
-      "require": "./dist/schema/auth/mysql.cjs"
+      "import": "./dist/schema/auth/mysql.mjs"
     }
   },
   "dependencies": {

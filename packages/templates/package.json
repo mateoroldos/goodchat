@@ -22,8 +22,7 @@
   "exports": {
     "./scaffold/db-schema-artifacts": {
       "types": "./dist/scaffold/db-schema-artifacts.d.mts",
-      "import": "./dist/scaffold/db-schema-artifacts.mjs",
-      "require": "./dist/scaffold/db-schema-artifacts.cjs"
+      "import": "./dist/scaffold/db-schema-artifacts.mjs"
     },
     "./scripts/manage-auth-schema-templates": "./scripts/manage-auth-schema-templates.ts",
     "./package.json": "./package.json"

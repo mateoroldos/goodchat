@@ -4,7 +4,7 @@ export default defineConfig({
   entry: {
     "scaffold/db-schema-artifacts": "./scaffold/db-schema-artifacts.ts",
   },
-  format: ["esm", "cjs"],
+  format: ["esm"],
   dts: {
     sourcemap: true,
   },

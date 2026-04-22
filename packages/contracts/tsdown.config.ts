@@ -28,7 +28,7 @@ export default defineConfig({
     "model/catalog/ai-gateway": "./src/model/catalog/ai-gateway.ts",
     "model/catalog/vercel-gateway": "./src/model/catalog/vercel-gateway.ts",
   },
-  format: ["esm", "cjs"],
+  format: ["esm"],
   dts: {
     sourcemap: true,
   },

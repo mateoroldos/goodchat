@@ -12,7 +12,7 @@ export default defineConfig({
     "schema/auth/postgres": "./schema/auth/postgres.ts",
     "schema/auth/mysql": "./schema/auth/mysql.ts",
   },
-  format: ["esm", "cjs"],
+  format: ["esm"],
   dts: {
     sourcemap: true,
   },

@@ -3,7 +3,7 @@
   "version": "0.0.13",
   "private": false,
   "type": "module",
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "files": [
@@ -23,13 +23,11 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.mjs"
     },
     "./types": {
       "types": "./dist/types.d.mts",
-      "import": "./dist/types.mjs",
-      "require": "./dist/types.cjs"
+      "import": "./dist/types.mjs"
     }
   },
   "dependencies": {

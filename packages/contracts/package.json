@@ -18,128 +18,103 @@
   "exports": {
     "./hooks/models": {
       "types": "./dist/hooks/models.d.ts",
-      "import": "./dist/hooks/models.mjs",
-      "require": "./dist/hooks/models.cjs"
+      "import": "./dist/hooks/models.mjs"
     },
     "./hooks/types": {
       "types": "./dist/hooks/types.d.ts",
-      "import": "./dist/hooks/types.mjs",
-      "require": "./dist/hooks/types.cjs"
+      "import": "./dist/hooks/types.mjs"
     },
     "./capabilities/models": {
       "types": "./dist/capabilities/models.d.ts",
-      "import": "./dist/capabilities/models.mjs",
-      "require": "./dist/capabilities/models.cjs"
+      "import": "./dist/capabilities/models.mjs"
     },
     "./capabilities/types": {
       "types": "./dist/capabilities/types.d.ts",
-      "import": "./dist/capabilities/types.mjs",
-      "require": "./dist/capabilities/types.cjs"
+      "import": "./dist/capabilities/types.mjs"
     },
     "./config/models": {
       "types": "./dist/config/models.d.ts",
-      "import": "./dist/config/models.mjs",
-      "require": "./dist/config/models.cjs"
+      "import": "./dist/config/models.mjs"
     },
     "./config/types": {
       "types": "./dist/config/types.d.ts",
-      "import": "./dist/config/types.mjs",
-      "require": "./dist/config/types.cjs"
+      "import": "./dist/config/types.mjs"
     },
     "./config/messages": {
       "types": "./dist/messages/types.d.ts",
-      "import": "./dist/messages/types.mjs",
-      "require": "./dist/messages/types.cjs"
+      "import": "./dist/messages/types.mjs"
     },
     "./config/utils": {
       "types": "./dist/config/utils.d.ts",
-      "import": "./dist/config/utils.mjs",
-      "require": "./dist/config/utils.cjs"
+      "import": "./dist/config/utils.mjs"
     },
     "./plugins/define": {
       "types": "./dist/plugins/define.d.ts",
-      "import": "./dist/plugins/define.mjs",
-      "require": "./dist/plugins/define.cjs"
+      "import": "./dist/plugins/define.mjs"
     },
     "./plugins/models": {
       "types": "./dist/plugins/models.d.ts",
-      "import": "./dist/plugins/models.mjs",
-      "require": "./dist/plugins/models.cjs"
+      "import": "./dist/plugins/models.mjs"
     },
     "./plugins/types": {
       "types": "./dist/plugins/types.d.ts",
-      "import": "./dist/plugins/types.mjs",
-      "require": "./dist/plugins/types.cjs"
+      "import": "./dist/plugins/types.mjs"
     },
     "./database/thread": {
       "types": "./dist/database/thread.d.ts",
-      "import": "./dist/database/thread.mjs",
-      "require": "./dist/database/thread.cjs"
+      "import": "./dist/database/thread.mjs"
     },
     "./database/message": {
       "types": "./dist/database/message.d.ts",
-      "import": "./dist/database/message.mjs",
-      "require": "./dist/database/message.cjs"
+      "import": "./dist/database/message.mjs"
     },
     "./database/ai-run": {
       "types": "./dist/database/ai-run.d.ts",
-      "import": "./dist/database/ai-run.mjs",
-      "require": "./dist/database/ai-run.cjs"
+      "import": "./dist/database/ai-run.mjs"
     },
     "./database/ai-run-tool-call": {
       "types": "./dist/database/ai-run-tool-call.d.ts",
-      "import": "./dist/database/ai-run-tool-call.mjs",
-      "require": "./dist/database/ai-run-tool-call.cjs"
+      "import": "./dist/database/ai-run-tool-call.mjs"
     },
     "./database/interface": {
       "types": "./dist/database/interface.d.ts",
-      "import": "./dist/database/interface.mjs",
-      "require": "./dist/database/interface.cjs"
+      "import": "./dist/database/interface.mjs"
     },
     "./model/model-ref": {
       "types": "./dist/model/model-ref.d.ts",
-      "import": "./dist/model/model-ref.mjs",
-      "require": "./dist/model/model-ref.cjs"
+      "import": "./dist/model/model-ref.mjs"
     },
     "./model/provider-metadata": {
       "types": "./dist/model/provider-metadata.d.ts",
-      "import": "./dist/model/provider-metadata.mjs",
-      "require": "./dist/model/provider-metadata.cjs"
+      "import": "./dist/model/provider-metadata.mjs"
     },
     "./platform/platform-metadata": {
       "types": "./dist/platform/platform-metadata.d.ts",
-      "import": "./dist/platform/platform-metadata.mjs",
-      "require": "./dist/platform/platform-metadata.cjs"
+      "import": "./dist/platform/platform-metadata.mjs"
     },
     "./model/catalog/openai": {
       "types": "./dist/model/catalog/openai.d.ts",
-      "import": "./dist/model/catalog/openai.mjs",
-      "require": "./dist/model/catalog/openai.cjs"
+      "import": "./dist/model/catalog/openai.mjs"
     },
     "./model/catalog/anthropic": {
       "types": "./dist/model/catalog/anthropic.d.ts",
-      "import": "./dist/model/catalog/anthropic.mjs",
-      "require": "./dist/model/catalog/anthropic.cjs"
+      "import": "./dist/model/catalog/anthropic.mjs"
     },
     "./model/catalog/google": {
       "types": "./dist/model/catalog/google.d.ts",
-      "import": "./dist/model/catalog/google.mjs",
-      "require": "./dist/model/catalog/google.cjs"
+      "import": "./dist/model/catalog/google.mjs"
     },
     "./model/catalog/openrouter": {
       "types": "./dist/model/catalog/openrouter.d.ts",
-      "import": "./dist/model/catalog/openrouter.mjs",
-      "require": "./dist/model/catalog/openrouter.cjs"
+      "import": "./dist/model/catalog/openrouter.mjs"
     },
     "./model/catalog/ai-gateway": {
       "types": "./dist/model/catalog/ai-gateway.d.ts",
-      "import": "./dist/model/catalog/ai-gateway.mjs",
-      "require": "./dist/model/catalog/ai-gateway.cjs"
+      "import": "./dist/model/catalog/ai-gateway.mjs"
     },
     "./model/catalog/vercel-gateway": {
       "types": "./dist/model/catalog/vercel-gateway.d.ts",
-      "import": "./dist/model/catalog/vercel-gateway.mjs",
-      "require": "./dist/model/catalog/vercel-gateway.cjs"
+      "import": "./dist/model/catalog/vercel-gateway.mjs"
     }
   },
   "dependencies": {

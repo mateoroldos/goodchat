@@ -4,7 +4,7 @@ export default defineConfig({
   entry: {
     linear: "./src/linear.ts",
   },
-  format: ["esm", "cjs"],
+  format: ["esm"],
   dts: {
     sourcemap: true,
   },

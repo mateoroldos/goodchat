@@ -3,7 +3,7 @@
   "version": "0.0.11",
   "private": false,
   "type": "module",
-  "main": "./dist/linear.cjs",
+  "main": "./dist/linear.mjs",
   "module": "./dist/linear.mjs",
   "types": "./dist/linear.d.mts",
   "files": [
@@ -21,8 +21,7 @@
   "exports": {
     "./linear": {
       "types": "./dist/linear.d.mts",
-      "import": "./dist/linear.mjs",
-      "require": "./dist/linear.cjs"
+      "import": "./dist/linear.mjs"
     },
     "./package.json": "./package.json"
   },
