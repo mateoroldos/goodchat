@@ -1,5 +1,14 @@
 # @goodchat/plugins
 
+## 0.0.12
+
+### Patch Changes
+
+- a5f9c7a: Remove cjs output from build
+- Updated dependencies [790aef5]
+- Updated dependencies [a5f9c7a]
+  - @goodchat/contracts@0.0.14
+
 ## 0.0.11
 
 ### Patch Changes

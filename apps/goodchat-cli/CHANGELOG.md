@@ -1,5 +1,14 @@
 # @goodchat/cli
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [790aef5]
+- Updated dependencies [a5f9c7a]
+  - @goodchat/contracts@0.0.14
+  - @goodchat/templates@0.0.14
+
 ## 0.0.7
 
 ### Patch Changes
