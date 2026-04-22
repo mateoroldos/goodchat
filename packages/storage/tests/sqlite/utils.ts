@@ -12,7 +12,9 @@ const createDatabaseInterface = (
   transactionRunner: Database["transaction"]
 ): Database => ({
   ...createSqliteRepositories(database),
+  connection: database,
   dialect: "sqlite",
+  schema: sqliteSchema,
   transaction: transactionRunner,
 });
 

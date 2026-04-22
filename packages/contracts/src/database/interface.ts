@@ -56,7 +56,10 @@ export interface WeeklyStats {
   tokensByDay: DayTokens[];
 }
 
-export interface Database {
+export interface Database<
+  TConnection = unknown,
+  TDialect extends DatabaseDialect = DatabaseDialect,
+> {
   aiRuns: {
     create: (input: AiRunCreate) => Promise<AiRun>;
     delete: (id: string) => Promise<void>;
@@ -74,8 +77,8 @@ export interface Database {
   analytics: {
     weeklyStats: (botId: string) => Promise<WeeklyStats>;
   };
-  connection: unknown;
-  dialect: DatabaseDialect;
+  connection: TConnection;
+  dialect: TDialect;
   messages: {
     create: (input: MessageCreate) => Promise<Message>;
     delete: (id: string) => Promise<void>;
@@ -91,5 +94,7 @@ export interface Database {
     list: (input: ThreadListInput) => Promise<Thread[]>;
     update: (id: string, patch: ThreadUpdate) => Promise<Thread>;
   };
-  transaction: <T>(fn: (database: Database) => Promise<T>) => Promise<T>;
+  transaction: <T>(
+    fn: (database: Database<TConnection, TDialect>) => Promise<T>
+  ) => Promise<T>;
 }

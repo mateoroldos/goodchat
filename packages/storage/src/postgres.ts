@@ -64,13 +64,10 @@ export type PostgresDatabase =
   | VercelTransaction;
 
 /** Narrowed Database with a typed drizzle connection for Postgres. */
-export type PostgresDatabaseInstance = Database & {
-  connection: PostgresTopLevelDb;
-  dialect: "postgres";
-};
+export type PostgresDatabaseInstance = Database<PostgresTopLevelDb, "postgres">;
 
 type TransactionRunner = <T>(
-  fn: (database: Database) => Promise<T>
+  fn: (database: PostgresDatabaseInstance) => Promise<T>
 ) => Promise<T>;
 
 const createDatabaseInterface = (
@@ -78,7 +75,7 @@ const createDatabaseInterface = (
   transactionRunner: TransactionRunner,
   connection: PostgresTopLevelDb,
   schema: Record<string, unknown> | undefined
-): Database => ({
+): PostgresDatabaseInstance => ({
   ...createPostgresRepositories(database),
   connection,
   dialect: "postgres",
@@ -94,12 +91,7 @@ export const postgres = (
     db.transaction((tx) =>
       fn(createDatabaseInterface(tx, transactionRunner, db, options.schema))
     );
-  return createDatabaseInterface(
-    db,
-    transactionRunner,
-    db,
-    options.schema
-  ) as PostgresDatabaseInstance;
+  return createDatabaseInterface(db, transactionRunner, db, options.schema);
 };
 
 const createDriverDatabase = (

@@ -18,13 +18,10 @@ type MysqlTransaction = Parameters<Parameters<MysqlDb["transaction"]>[0]>[0];
 export type MysqlDatabase = MysqlDb | MysqlTransaction;
 
 /** Narrowed Database with a typed drizzle connection for MySQL. */
-export type MysqlDatabaseInstance = Database & {
-  connection: MysqlDb;
-  dialect: "mysql";
-};
+export type MysqlDatabaseInstance = Database<MysqlDb, "mysql">;
 
 type TransactionRunner = <T>(
-  fn: (database: Database) => Promise<T>
+  fn: (database: MysqlDatabaseInstance) => Promise<T>
 ) => Promise<T>;
 
 const createDatabaseInterface = (
@@ -32,7 +29,7 @@ const createDatabaseInterface = (
   transactionRunner: TransactionRunner,
   connection: MysqlDb,
   schema: Record<string, unknown> | undefined
-): Database => ({
+): MysqlDatabaseInstance => ({
   ...createMysqlRepositories(database),
   connection,
   dialect: "mysql",
@@ -50,10 +47,5 @@ export const mysql = (options: MysqlAdapterOptions): MysqlDatabaseInstance => {
     db.transaction((tx) =>
       fn(createDatabaseInterface(tx, transactionRunner, db, options.schema))
     );
-  return createDatabaseInterface(
-    db,
-    transactionRunner,
-    db,
-    options.schema
-  ) as MysqlDatabaseInstance;
+  return createDatabaseInterface(db, transactionRunner, db, options.schema);
 };
