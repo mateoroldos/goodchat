@@ -1,5 +1,15 @@
 # @goodchat/create
 
+## 0.0.17
+
+### Patch Changes
+
+- 790aef5: Reuse database for chat sdk state adapters
+- a5f9c7a: Remove cjs output from build
+- 38885b9: Improve create cli intro
+- Updated dependencies [a5f9c7a]
+  - @goodchat/templates@0.0.14
+
 ## 0.0.16
 
 ### Patch Changes

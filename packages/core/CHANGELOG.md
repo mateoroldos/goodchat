@@ -1,5 +1,17 @@
 # @goodchat/core
 
+## 0.0.14
+
+### Patch Changes
+
+- 790aef5: Reuse database for chat sdk state adapters
+- a5f9c7a: Remove cjs output from build
+- Updated dependencies [790aef5]
+- Updated dependencies [a5f9c7a]
+  - @goodchat/state-sqlite@0.0.2
+  - @goodchat/state-mysql@0.0.2
+  - @goodchat/contracts@0.0.14
+
 ## 0.0.13
 
 ### Patch Changes
