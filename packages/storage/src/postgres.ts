@@ -49,15 +49,25 @@ type VercelTransaction = Parameters<
   Parameters<ReturnType<typeof drizzleVercel>["transaction"]>[0]
 >[0];
 
-export type PostgresDatabase =
+/** Top-level (non-transaction) drizzle connection types for Postgres. */
+export type PostgresTopLevelDb =
   | ReturnType<typeof drizzlePostgresJs>
   | ReturnType<typeof drizzleNodePg>
   | ReturnType<typeof drizzleNeon>
-  | ReturnType<typeof drizzleVercel>
+  | ReturnType<typeof drizzleVercel>;
+
+export type PostgresDatabase =
+  | PostgresTopLevelDb
   | PostgresJsTransaction
   | NodePgTransaction
   | NeonTransaction
   | VercelTransaction;
+
+/** Narrowed Database with a typed drizzle connection for Postgres. */
+export type PostgresDatabaseInstance = Database & {
+  connection: PostgresTopLevelDb;
+  dialect: "postgres";
+};
 
 type TransactionRunner = <T>(
   fn: (database: Database) => Promise<T>
@@ -66,35 +76,35 @@ type TransactionRunner = <T>(
 const createDatabaseInterface = (
   database: PostgresDatabase,
   transactionRunner: TransactionRunner,
-  authConfig: {
-    db: unknown;
-    provider: "pg";
-    schema?: Record<string, unknown>;
-  }
+  connection: PostgresTopLevelDb,
+  schema: Record<string, unknown> | undefined
 ): Database => ({
   ...createPostgresRepositories(database),
-  auth: { getBetterAuthDatabaseConfig: () => authConfig },
+  connection,
   dialect: "postgres",
+  schema,
   transaction: transactionRunner,
 });
 
-export const postgres = (options: PostgresAdapterOptions): Database => {
+export const postgres = (
+  options: PostgresAdapterOptions
+): PostgresDatabaseInstance => {
   const db = createDriverDatabase(options);
-  const authConfig = {
-    db,
-    provider: "pg" as const,
-    schema: options.schema,
-  };
   const transactionRunner: TransactionRunner = (fn) =>
     db.transaction((tx) =>
-      fn(createDatabaseInterface(tx, transactionRunner, authConfig))
+      fn(createDatabaseInterface(tx, transactionRunner, db, options.schema))
     );
-  return createDatabaseInterface(db, transactionRunner, authConfig);
+  return createDatabaseInterface(
+    db,
+    transactionRunner,
+    db,
+    options.schema
+  ) as PostgresDatabaseInstance;
 };
 
 const createDriverDatabase = (
   options: PostgresAdapterOptions
-): PostgresDatabase => {
+): PostgresTopLevelDb => {
   const config = { logger: options.debugLogs };
 
   if (options.driver === "pg") {

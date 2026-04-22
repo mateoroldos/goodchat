@@ -17,6 +17,12 @@ type MysqlTransaction = Parameters<Parameters<MysqlDb["transaction"]>[0]>[0];
 
 export type MysqlDatabase = MysqlDb | MysqlTransaction;
 
+/** Narrowed Database with a typed drizzle connection for MySQL. */
+export type MysqlDatabaseInstance = Database & {
+  connection: MysqlDb;
+  dialect: "mysql";
+};
+
 type TransactionRunner = <T>(
   fn: (database: Database) => Promise<T>
 ) => Promise<T>;
@@ -24,32 +30,30 @@ type TransactionRunner = <T>(
 const createDatabaseInterface = (
   database: MysqlDatabase,
   transactionRunner: TransactionRunner,
-  authConfig: {
-    db: unknown;
-    provider: "mysql";
-    schema?: Record<string, unknown>;
-  }
+  connection: MysqlDb,
+  schema: Record<string, unknown> | undefined
 ): Database => ({
   ...createMysqlRepositories(database),
-  auth: { getBetterAuthDatabaseConfig: () => authConfig },
+  connection,
   dialect: "mysql",
+  schema,
   transaction: transactionRunner,
 });
 
-export const mysql = (options: MysqlAdapterOptions): Database => {
+export const mysql = (options: MysqlAdapterOptions): MysqlDatabaseInstance => {
   const client = options.client ?? createPool(options.connectionString);
   const db = drizzle(client, {
     logger: options.debugLogs,
     mode: options.mode ?? "default",
   });
-  const authConfig = {
-    db,
-    provider: "mysql" as const,
-    schema: options.schema,
-  };
   const transactionRunner: TransactionRunner = (fn) =>
     db.transaction((tx) =>
-      fn(createDatabaseInterface(tx, transactionRunner, authConfig))
+      fn(createDatabaseInterface(tx, transactionRunner, db, options.schema))
     );
-  return createDatabaseInterface(db, transactionRunner, authConfig);
+  return createDatabaseInterface(
+    db,
+    transactionRunner,
+    db,
+    options.schema
+  ) as MysqlDatabaseInstance;
 };

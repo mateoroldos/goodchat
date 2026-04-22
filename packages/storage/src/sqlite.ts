@@ -15,6 +15,12 @@ type SqliteTransaction = Parameters<Parameters<SqliteDb["transaction"]>[0]>[0];
 
 export type SqliteDatabase = SqliteDb | SqliteTransaction;
 
+/** Narrowed Database with a typed drizzle connection for SQLite. */
+export type SqliteDatabaseInstance = Database & {
+  connection: SqliteDb;
+  dialect: "sqlite";
+};
+
 type TransactionRunner = <T>(
   fn: (database: Database) => Promise<T>
 ) => Promise<T>;
@@ -22,29 +28,29 @@ type TransactionRunner = <T>(
 export const createDatabaseInterface = (
   database: SqliteDatabase,
   transactionRunner: TransactionRunner,
-  authConfig: {
-    db: unknown;
-    provider: "sqlite";
-    schema?: Record<string, unknown>;
-  }
+  connection: SqliteDb,
+  schema: Record<string, unknown> | undefined
 ): Database => ({
   ...createSqliteRepositories(database),
-  auth: { getBetterAuthDatabaseConfig: () => authConfig },
+  connection,
   dialect: "sqlite",
+  schema,
   transaction: transactionRunner,
 });
 
-export const sqlite = (options: SqliteAdapterOptions): Database => {
+export const sqlite = (
+  options: SqliteAdapterOptions
+): SqliteDatabaseInstance => {
   const client = options.client ?? new BunSqliteDatabase(options.path);
   const db = drizzle(client, { logger: options.debugLogs });
-  const authConfig = {
-    db,
-    provider: "sqlite" as const,
-    schema: options.schema,
-  };
   const transactionRunner: TransactionRunner = (fn) =>
     db.transaction((tx) =>
-      fn(createDatabaseInterface(tx, transactionRunner, authConfig))
+      fn(createDatabaseInterface(tx, transactionRunner, db, options.schema))
     );
-  return createDatabaseInterface(db, transactionRunner, authConfig);
+  return createDatabaseInterface(
+    db,
+    transactionRunner,
+    db,
+    options.schema
+  ) as SqliteDatabaseInstance;
 };

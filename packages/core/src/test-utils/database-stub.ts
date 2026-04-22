@@ -62,6 +62,7 @@ export const createDatabaseStub = (): Database => {
   const aiRunToolCallStore = new Map<string, AiRunToolCall>();
 
   const database: Database = {
+    connection: {},
     dialect: "sqlite",
     aiRuns: {
       create: (input: AiRunCreate) => {

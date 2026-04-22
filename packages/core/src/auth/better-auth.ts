@@ -48,15 +48,18 @@ const getEmailFromRequestBody = (body: unknown): string | null => {
   return typeof email === "string" ? email : null;
 };
 
-const resolveAuthDatabase = (database: Database) => {
-  const authCapability = database.auth;
-  if (!authCapability) {
-    throw new Error(
-      `Database adapter for dialect "${database.dialect}" does not expose auth capability`
-    );
-  }
-
-  return authCapability.getBetterAuthDatabaseConfig();
+const resolveAuthDatabase = (
+  database: Database
+): {
+  db: unknown;
+  provider: "mysql" | "pg" | "sqlite";
+  schema: Record<string, unknown> | undefined;
+} => {
+  return {
+    db: database.connection,
+    provider: database.dialect === "postgres" ? "pg" : database.dialect,
+    schema: database.schema,
+  };
 };
 
 export const createAuthRuntime = (input: {

@@ -74,13 +74,7 @@ export interface Database {
   analytics: {
     weeklyStats: (botId: string) => Promise<WeeklyStats>;
   };
-  auth?: {
-    getBetterAuthDatabaseConfig: () => {
-      db: unknown;
-      provider: "mysql" | "pg" | "sqlite";
-      schema?: Record<string, unknown>;
-    };
-  };
+  connection: unknown;
   dialect: DatabaseDialect;
   messages: {
     create: (input: MessageCreate) => Promise<Message>;
@@ -89,6 +83,7 @@ export interface Database {
     listByThread: (input: MessageListInput) => Promise<Message[]>;
     update: (id: string, patch: MessageUpdate) => Promise<Message>;
   };
+  schema?: Record<string, unknown>;
   threads: {
     create: (input: ThreadCreate) => Promise<Thread>;
     delete: (id: string) => Promise<void>;
