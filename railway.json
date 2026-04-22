@@ -1,8 +1,0 @@
-{
-  "$schema": "https://railway.com/railway.schema.json",
-  "deploy": {
-    "preDeployCommand": [
-      "bunx drizzle-kit migrate --config=apps/server/drizzle.config.ts"
-    ]
-  }
-}

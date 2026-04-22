@@ -2,7 +2,7 @@
 # See https://okigu.com/ruler for documentation.
 
 # Default agents to run when --agents is not specified
-default_agents = ["claude", "codex", "copilot", "cursor", "opencode", "pi", "zed"]
+default_agents = ["claude", "codex", "copilot", "cursor", "opencode"]
 
 # --- Global .gitignore Configuration ---
 [gitignore]
