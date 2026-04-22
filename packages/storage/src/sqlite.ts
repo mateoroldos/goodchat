@@ -16,7 +16,12 @@ type SqliteTransaction = Parameters<Parameters<SqliteDb["transaction"]>[0]>[0];
 export type SqliteDatabase = SqliteDb | SqliteTransaction;
 
 /** Narrowed Database with a typed drizzle connection for SQLite. */
-export type SqliteDatabaseInstance = Database<SqliteDb, "sqlite">;
+export type SqliteDatabaseInstance = Database<
+  SqliteDb,
+  "sqlite",
+  BunSqliteDatabase,
+  "bun:sqlite"
+>;
 
 type TransactionRunner = <T>(
   fn: (database: SqliteDatabaseInstance) => Promise<T>
@@ -26,11 +31,14 @@ export const createDatabaseInterface = (
   database: SqliteDatabase,
   transactionRunner: TransactionRunner,
   connection: SqliteDb,
+  rawConnection: BunSqliteDatabase | undefined,
   schema: Record<string, unknown> | undefined
 ): SqliteDatabaseInstance => ({
   ...createSqliteRepositories(database),
   connection,
+  connectionFlavor: "bun:sqlite",
   dialect: "sqlite",
+  rawConnection,
   schema,
   transaction: transactionRunner,
 });
@@ -42,7 +50,21 @@ export const sqlite = (
   const db = drizzle(client, { logger: options.debugLogs });
   const transactionRunner: TransactionRunner = (fn) =>
     db.transaction((tx) =>
-      fn(createDatabaseInterface(tx, transactionRunner, db, options.schema))
+      fn(
+        createDatabaseInterface(
+          tx,
+          transactionRunner,
+          db,
+          client,
+          options.schema
+        )
+      )
     );
-  return createDatabaseInterface(db, transactionRunner, db, options.schema);
+  return createDatabaseInterface(
+    db,
+    transactionRunner,
+    db,
+    client,
+    options.schema
+  );
 };

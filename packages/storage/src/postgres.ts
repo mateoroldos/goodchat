@@ -17,6 +17,12 @@ export type PostgresDriver =
 type PostgresJsClient = ReturnType<typeof postgresJs>;
 type NodePgClient = Pool;
 
+export type PostgresConnectionFlavor =
+  | "postgres-js"
+  | "pg"
+  | "@neondatabase/serverless"
+  | "@vercel/postgres";
+
 interface BasePostgresAdapterOptions {
   connectionString: string;
   debugLogs?: boolean;
@@ -64,7 +70,14 @@ export type PostgresDatabase =
   | VercelTransaction;
 
 /** Narrowed Database with a typed drizzle connection for Postgres. */
-export type PostgresDatabaseInstance = Database<PostgresTopLevelDb, "postgres">;
+export type PostgresRawConnection = NodePgClient | PostgresJsClient;
+
+export type PostgresDatabaseInstance = Database<
+  PostgresTopLevelDb,
+  "postgres",
+  PostgresRawConnection,
+  PostgresConnectionFlavor
+>;
 
 type TransactionRunner = <T>(
   fn: (database: PostgresDatabaseInstance) => Promise<T>
@@ -74,11 +87,15 @@ const createDatabaseInterface = (
   database: PostgresDatabase,
   transactionRunner: TransactionRunner,
   connection: PostgresTopLevelDb,
+  rawConnection: PostgresRawConnection | undefined,
+  connectionFlavor: PostgresConnectionFlavor,
   schema: Record<string, unknown> | undefined
 ): PostgresDatabaseInstance => ({
   ...createPostgresRepositories(database),
   connection,
+  connectionFlavor,
   dialect: "postgres",
+  rawConnection,
   schema,
   transaction: transactionRunner,
 });
@@ -86,34 +103,70 @@ const createDatabaseInterface = (
 export const postgres = (
   options: PostgresAdapterOptions
 ): PostgresDatabaseInstance => {
-  const db = createDriverDatabase(options);
+  const { db, flavor, rawConnection } = createDriverDatabase(options);
   const transactionRunner: TransactionRunner = (fn) =>
     db.transaction((tx) =>
-      fn(createDatabaseInterface(tx, transactionRunner, db, options.schema))
+      fn(
+        createDatabaseInterface(
+          tx,
+          transactionRunner,
+          db,
+          rawConnection,
+          flavor,
+          options.schema
+        )
+      )
     );
-  return createDatabaseInterface(db, transactionRunner, db, options.schema);
+  return createDatabaseInterface(
+    db,
+    transactionRunner,
+    db,
+    rawConnection,
+    flavor,
+    options.schema
+  );
 };
 
 const createDriverDatabase = (
   options: PostgresAdapterOptions
-): PostgresTopLevelDb => {
+): {
+  db: PostgresTopLevelDb;
+  flavor: PostgresConnectionFlavor;
+  rawConnection: PostgresRawConnection | undefined;
+} => {
   const config = { logger: options.debugLogs };
 
   if (options.driver === "pg") {
     const client =
       options.client ??
       new Pool({ connectionString: options.connectionString });
-    return drizzleNodePg(client, config);
+    return {
+      db: drizzleNodePg(client, config),
+      flavor: "pg",
+      rawConnection: client,
+    };
   }
 
   if (options.driver === "@neondatabase/serverless") {
-    return drizzleNeon(options.connectionString, config);
+    return {
+      db: drizzleNeon(options.connectionString, config),
+      flavor: "@neondatabase/serverless",
+      rawConnection: undefined,
+    };
   }
 
   if (options.driver === "@vercel/postgres") {
-    return drizzleVercel(sql, config);
+    return {
+      db: drizzleVercel(sql, config),
+      flavor: "@vercel/postgres",
+      rawConnection: undefined,
+    };
   }
 
   const client = options.client ?? postgresJs(options.connectionString);
-  return drizzlePostgresJs(client, config);
+  return {
+    db: drizzlePostgresJs(client, config),
+    flavor: "postgres-js",
+    rawConnection: client,
+  };
 };

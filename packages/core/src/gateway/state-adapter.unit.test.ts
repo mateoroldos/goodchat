@@ -60,9 +60,10 @@ const createLoggerStub = (): LoggerService =>
 
 const createConfig = (
   state: ChatGatewayConfig["state"],
-  dialect: Database["dialect"] = "sqlite"
+  dialect: Database["dialect"] = "sqlite",
+  databasePatch?: Partial<Database>
 ): ChatGatewayConfig => ({
-  database: { dialect } as Database,
+  database: { dialect, ...databasePatch } as Database,
   logger: createLoggerStub(),
   platforms: [],
   state,
@@ -123,6 +124,16 @@ describe("createStateAdapter", () => {
 
 describe("createDatabaseStateAdapter", () => {
   beforeEach(() => {
+    createMemoryStateMock.mockReset();
+    createMemoryStateMock.mockImplementation(() => stateHandles.memory);
+    createRedisStateMock.mockReset();
+    createRedisStateMock.mockImplementation(() => stateHandles.redis);
+    createPostgresStateMock.mockReset();
+    createPostgresStateMock.mockImplementation(() => stateHandles.postgres);
+    createMysqlStateMock.mockReset();
+    createMysqlStateMock.mockImplementation(() => stateHandles.mysql);
+    createSqliteStateMock.mockReset();
+    createSqliteStateMock.mockImplementation(() => stateHandles.sqlite);
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
@@ -136,12 +147,58 @@ describe("createDatabaseStateAdapter", () => {
     expect(state).toBe(stateHandles.postgres);
   });
 
+  it("reuses existing pg connection when flavor is pg", () => {
+    const pool = { query: vi.fn(), end: vi.fn() };
+
+    const state = createDatabaseStateAdapter(
+      createConfig({ adapter: "database" }, "postgres", {
+        connectionFlavor: "pg",
+        rawConnection: pool,
+      })
+    );
+
+    expect(createPostgresStateMock).toHaveBeenCalledWith({ client: pool });
+    expect(state).toBe(stateHandles.postgres);
+  });
+
+  it("does not reuse postgres raw connection for non-pg flavors", () => {
+    const pool = { query: vi.fn(), end: vi.fn() };
+
+    const state = createDatabaseStateAdapter(
+      createConfig({ adapter: "database" }, "postgres", {
+        connectionFlavor: "postgres-js",
+        rawConnection: pool,
+      })
+    );
+
+    expect(createPostgresStateMock).toHaveBeenCalledWith();
+    expect(state).toBe(stateHandles.postgres);
+  });
+
   it("uses mysql adapter when dialect is mysql", () => {
     const state = createDatabaseStateAdapter(
       createConfig({ adapter: "database" }, "mysql")
     );
 
     expect(createMysqlStateMock).toHaveBeenCalledOnce();
+    expect(state).toBe(stateHandles.mysql);
+  });
+
+  it("reuses existing mysql2 pool when raw connection is compatible", () => {
+    const pool = {
+      end: vi.fn(),
+      execute: vi.fn(),
+      getConnection: vi.fn(),
+    };
+
+    const state = createDatabaseStateAdapter(
+      createConfig({ adapter: "database" }, "mysql", {
+        connectionFlavor: "mysql2",
+        rawConnection: pool,
+      })
+    );
+
+    expect(createMysqlStateMock).toHaveBeenCalledWith({ client: pool });
     expect(state).toBe(stateHandles.mysql);
   });
 
@@ -181,6 +238,24 @@ describe("createDatabaseStateAdapter", () => {
     expect(createSqliteStateMock).toHaveBeenCalledWith({
       path: "./goodchat.sqlite",
     });
+    expect(state).toBe(stateHandles.sqlite);
+  });
+
+  it("reuses existing sqlite client when raw connection is compatible", () => {
+    const client = {
+      close: vi.fn(),
+      prepare: vi.fn(),
+      run: vi.fn(),
+    };
+
+    const state = createDatabaseStateAdapter(
+      createConfig({ adapter: "database" }, "sqlite", {
+        connectionFlavor: "bun:sqlite",
+        rawConnection: client,
+      })
+    );
+
+    expect(createSqliteStateMock).toHaveBeenCalledWith({ client });
     expect(state).toBe(stateHandles.sqlite);
   });
 

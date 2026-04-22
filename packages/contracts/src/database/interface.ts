@@ -59,6 +59,8 @@ export interface WeeklyStats {
 export interface Database<
   TConnection = unknown,
   TDialect extends DatabaseDialect = DatabaseDialect,
+  TRawConnection = unknown,
+  TConnectionFlavor extends string = string,
 > {
   aiRuns: {
     create: (input: AiRunCreate) => Promise<AiRun>;
@@ -78,6 +80,7 @@ export interface Database<
     weeklyStats: (botId: string) => Promise<WeeklyStats>;
   };
   connection: TConnection;
+  connectionFlavor?: TConnectionFlavor;
   dialect: TDialect;
   messages: {
     create: (input: MessageCreate) => Promise<Message>;
@@ -86,6 +89,7 @@ export interface Database<
     listByThread: (input: MessageListInput) => Promise<Message[]>;
     update: (id: string, patch: MessageUpdate) => Promise<Message>;
   };
+  rawConnection?: TRawConnection;
   schema?: Record<string, unknown>;
   threads: {
     create: (input: ThreadCreate) => Promise<Thread>;
