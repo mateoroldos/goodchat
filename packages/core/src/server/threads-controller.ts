@@ -1,5 +1,6 @@
 import type { Database } from "@goodchat/contracts/database/interface";
 import { Elysia, t } from "elysia";
+import { nanoid } from "nanoid";
 import type { LoggerService } from "../logger/interface";
 
 const DEFAULT_THREAD_LIMIT = 50;
@@ -12,7 +13,7 @@ const threadParamsModel = t.Object({
   threadId: t.String(),
 });
 
-const createRequestId = (): string => crypto.randomUUID();
+const createRequestId = (): string => nanoid();
 
 interface ThreadsControllerOptions {
   botId: string;

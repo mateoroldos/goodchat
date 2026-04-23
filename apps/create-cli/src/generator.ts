@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type {
   DatabaseDialect,
@@ -7,6 +6,7 @@ import type {
 import type { ModelProvider } from "@goodchat/contracts/model/model-ref";
 import { resolveModelFactoryName } from "@goodchat/contracts/model/provider-metadata";
 import { renderDbSchemaArtifacts } from "@goodchat/templates/scaffold/db-schema-artifacts";
+import { nanoid } from "nanoid";
 import type { DatabaseProfileId } from "./database-profiles";
 import {
   type EnvVariableMeta,
@@ -74,6 +74,7 @@ const DRIZZLE_KIT_VERSION = "^0.31.10";
 const TSDOWN_VERSION = "^0.16.5";
 const TYPESCRIPT_VERSION = "^5.9.3";
 const TYPES_BUN_VERSION = "^1.3.4";
+const SECRET_LENGTH = 48;
 
 export const getEnvMetadataForConfig = (input: {
   authEnabled?: boolean;
@@ -132,14 +133,11 @@ export const renderEnvFile = (metadata: EnvVariableMeta[]): string => {
     (item) => item.key === "GOODCHAT_AUTH_SECRET"
   );
   if (authSecretMeta && !authSecretMeta.defaultValue) {
-    secretOverrides.set(
-      "GOODCHAT_AUTH_SECRET",
-      randomBytes(24).toString("hex")
-    );
+    secretOverrides.set("GOODCHAT_AUTH_SECRET", nanoid(SECRET_LENGTH));
   }
   const cronMeta = metadata.find((item) => item.key === "CRON_SECRET");
   if (cronMeta && !cronMeta.defaultValue) {
-    secretOverrides.set("CRON_SECRET", randomBytes(24).toString("hex"));
+    secretOverrides.set("CRON_SECRET", nanoid(SECRET_LENGTH));
   }
 
   const lines: string[] = [];

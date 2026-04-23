@@ -6,6 +6,7 @@ import type {
   ThreadCreate,
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
+import { nanoid } from "nanoid";
 import type { AiRunTelemetry } from "../ai-response/models";
 import type { MessageContext } from "../types";
 import { toJsonRecord } from "./telemetry-serializer";
@@ -128,7 +129,7 @@ const createMessages = async ({
   const userMessage: MessageCreate = {
     adapterName: context.adapterName,
     createdAt: timestamp,
-    id: crypto.randomUUID(),
+    id: nanoid(),
     role: "user",
     text: context.text,
     threadId,
@@ -139,7 +140,7 @@ const createMessages = async ({
   const assistantMessage: MessageCreate = {
     adapterName: context.adapterName,
     createdAt: timestamp,
-    id: crypto.randomUUID(),
+    id: nanoid(),
     role: "assistant",
     text: responseText,
     threadId,
@@ -167,7 +168,7 @@ const buildAiRun = ({
     assistantMessageId,
     createdAt: telemetry.createdAt,
     hadError: telemetry.hadError,
-    id: crypto.randomUUID(),
+    id: nanoid(),
     mode: telemetry.mode,
     modelId: telemetry.modelId,
     provider: telemetry.provider,
@@ -231,7 +232,7 @@ const createAiRunToolCalls = async (
     const aiRunToolCall: AiRunToolCallCreate = {
       aiRunId,
       createdAt: toolCall.createdAt,
-      id: crypto.randomUUID(),
+      id: nanoid(),
       status: toolCall.status,
       toolName: toolCall.toolName,
     };

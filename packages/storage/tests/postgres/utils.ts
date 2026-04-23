@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { customAlphabet } from "nanoid";
 import { Pool } from "pg";
 import { postgresSchema } from "../../schema/postgres";
 import { postgres } from "../../src/postgres";
@@ -12,8 +12,12 @@ export interface TestDatabase {
   database: Database;
 }
 
-const buildDatabaseName = () =>
-  `goodchat_test_${randomUUID().replace(/-/g, "")}`;
+const randomDatabaseSuffix = customAlphabet(
+  "abcdefghijklmnopqrstuvwxyz0123456789",
+  24
+);
+
+const buildDatabaseName = () => `goodchat_test_${randomDatabaseSuffix()}`;
 
 const buildAdminConnectionString = (connectionString: string) => {
   const url = new URL(connectionString);

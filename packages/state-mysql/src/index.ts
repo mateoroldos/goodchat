@@ -1,6 +1,7 @@
 import type { Lock, Logger, QueueEntry, StateAdapter } from "chat";
 import { ConsoleLogger } from "chat";
 import mysql from "mysql2/promise";
+import { nanoid } from "nanoid";
 
 export interface MysqlStateAdapterOptions {
   /** Key prefix for all rows (default: "chat-sdk") */
@@ -480,7 +481,7 @@ export class MysqlStateAdapter implements StateAdapter {
 }
 
 function generateToken(): string {
-  return `mysql_${crypto.randomUUID()}`;
+  return `mysql_${nanoid()}`;
 }
 
 export function createMysqlState(

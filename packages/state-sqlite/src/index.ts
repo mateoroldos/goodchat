@@ -4,6 +4,7 @@ import type {
 } from "bun:sqlite";
 import type { Lock, Logger, QueueEntry, StateAdapter } from "chat";
 import { ConsoleLogger } from "chat";
+import { nanoid } from "nanoid";
 
 export interface SqliteStateAdapterOptions {
   /** Key prefix for all rows (default: "chat-sdk") */
@@ -538,7 +539,7 @@ export class SqliteStateAdapter implements StateAdapter {
 }
 
 function generateToken(): string {
-  return `sqlite_${crypto.randomUUID()}`;
+  return `sqlite_${nanoid()}`;
 }
 
 export function createSqliteState(

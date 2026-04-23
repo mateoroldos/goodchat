@@ -2,6 +2,7 @@ import type { Bot } from "@goodchat/contracts/config/types";
 import type { MessageContext } from "@goodchat/contracts/plugins/types";
 import { createUIMessageStreamResponse } from "ai";
 import { Elysia, t } from "elysia";
+import { nanoid } from "nanoid";
 import type { ChatResponseService } from "../chat-response/interface";
 import type { LoggerService } from "../logger/interface";
 
@@ -97,7 +98,7 @@ export const webChatController = ({
         return status(404, { message: "Web platform not configured" });
       }
 
-      const threadId = body.threadId ?? body.id ?? `web:${crypto.randomUUID()}`;
+      const threadId = body.threadId ?? body.id ?? `web:${nanoid()}`;
       const userId = body.userId ?? "dashboard-user";
       const messageText = resolveMessageText(body);
 
@@ -191,7 +192,7 @@ export const webChatController = ({
         return status(404, { message: "Web platform not configured" });
       }
 
-      const threadId = body.threadId ?? body.id ?? `web:${crypto.randomUUID()}`;
+      const threadId = body.threadId ?? body.id ?? `web:${nanoid()}`;
       const userId = body.userId ?? "dashboard-user";
       const messageText = resolveMessageText(body);
 

@@ -108,7 +108,7 @@ const extractToolCalls = (
           extractObject(toolResult?.output) ??
           extractObject(toolResult?.result),
         status:
-          extractBool(toolResult?.isError) || Boolean(toolResult?.error)
+          extractBool(toolResult?.isError) || toolResult?.error
             ? "error"
             : "success",
         ...(toolCallId ? { toolCallId } : {}),

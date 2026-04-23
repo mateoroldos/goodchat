@@ -27,7 +27,8 @@
     }
   },
   "dependencies": {
-    "chat": "^4.26.0"
+    "chat": "^4.26.0",
+    "nanoid": "^5.1.9"
   },
   "devDependencies": {
     "@goodchat/typescript-config": "workspace:*",
