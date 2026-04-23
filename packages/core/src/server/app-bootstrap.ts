@@ -124,15 +124,13 @@ export const createWebChatApi = ({
 export const setupDashboard = async ({
   app,
   dashboard,
-  isServerless,
   webBuildPath,
 }: {
   app: Elysia;
   dashboard: boolean;
-  isServerless: boolean;
   webBuildPath: string;
 }) => {
-  if (!dashboard || isServerless) {
+  if (!dashboard) {
     return;
   }
 

@@ -230,7 +230,6 @@ export const createGoodchat = (options: BotConfigInput) => {
       app,
       webBuildPath,
       dashboard: bot.dashboard,
-      isServerless: bot.isServerless,
     });
 
     return { app, api, chatRuntime };
