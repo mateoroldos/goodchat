@@ -10,17 +10,12 @@ Create your bot in `src/goodchat.ts` with `createGoodchat`:
 import { createGoodchat } from "@goodchat/core";
 import { linear } from "@goodchat/plugins/linear";
 
-const isServerless =
-  process.env.SERVERLESS === "true" || process.env.VERCEL === "1";
-
 const { app } = await createGoodchat({
   name: "Linear Assistant",
   prompt:
     "You are a Linear assistant. Respond briefly with what I have on Linear.",
   platforms: ["web", "discord"],
   plugins: [linear],
-  withDashboard: true,
-  isServerless,
 });
 
 export { app };
@@ -580,33 +575,47 @@ The bot package is the product. Everything — prompts, platforms, context, tool
 
 ## Deployment providers
 
-### Railway (Docker)
+When you scaffold with `create-goodchat`, you choose one deployment target first and the CLI generates only that provider file.
 
-Use the Dockerfile from the repo root:
+| Provider | Runtime             | Generated file                                                    | SQLite support               | Notes                                  |
+| -------- | ------------------- | ----------------------------------------------------------------- | ---------------------------- | -------------------------------------- |
+| Docker   | Process/container   | `Dockerfile`, `.dockerignore` (+ `docker-compose.yml` for SQLite) | Yes                          | Run migrations as a one-off step       |
+| Railway  | Process/container   | `railway.json`                                                    | Yes (with persistent volume) | Uses `preDeployCommand` for migrations |
+| Vercel   | Serverless function | `vercel.json`                                                     | No                           | Requires external Postgres/MySQL       |
+
+### Docker
+
+Generated projects include a production `Dockerfile` and `.dockerignore`.
+
+If you select SQLite during scaffolding, the CLI also generates `docker-compose.yml` with a named volume mounted at `/data` and sets `DATABASE_URL=/data/goodchat.db` for container runtime persistence.
+
+For local host development (`bun run dev`, `bun run db:migrate`), keep `.env` as a host path (for example `./goodchat.db`). Use `/data/goodchat.db` only inside container runtime.
+
+Recommended Docker flow is to run migrations as a separate one-off task before starting the app service:
 
 ```bash
-docker build -f apps/server/Dockerfile -t goodchat-server .
+docker compose run --rm migrate
+docker compose up -d app
 ```
 
-Then deploy the image on Railway using Dockerfile mode with `apps/server/Dockerfile` and build context set to the repo root. The build uses Turborepo filters for `server` and `web`, and the server reads `PORT` automatically, so Railway's assigned port just works. Set your required environment variables (for example `OPENAI_API_KEY` and any adapter credentials).
+The app container only runs `bun run start`; it does not run migrations on startup.
 
-### Docker (custom)
+### Railway
 
-Build and run the server image locally or on any container host:
+Generated projects include `railway.json` with:
 
-```bash
-docker build -f apps/server/Dockerfile -t goodchat-server .
-docker run -p 3000:3000 \
-  -e OPENAI_API_KEY=... \
-  goodchat-server
-```
+- `preDeployCommand: bun run db:migrate`
+- `startCommand: bun run start`
+- `requiredMountPath: /data` when SQLite is selected
 
-The Docker build runs `bun run build` so `apps/web/build` is produced and served by the API.
+On Railway, set your required environment variables and make sure `DATABASE_URL` points to a managed DB (or configure a persistent volume before using SQLite).
+
+For SQLite on Railway, set `DATABASE_URL=/data/goodchat.db` in Railway environment variables so it matches the mounted volume path.
 
 ### Vercel (Bun)
 
-Vercel functions will run the default export from `apps/server/src/index.ts`. The repo includes `vercel.json` to select the Bun runtime.
+Generated projects include `vercel.json` configured for Bun serverless functions with `src/index.ts` as the entrypoint.
 
-- Set environment variables in Vercel for `OPENAI_API_KEY` and any platform credentials.
-- Serverless deployments skip the config watcher and the static dashboard build. If you want the dashboard, deploy `apps/web` separately as a static site.
-- For other serverless providers, set `SERVERLESS=true` to disable file watchers and static file serving.
+- Vercel deployments are stateless: use external Postgres/MySQL.
+- Set environment variables in the Vercel dashboard (`OPENAI_API_KEY`, `DATABASE_URL`, adapter credentials).
+- If you deploy on another serverless platform, set `SERVERLESS=true` to disable watchers and static file serving.

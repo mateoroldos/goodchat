@@ -39,6 +39,11 @@ import {
   type DatabaseProfileId,
   DEFAULT_DATABASE_PROFILE_ID,
 } from "./database-profiles";
+import { DEPLOYMENT_PROFILES } from "./deployment-profiles";
+import {
+  DEPLOYMENT_TARGET_OPTIONS,
+  type DeploymentTarget,
+} from "./deployment-targets";
 import type { Provider } from "./env-metadata";
 import {
   createProjectFiles,
@@ -232,6 +237,7 @@ const BOT_NAME_OPTIONS = [
   "Pedro",
   "Santi",
   "Rambo",
+  "Joaquin",
   "Felipe",
   "Patricio",
 ] as const;
@@ -242,23 +248,23 @@ const pickBotNamePlaceholder = (): string => {
 };
 
 const PROMPT_PLACEHOLDER_OPTIONS = [
-  "You are a startup CEO: pivot weekly, monetize everything, call panic vision.",
-  "You are a tech lead: reject rewrites publicly, plan them privately.",
-  "You are a senior engineer: approve late, critique early, touch nothing legacy.",
-  "You are an architect: diagram confidence, deploy uncertainty.",
-  "You are a product engineer: ship value, then survive scope updates.",
-  "You are a staff engineer: strategic in meetings, invisible in tickets.",
-  "You are a CTO: mostly political, occasionally technical, always certain.",
-  "You are an elite debugger: find root cause, watch hotfix win anyway.",
-  "You are a principal engineer: predicted this outage in last quarter's RFC.",
-  "You are an SRE: blamed for incidents you warned about.",
-  "You are a strict reviewer: reject with standards, approve with deadlines.",
-  "You are a friendly skeptic: kill bad ideas gently, claim good ones later.",
-  "You are an engineering manager: shield chaos, schedule more chaos.",
-  "You are a blunt consultant: expensive advice, familiar conclusions.",
-  "You are a calm operator: reassuring voice, catastrophic internal monologue.",
-  "You are a maintainer: write clean code others patch on Friday.",
-  "You are a clarity-first engineer: simplify today, re-complicate tomorrow.",
+  "You are a startup CEO. You pivot weekly, monetize everything, and call panic 'vision'.",
+  "You are a tech lead. You reject rewrites in public and plan them in private.",
+  "You are a senior engineer. You approve things late, critique them early, and never touch legacy code.",
+  "You are a software architect. You diagram with confidence and deploy with uncertainty.",
+  "You are a product engineer. You ship value, then survive what the PM adds to scope.",
+  "You are a staff engineer. Strategic in every meeting, invisible in every ticket.",
+  "You are a CTO. Mostly political, occasionally technical, always completely certain.",
+  "You are an elite debugger. You find the root cause. The hotfix wins anyway.",
+  "You are a principal engineer. You predicted this outage in last quarter's RFC.",
+  "You are an SRE. You get blamed for every incident you warned about.",
+  "You are a strict code reviewer. You reject with standards, approve with deadlines.",
+  "You are a friendly skeptic. You kill bad ideas gently and quietly adopt the good ones.",
+  "You are an engineering manager. You shield your team from chaos by scheduling more chaos.",
+  "You are a blunt consultant. Your advice is expensive. Your conclusions are familiar.",
+  "You are a calm incident commander. Reassuring voice. Catastrophic internal monologue.",
+  "You are a library maintainer. You write clean code. Others patch it on a Friday night.",
+  "You are a clarity-first engineer. You simplify today and re-complicate it by Thursday.",
 ] as const;
 
 const pickPromptPlaceholder = (): string => {
@@ -357,8 +363,8 @@ const runOptionalSetup = async (
             label: LOCAL_DOCKER_UP_COMMAND,
             title: "Starting local database container",
             done: "Local database container started",
-            command: "docker",
-            args: ["compose", "up", "-d"],
+            command: "bun",
+            args: ["run", "db:up"],
           },
         ]
       : []),
@@ -441,7 +447,7 @@ const renderDatabaseProfileGuidance = (
     return [
       "Local Docker profile",
       "- A docker-compose.yml file was scaffolded for your local database.",
-      "- Start it anytime with `docker compose up -d` and stop with `docker compose down`.",
+      "- Start it anytime with `bun run db:up` and stop with `bun run db:down`.",
     ];
   }
 
@@ -463,20 +469,6 @@ const renderDatabaseProfileGuidance = (
   }
 
   return [];
-};
-
-const renderDatabaseCommandHints = (profile: DatabaseProfile): string[] => {
-  const migrateDescription =
-    profile.id === "mysql-planetscale"
-      ? "apply migrations when target branch allows direct schema changes"
-      : "apply pending SQL migrations";
-
-  return [
-    "bun run db:schema:sync - regenerate DB schema artifacts from your goodchat config",
-    "bun run db:generate - generate SQL migration files from Drizzle schema",
-    `bun run db:migrate - ${migrateDescription}`,
-    "bun run db:studio - open Drizzle Studio",
-  ];
 };
 
 const handleLifecycleCommandAttempt = (args: string[]): void => {
@@ -741,18 +733,55 @@ interface DatabaseSetupResult {
   databaseProfileId: DatabaseProfileId;
   databaseUrl: string;
   localDockerService: LocalDockerService | undefined;
-  shouldUseLocalDocker: boolean;
 }
 
-const promptDatabaseSetup = async (): Promise<DatabaseSetupResult> => {
+const getDatabaseProfilesForDeploymentTarget = (
+  deploymentTarget: DeploymentTarget
+): DatabaseProfile[] => {
+  const allowedDialects = new Set(
+    DEPLOYMENT_PROFILES[deploymentTarget].allowedDialects
+  );
+
+  return DATABASE_PROFILES.filter((profile) =>
+    allowedDialects.has(profile.dialect)
+  );
+};
+
+const promptDeploymentTarget = async (): Promise<DeploymentTarget> => {
+  return handleCancel(
+    await select({
+      message: "Deployment target",
+      options: DEPLOYMENT_TARGET_OPTIONS.map((option) => ({
+        hint: option.description,
+        label: option.label,
+        value: option.value,
+      })),
+      initialValue: "docker",
+    })
+  ) as DeploymentTarget;
+};
+
+const promptDatabaseSetup = async (
+  deploymentTarget: DeploymentTarget
+): Promise<DatabaseSetupResult> => {
+  const availableProfiles =
+    getDatabaseProfilesForDeploymentTarget(deploymentTarget);
+  const defaultProfile = availableProfiles.find(
+    (profile) => profile.id === DEFAULT_DATABASE_PROFILE_ID
+  );
+  const initialValue = (defaultProfile ?? availableProfiles[0])?.id;
+  if (!initialValue) {
+    throw new Error("No database profiles available for selected deployment.");
+  }
+
   const databaseProfileId = handleCancel(
     await select({
       message: "Database profile",
-      options: DATABASE_PROFILES.map((profile) => ({
+      options: availableProfiles.map((profile) => ({
         label: profile.label,
         value: profile.id,
       })),
-      initialValue: DEFAULT_DATABASE_PROFILE_ID,
+      initialValue,
     })
   ) as DatabaseProfileId;
 
@@ -761,6 +790,8 @@ const promptDatabaseSetup = async (): Promise<DatabaseSetupResult> => {
     throw new Error(`Unknown database profile: ${databaseProfileId}`);
   }
 
+  const databasePlaceholder = databaseProfile.connectionPlaceholder;
+
   const databaseUrl = handleCancel(
     await text({
       message: renderPromptMessage(databaseProfile.connectionPrompt, [
@@ -768,28 +799,18 @@ const promptDatabaseSetup = async (): Promise<DatabaseSetupResult> => {
           ? [`Docs: ${databaseProfile.connectionDocsUrl}`]
           : []),
       ]),
-      initialValue: databaseProfile.connectionPlaceholder,
+      initialValue: databasePlaceholder,
       validate: validateRequired,
     })
   );
 
   const localDockerService = databaseProfile.localDockerService;
-  const shouldUseLocalDocker =
-    localDockerService === undefined
-      ? false
-      : handleCancel(
-          await confirm({
-            message: "Create docker-compose.yml and use Docker for local DB?",
-            initialValue: true,
-          })
-        );
 
   return {
     databaseProfile,
     databaseProfileId,
     databaseUrl,
     localDockerService,
-    shouldUseLocalDocker,
   };
 };
 
@@ -823,6 +844,8 @@ const run = async (): Promise<void> => {
 
   const targetDir = resolve(process.cwd(), targetDirInput);
 
+  const deploymentTarget = await promptDeploymentTarget();
+
   const prompt = handleCancel(
     await text({
       message: "Bot prompt",
@@ -851,13 +874,21 @@ const run = async (): Promise<void> => {
 
   const dashboardPassword = handleCancel(
     await password({
-      message: "Dashboard password",
-      validate: (value) =>
-        (value?.trim().length ?? 0) >= 8
+      message: renderPromptMessage("Dashboard password", [
+        "Press Enter to make the dashboard public.",
+      ]),
+      validate: (value) => {
+        const trimmedValue = value?.trim() ?? "";
+        if (trimmedValue.length === 0) {
+          return undefined;
+        }
+        return trimmedValue.length >= 8
           ? undefined
-          : "Use at least 8 characters",
+          : "Use at least 8 characters";
+      },
     })
-  );
+  ).trim();
+  const isDashboardPublic = dashboardPassword.length === 0;
 
   const id = undefined;
 
@@ -866,8 +897,8 @@ const run = async (): Promise<void> => {
     databaseProfileId,
     databaseUrl,
     localDockerService,
-    shouldUseLocalDocker,
-  } = await promptDatabaseSetup();
+  } = await promptDatabaseSetup(deploymentTarget);
+  const shouldUseLocalDocker = localDockerService !== undefined;
 
   const plugins = handleCancel(
     await multiselect({
@@ -878,7 +909,7 @@ const run = async (): Promise<void> => {
   );
 
   const config: ScaffolderConfig = {
-    authEnabled: true,
+    authEnabled: !isDashboardPublic,
     databaseDialect: databaseProfile.dialect,
     databaseProfileId,
     name: botName,
@@ -890,7 +921,7 @@ const run = async (): Promise<void> => {
   };
 
   const envMetadata = getEnvMetadataForConfig({
-    authEnabled: true,
+    authEnabled: !isDashboardPublic,
     platforms,
     plugins,
     provider,
@@ -898,7 +929,9 @@ const run = async (): Promise<void> => {
 
   const envDefaults = new Map<string, string>();
   envDefaults.set("ENVIRONMENT", "development");
-  envDefaults.set("GOODCHAT_DASHBOARD_PASSWORD", dashboardPassword);
+  if (!isDashboardPublic) {
+    envDefaults.set("GOODCHAT_DASHBOARD_PASSWORD", dashboardPassword);
+  }
   envDefaults.set("DATABASE_URL", databaseUrl);
   if (apiKeyEnvKey && apiKey !== undefined) {
     envDefaults.set(apiKeyEnvKey, apiKey);
@@ -921,6 +954,7 @@ const run = async (): Promise<void> => {
   const files = await createProjectFiles({
     projectName,
     config,
+    deploymentTarget,
     dependencyChannel,
     envMetadata: envMetadataWithDefaults,
   });
@@ -978,10 +1012,15 @@ const run = async (): Promise<void> => {
     databaseProfile,
     shouldUseLocalDocker
   );
-  const databaseCommandHints = renderDatabaseCommandHints(databaseProfile);
 
   const summaryLines = [
     "A goodchat project was initialized. Happy hacking!",
+    ...(isDashboardPublic
+      ? [
+          "",
+          `${DIM}Dashboard auth is disabled (public mode). Set GOODCHAT_DASHBOARD_PASSWORD later if you want to protect it.${RST}`,
+        ]
+      : []),
     "",
     renderCard("Next steps", nextStepCommands),
   ];
@@ -996,8 +1035,6 @@ const run = async (): Promise<void> => {
       renderCard("Database workflow", databaseProfileGuidanceLines)
     );
   }
-
-  summaryLines.push("", renderCard("Database commands", databaseCommandHints));
 
   if (deferredEnvLines.length > 0) {
     summaryLines.push(

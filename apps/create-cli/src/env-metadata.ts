@@ -86,12 +86,6 @@ const ENV_METADATA: EnvVariableMeta[] = [
     category: "core",
     schema: 'z.enum(["development", "test", "production"]).optional()',
   },
-  {
-    key: "SERVERLESS",
-    description: "Set to true when running on serverless platforms",
-    category: "core",
-    schema: 'z.enum(["true", "false"]).optional()',
-  },
 ];
 
 const CATEGORY_ORDER: EnvCategory[] = [

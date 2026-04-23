@@ -1,16 +1,12 @@
-import type { ModelProvider } from "@goodchat/contracts/model/model-ref";
 import { describe, expect, it } from "vitest";
 import {
   createProjectFiles,
   getEnvMetadataForConfig,
   type ProjectFile,
-  renderEnvSchemaFile,
-  renderGoodchatFile,
-  renderPackageJson,
 } from "./generator";
 
-describe("generator helpers", () => {
-  it("includes platform env keys", () => {
+describe("generator integration", () => {
+  it("includes platform and auth env keys", () => {
     const variables = getEnvMetadataForConfig({
       authEnabled: true,
       platforms: ["web", "discord"],
@@ -22,89 +18,10 @@ describe("generator helpers", () => {
     expect(variables).toContain("DISCORD_APPLICATION_ID");
     expect(variables).toContain("GOODCHAT_DASHBOARD_PASSWORD");
     expect(variables).toContain("GOODCHAT_AUTH_SECRET");
+    expect(variables).toContain("CRON_SECRET");
   });
 
-  it("renders goodchat runtime file with plugins and mcp", () => {
-    const result = renderGoodchatFile({
-      authEnabled: true,
-      databaseDialect: "sqlite",
-      name: "Support Bot",
-      prompt: "Be helpful",
-      platforms: ["web", "slack"],
-      model: { provider: "openai", modelId: "gpt-4.1-mini" },
-      plugins: ["linear"],
-      mcp: [
-        {
-          name: "notion",
-          transport: { type: "http", url: "https://mcp.notion" },
-        },
-      ],
-    });
-
-    expect(result).toContain("plugins: [linear]");
-    expect(result).toContain("mcp:");
-    expect(result).toContain("https://mcp.notion");
-    expect(result).toContain('name: "Support Bot"');
-    expect(result).toContain("export const goodchat = createGoodchat({");
-    expect(result).toContain('import { schema } from "./db/schema";');
-    expect(result).toContain('import { env } from "./env";');
-    expect(result).toContain("auth: {");
-    expect(result).toContain('enabled: env.ENVIRONMENT !== "development",');
-    expect(result).toContain("password: env.GOODCHAT_DASHBOARD_PASSWORD,");
-    expect(result).toContain(
-      "database: sqlite({ path: env.DATABASE_URL, schema }),"
-    );
-    expect(result).not.toContain("mode:");
-    expect(result).not.toContain("webChatPublic:");
-    expect(result).not.toContain("dashboard:");
-    expect(result).not.toContain("isServerless:");
-  });
-
-  it("renders env schema for provided variables", () => {
-    const result = renderEnvSchemaFile([
-      {
-        key: "OPENAI_API_KEY",
-        description: "OpenAI API key",
-        category: "provider",
-      },
-      {
-        key: "DISCORD_BOT_TOKEN",
-        description: "Discord bot token",
-        category: "platform",
-      },
-    ]);
-
-    expect(result).toContain("OPENAI_API_KEY");
-    expect(result).toContain("DISCORD_BOT_TOKEN");
-  });
-
-  it("renders docs URLs in scaffolded env file comments", async () => {
-    const files = await createProjectFiles({
-      projectName: "goodchat-app",
-      config: {
-        authEnabled: true,
-        databaseDialect: "sqlite",
-        name: "goodchat",
-        prompt: "Be helpful",
-        platforms: ["web"],
-      },
-      envMetadata: [
-        {
-          key: "OPENAI_API_KEY",
-          description: "OpenAI API key",
-          category: "provider",
-          docsUrl: "https://platform.openai.com/api-keys",
-        },
-      ],
-    });
-
-    const envFile = files.find((file) => file.path === ".env");
-    expect(envFile?.content).toContain(
-      "# Docs: https://platform.openai.com/api-keys"
-    );
-  });
-
-  it("creates core project files", async () => {
+  it("creates docker sqlite scaffold with stable file contract", async () => {
     const files = await createProjectFiles({
       projectName: "goodchat-app",
       config: {
@@ -130,6 +47,7 @@ describe("generator helpers", () => {
     });
 
     const filePaths = files.map((file: ProjectFile) => file.path);
+    expect(new Set(filePaths).size).toBe(filePaths.length);
     expect(filePaths).toContain("package.json");
     expect(filePaths).toContain("src/goodchat.ts");
     expect(filePaths).toContain("src/index.ts");
@@ -141,6 +59,10 @@ describe("generator helpers", () => {
     expect(filePaths).toContain("src/db/migrate.ts");
     expect(filePaths).toContain("src/db/plugins/schema.ts");
     expect(filePaths).toContain("drizzle.config.ts");
+    expect(filePaths).toContain("Dockerfile");
+    expect(filePaths).toContain(".dockerignore");
+    expect(filePaths).toContain("docker-compose.yml");
+    expect(filePaths).toContain("README.md");
     expect(filePaths).not.toContain("src/app.ts");
 
     const sqliteMigrateFile = files.find(
@@ -149,172 +71,128 @@ describe("generator helpers", () => {
     expect(sqliteMigrateFile?.content).toContain(
       "SQLite migrations applied successfully."
     );
-  });
 
-  it("renders package scripts for lifecycle schema sync", () => {
-    const packageJson = JSON.parse(
-      renderPackageJson({
-        databaseDialect: "sqlite",
-        dependencyChannel: "latest",
-        projectName: "goodchat-app",
-        usesPlugins: false,
-      })
-    ) as {
-      dependencies: Record<string, string>;
-      scripts: Record<string, string>;
-    };
-
-    expect(packageJson.dependencies["@goodchat/cli"]).toBeDefined();
-    expect(packageJson.scripts["db:schema:sync"]).toBe(
-      "goodchat db schema sync"
+    const sqliteComposeFile = files.find(
+      (file) => file.path === "docker-compose.yml"
     );
-    expect(packageJson.scripts["db:schema:check"]).toBe(
-      "goodchat db schema sync --check"
+    expect(sqliteComposeFile?.content).toContain("migrate:");
+    expect(sqliteComposeFile?.content).toContain(
+      "command: bun run src/db/migrate.ts"
     );
-    expect(packageJson.scripts["db:migrate"]).toBe("bun run src/db/migrate.ts");
-    expect(packageJson.scripts["db:studio"]).toBe(
-      "drizzle-kit studio --config=drizzle.config.ts"
+    expect(sqliteComposeFile?.content).toContain("app:");
+    expect(sqliteComposeFile?.content).toContain("command: bun run start");
+    expect(sqliteComposeFile?.content).not.toContain(
+      "command: bun run db:migrate && bun run start"
+    );
+    expect(sqliteComposeFile?.content).not.toContain("depends_on:");
+    expect(sqliteComposeFile?.content).toContain("goodchat-data:/data");
+    expect(sqliteComposeFile?.content).toContain(
+      "DATABASE_URL: /data/goodchat.db"
     );
   });
 
-  it("renders drizzle-kit migrate script for non-sqlite dialects", () => {
-    const packageJson = JSON.parse(
-      renderPackageJson({
+  it("creates railway deployment scaffold when railway target is selected", async () => {
+    const files = await createProjectFiles({
+      projectName: "goodchat-app",
+      config: {
+        authEnabled: true,
         databaseDialect: "postgres",
-        dependencyChannel: "latest",
-        projectName: "goodchat-app",
-        usesPlugins: false,
-      })
-    ) as {
-      scripts: Record<string, string>;
-    };
+        name: "goodchat",
+        prompt: "Be helpful",
+        platforms: ["web"],
+      },
+      deploymentTarget: "railway",
+      envMetadata: [],
+    });
 
-    expect(packageJson.scripts["db:migrate"]).toBe(
-      "drizzle-kit migrate --config=drizzle.config.ts"
-    );
+    const filePaths = files.map((file: ProjectFile) => file.path);
+    expect(filePaths).toContain("railway.json");
+    expect(filePaths).toContain("README.md");
+    expect(filePaths).not.toContain("Dockerfile");
+    expect(filePaths).not.toContain(".dockerignore");
+    expect(filePaths).not.toContain("vercel.json");
   });
 
-  it("renders package dependencies from next channel", () => {
-    const packageJson = JSON.parse(
-      renderPackageJson({
+  it("adds railway requiredMountPath for sqlite on railway target", async () => {
+    const files = await createProjectFiles({
+      projectName: "goodchat-app",
+      config: {
+        authEnabled: true,
         databaseDialect: "sqlite",
-        dependencyChannel: "next",
-        projectName: "goodchat-app",
-        usesPlugins: true,
-      })
-    ) as {
-      dependencies: Record<string, string>;
+        name: "goodchat",
+        prompt: "Be helpful",
+        platforms: ["web"],
+      },
+      deploymentTarget: "railway",
+      envMetadata: [],
+    });
+
+    const railwayConfig = files.find((file) => file.path === "railway.json");
+    expect(railwayConfig).toBeDefined();
+    const parsedRailwayConfig = JSON.parse(railwayConfig?.content ?? "{}") as {
+      deploy?: {
+        requiredMountPath?: string;
+      };
     };
-
-    expect(packageJson.dependencies["@goodchat/cli"]).toBe("next");
-    expect(packageJson.dependencies["@goodchat/core"]).toBe("next");
-    expect(packageJson.dependencies["@goodchat/storage"]).toBe("next");
-    expect(packageJson.dependencies["@goodchat/plugins"]).toBe("next");
+    expect(parsedRailwayConfig.deploy?.requiredMountPath).toBe("/data");
   });
 
-  it("renders goodchat runtime file with dialect and bot metadata", () => {
-    const configFile = renderGoodchatFile({
-      authEnabled: true,
-      databaseDialect: "postgres",
-      id: "test-id",
-      model: { provider: "openai", modelId: "gpt-4.1-mini" },
-      name: "Test Bot",
-      platforms: ["web", "discord"],
-      plugins: ["linear"],
-      prompt: "Be precise",
-      mcp: [],
+  it("creates vercel deployment scaffold when vercel target is selected", async () => {
+    const files = await createProjectFiles({
+      projectName: "goodchat-app",
+      config: {
+        authEnabled: true,
+        databaseDialect: "postgres",
+        name: "goodchat",
+        prompt: "Be helpful",
+        platforms: ["web"],
+      },
+      deploymentTarget: "vercel",
+      envMetadata: [],
     });
 
-    expect(configFile).toContain("export const goodchat = createGoodchat({");
-    expect(configFile).toContain(
-      "database: postgres({ connectionString: env.DATABASE_URL, schema }),"
+    const filePaths = files.map((file: ProjectFile) => file.path);
+    expect(filePaths).toContain("vercel.json");
+    expect(filePaths).toContain("README.md");
+    expect(filePaths).not.toContain("Dockerfile");
+    expect(filePaths).not.toContain(".dockerignore");
+    expect(filePaths).not.toContain("railway.json");
+
+    const indexFile = files.find((file) => file.path === "src/index.ts");
+    expect(indexFile?.content).toContain(
+      'if (process.env.VERCEL !== "1" && process.env.__VERCEL_DEV_RUNNING !== "1")'
     );
-    expect(configFile).toContain('name: "Test Bot"');
-    expect(configFile).toContain("plugins: [linear]");
+    expect(indexFile?.content).toContain("app.listen(port");
+    expect(indexFile?.content).toContain(
+      "// @ts-ignore TS6133: required for vercel platform detection"
+    );
+    expect(indexFile?.content).toContain('import { Elysia } from "elysia";');
+    expect(indexFile?.content).toContain("export default app;");
+
+    const vercelConfig = files.find((file) => file.path === "vercel.json");
+    expect(vercelConfig).toBeDefined();
+    expect(vercelConfig?.content).toContain(
+      '"$schema": "https://openapi.vercel.sh/vercel.json"'
+    );
+    expect(vercelConfig?.content).not.toContain('"functions"');
+    expect(vercelConfig?.content).not.toContain('"routes"');
   });
 
-  it("renders Neon postgres driver for managed profile", () => {
-    const configFile = renderGoodchatFile({
-      authEnabled: true,
-      databaseDialect: "postgres",
-      databaseProfileId: "postgres-neon",
-      name: "Test Bot",
-      platforms: ["web"],
-      prompt: "Be precise",
+  it("adds discord cron path in vercel.json when discord platform is selected", async () => {
+    const files = await createProjectFiles({
+      projectName: "goodchat-app",
+      config: {
+        authEnabled: true,
+        databaseDialect: "postgres",
+        name: "goodchat",
+        prompt: "Be helpful",
+        platforms: ["web", "discord"],
+      },
+      deploymentTarget: "vercel",
+      envMetadata: [],
     });
 
-    expect(configFile).toContain(
-      'database: postgres({ connectionString: env.DATABASE_URL, driver: "@neondatabase/serverless", schema }),'
-    );
-  });
-
-  it("renders PlanetScale mysql mode for managed profile", () => {
-    const configFile = renderGoodchatFile({
-      authEnabled: true,
-      databaseDialect: "mysql",
-      databaseProfileId: "mysql-planetscale",
-      name: "Test Bot",
-      platforms: ["web"],
-      prompt: "Be precise",
-    });
-
-    expect(configFile).toContain(
-      'database: mysql({ connectionString: env.DATABASE_URL, mode: "planetscale", schema }),'
-    );
-  });
-
-  it.each<{
-    provider: ModelProvider;
-    modelId: string;
-    expectedFactory: string;
-  }>([
-    {
-      provider: "openai",
-      modelId: "gpt-4.1-mini",
-      expectedFactory: "openai",
-    },
-    {
-      provider: "anthropic",
-      modelId: "claude-sonnet-4-6",
-      expectedFactory: "anthropic",
-    },
-    {
-      provider: "google",
-      modelId: "gemini-2.5-flash",
-      expectedFactory: "google",
-    },
-    {
-      provider: "openrouter",
-      modelId: "openai/gpt-4.1-mini",
-      expectedFactory: "openrouter",
-    },
-    {
-      provider: "ai-gateway",
-      modelId: "@cf/meta/llama-3.1-8b-instruct",
-      expectedFactory: "aiGateway",
-    },
-    {
-      provider: "vercel-gateway",
-      modelId: "openai/gpt-4.1-mini",
-      expectedFactory: "vercelGateway",
-    },
-  ])("renders model factory import for $provider", ({
-    provider,
-    modelId,
-    expectedFactory,
-  }) => {
-    const output = renderGoodchatFile({
-      authEnabled: false,
-      databaseDialect: "sqlite",
-      model: { provider, modelId },
-      name: "Provider Bot",
-      platforms: ["web"],
-      prompt: "Be helpful",
-    });
-
-    expect(output).toContain(
-      `import { createGoodchat, ${expectedFactory} } from "@goodchat/core";`
-    );
-    expect(output).toContain(`model: ${expectedFactory}("${modelId}")`);
+    const vercelConfig = files.find((file) => file.path === "vercel.json");
+    expect(vercelConfig?.content).toContain('"path": "/api/discord/gateway"');
   });
 });

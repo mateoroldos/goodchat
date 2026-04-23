@@ -1,7 +1,7 @@
 export type LocalDockerService = "postgres" | "mysql";
 
 export const LOCAL_DOCKER_COMPOSE_PATH = "docker-compose.yml";
-export const LOCAL_DOCKER_UP_COMMAND = "docker compose up -d";
+export const LOCAL_DOCKER_UP_COMMAND = "bun run db:up";
 
 export const renderLocalDockerCompose = (
   service: LocalDockerService

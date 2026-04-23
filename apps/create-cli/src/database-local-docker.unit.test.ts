@@ -22,6 +22,6 @@ describe("database local docker helpers", () => {
 
   it("exports compose path and up command", () => {
     expect(LOCAL_DOCKER_COMPOSE_PATH).toBe("docker-compose.yml");
-    expect(LOCAL_DOCKER_UP_COMMAND).toBe("docker compose up -d");
+    expect(LOCAL_DOCKER_UP_COMMAND).toBe("bun run db:up");
   });
 });
