@@ -1,5 +1,12 @@
 # @goodchat/core
 
+## 0.0.16
+
+### Patch Changes
+
+- 744410c: Mount dashboard on serverless
+  - @goodchat/contracts@0.0.16
+
 ## 0.0.15
 
 ### Patch Changes
