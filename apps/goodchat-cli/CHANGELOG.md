@@ -1,5 +1,12 @@
 # @goodchat/cli
 
+## 0.0.9
+
+### Patch Changes
+
+- @goodchat/templates@0.0.15
+- @goodchat/contracts@0.0.15
+
 ## 0.0.8
 
 ### Patch Changes

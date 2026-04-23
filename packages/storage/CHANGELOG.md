@@ -1,5 +1,12 @@
 # @goodchat/storage
 
+## 0.0.15
+
+### Patch Changes
+
+- bb67dbf: Use nanoid instead of node:crypto
+  - @goodchat/contracts@0.0.15
+
 ## 0.0.14
 
 ### Patch Changes

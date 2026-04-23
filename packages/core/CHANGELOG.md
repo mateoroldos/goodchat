@@ -1,5 +1,15 @@
 # @goodchat/core
 
+## 0.0.15
+
+### Patch Changes
+
+- bb67dbf: Use nanoid instead of node:crypto
+- Updated dependencies [bb67dbf]
+  - @goodchat/state-sqlite@0.0.3
+  - @goodchat/state-mysql@0.0.3
+  - @goodchat/contracts@0.0.15
+
 ## 0.0.14
 
 ### Patch Changes
