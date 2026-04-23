@@ -1,5 +1,12 @@
 # @goodchat/create
 
+## 0.0.18
+
+### Patch Changes
+
+- bb67dbf: Use nanoid instead of node:crypto
+  - @goodchat/templates@0.0.15
+
 ## 0.0.17
 
 ### Patch Changes
