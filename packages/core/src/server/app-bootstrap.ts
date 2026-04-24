@@ -150,11 +150,10 @@ export const setupDashboard = ({
         })
       )
       .get("/*", ({ path }) => {
-        const requestedPath = `${webBuildPath}/${path}`;
-        if (existsSync(requestedPath)) {
-          return file(requestedPath);
-        }
-        return file(indexHtmlPath);
+        const requestedPath =
+          path === "/" ? indexHtmlPath : `${webBuildPath}/${path}`;
+
+        return file(existsSync(requestedPath) ? requestedPath : indexHtmlPath);
       });
   } catch (error) {
     throw new Error("Dashboard build not found.", { cause: error });
