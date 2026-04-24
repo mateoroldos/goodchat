@@ -1,5 +1,12 @@
 # @goodchat/core
 
+## 0.0.18
+
+### Patch Changes
+
+- 73cb44a: Server index.html correctly for SPA
+  - @goodchat/contracts@0.0.18
+
 ## 0.0.17
 
 ### Patch Changes
