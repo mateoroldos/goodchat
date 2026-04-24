@@ -2,8 +2,8 @@ import type { DiscordAdapter } from "@chat-adapter/discord";
 import { cron, Patterns } from "@elysiajs/cron";
 import type { Bot, Platform } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
-import type { ChatGatewayService } from "../gateway/interface";
 import type { LoggerService } from "../logger/interface";
+import type { ChatGatewayService } from "../gateway/interface";
 
 export interface WebhookEnv {
   CRON_SECRET?: string;
@@ -47,20 +47,33 @@ const getDefaultBaseUrl = (env: WebhookEnv) =>
 
 interface WebhookChatControllerOptions {
   botId: Bot["id"];
-  gateway: ChatGatewayService;
+  initializeGateway: () => Promise<ChatGatewayService>;
   isServerless: Bot["isServerless"];
   logger: LoggerService;
+  platforms: Bot["platforms"];
 }
 
 export const webhookChatController = ({
   botId,
+  initializeGateway,
   isServerless,
-  gateway,
   logger,
+  platforms,
 }: WebhookChatControllerOptions) => {
   const app = new Elysia({ prefix: "/webhook" });
-  const platforms = gateway.getPlatformIds();
   const hasDiscordBots = platforms.includes("discord");
+
+  const ensureGatewayReady = async (): Promise<
+    | { ok: true; gateway: ChatGatewayService }
+    | { error: unknown; ok: false }
+  > => {
+    try {
+      const gateway = await initializeGateway();
+      return { ok: true, gateway };
+    } catch (error) {
+      return { ok: false, error };
+    }
+  };
 
   const env = {
     CRON_SECRET: process.env.CRON_SECRET,
@@ -71,6 +84,16 @@ export const webhookChatController = ({
     webhookUrl: string,
     abortSignal?: AbortSignal
   ) => {
+    const gatewayResult = await ensureGatewayReady();
+    if (!gatewayResult.ok) {
+      return {
+        ok: false as const,
+        status: 503,
+        message: "Gateway unavailable",
+      };
+    }
+    const gateway = gatewayResult.gateway;
+
     const discordAdapter = gateway.getAdapter(
       "discord"
     ) as DiscordAdapter | null;
@@ -97,7 +120,7 @@ export const webhookChatController = ({
     return { ok: true as const, response };
   };
 
-  const handlePlatformWebhook = (
+  const handlePlatformWebhook = async (
     platform: Platform,
     request: Request,
     set: { status?: number | string }
@@ -121,6 +144,28 @@ export const webhookChatController = ({
       });
       return { message: "Platform not configured" };
     }
+
+    const gatewayResult = await ensureGatewayReady();
+    if (!gatewayResult.ok) {
+      set.status = 503;
+      log?.warn("Webhook request failed while initializing gateway", {
+        error: {
+          code: "WEBHOOK_GATEWAY_UNAVAILABLE",
+          fix: "Verify chat adapter credentials and state adapter connectivity.",
+          message:
+            gatewayResult.error instanceof Error
+              ? gatewayResult.error.message
+              : "Unknown error",
+          type:
+            gatewayResult.error instanceof Error
+              ? gatewayResult.error.name
+              : "UnknownError",
+          why: "The chat gateway failed to initialize before handling webhook traffic.",
+        },
+      });
+      return { message: "Gateway unavailable" };
+    }
+    const gateway = gatewayResult.gateway;
 
     const webhooks = gateway.getWebhooks();
     const handler = webhooks[platform as keyof typeof webhooks];

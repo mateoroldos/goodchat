@@ -13,7 +13,7 @@ import type {
 import type { LoggerService } from "../logger/interface";
 
 export interface ChatRuntime {
-  gateway: ChatGatewayService;
+  initializeGateway(): Promise<ChatGatewayService>;
   responseHandler: ChatResponseService;
 }
 
@@ -34,14 +34,6 @@ export const createChatRuntime = ({
     aiResponse,
     bot,
     logger,
-  });
-
-  const gateway = new DefaultChatGatewayService({
-    database: bot.database,
-    logger,
-    userName: bot.name,
-    platforms: bot.platforms,
-    state: bot.state,
   });
 
   const handleMessage = async (
@@ -120,13 +112,50 @@ export const createChatRuntime = ({
     await thread.post(result.value.text);
   };
 
-  gateway.registerHandlers({
-    onNewMention: (thread, message) => handleMessage(thread, message, true),
-    onSubscribedMessage: (thread, message) =>
-      handleMessage(thread, message, false),
-  });
+  let gateway: ChatGatewayService | null = null;
+  let initializationPromise: Promise<ChatGatewayService> | null = null;
 
-  return { gateway, responseHandler };
+  const getGateway = () => {
+    if (gateway) {
+      return gateway;
+    }
+
+    const createdGateway = new DefaultChatGatewayService({
+      database: bot.database,
+      logger,
+      userName: bot.name,
+      platforms: bot.platforms,
+      state: bot.state,
+    });
+
+    createdGateway.registerHandlers({
+      onNewMention: (thread, message) => handleMessage(thread, message, true),
+      onSubscribedMessage: (thread, message) =>
+        handleMessage(thread, message, false),
+    });
+
+    gateway = createdGateway;
+    return createdGateway;
+  };
+
+  const initializeGateway = async () => {
+    if (initializationPromise) {
+      return initializationPromise;
+    }
+
+    initializationPromise = (async () => {
+      const createdGateway = getGateway();
+      await createdGateway.initialize();
+      return createdGateway;
+    })().catch((error) => {
+      initializationPromise = null;
+      throw error;
+    });
+
+    return initializationPromise;
+  };
+
+  return { initializeGateway, responseHandler };
 };
 
 const DEFAULT_ERROR_MESSAGE = "Sorry, I ran into an error while responding.";

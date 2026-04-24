@@ -124,7 +124,9 @@ export const createGoodchat = (options: BotConfigInput) => {
     });
 
     const chatRuntime = createChatRuntime({ aiTelemetry, bot, logger });
-    await chatRuntime.gateway.initialize();
+    if (!bot.isServerless) {
+      await chatRuntime.initializeGateway();
+    }
 
     const authOpenApi = authRuntime
       ? await getBetterAuthOpenApiDocumentation(authRuntime.auth)
@@ -150,7 +152,8 @@ export const createGoodchat = (options: BotConfigInput) => {
           botId: bot.id,
           isServerless: bot.isServerless,
           logger,
-          gateway: chatRuntime.gateway,
+          initializeGateway: chatRuntime.initializeGateway,
+          platforms: bot.platforms,
         })
       )
       .get("/auth-status", async ({ request }) => {
