@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.20
+
+### Patch Changes
+
+- @goodchat/templates@0.0.17
+
 ## 0.0.19
 
 ### Patch Changes

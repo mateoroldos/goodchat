@@ -9,10 +9,10 @@ export type DependencyChannel = (typeof DEPENDENCY_CHANNELS)[number];
 // Versions are auto-updated by scripts/update-create-cli-versions.mjs during `bun run ci:version`
 export const GOODCHAT_DEPENDENCY_MANIFEST = {
   latest: {
-    "@goodchat/storage": "0.0.16",
-    "@goodchat/cli": "0.0.10",
-    "@goodchat/core": "0.0.16",
-    "@goodchat/plugins": "0.0.14",
+    "@goodchat/storage": "0.0.17",
+    "@goodchat/cli": "0.0.11",
+    "@goodchat/core": "0.0.17",
+    "@goodchat/plugins": "0.0.15",
   },
   next: {
     "@goodchat/storage": "next",
