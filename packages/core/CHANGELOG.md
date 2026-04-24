@@ -1,5 +1,12 @@
 # @goodchat/core
 
+## 0.0.17
+
+### Patch Changes
+
+- adae08f: Fix SPA endpoint
+  - @goodchat/contracts@0.0.17
+
 ## 0.0.16
 
 ### Patch Changes

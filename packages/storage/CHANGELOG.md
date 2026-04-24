@@ -1,5 +1,11 @@
 # @goodchat/storage
 
+## 0.0.17
+
+### Patch Changes
+
+- @goodchat/contracts@0.0.17
+
 ## 0.0.16
 
 ### Patch Changes
