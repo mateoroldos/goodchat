@@ -1,9 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { openapi } from "@elysiajs/openapi";
 import { staticPlugin } from "@elysiajs/static";
 import type { Bot } from "@goodchat/contracts/config/types";
-import { Elysia } from "elysia";
+import { Elysia, file } from "elysia";
 import { evlog } from "evlog/elysia";
 import type { DashboardAuthRuntime } from "../auth/better-auth";
 import { requireSessionGuard } from "./auth-guard";
@@ -121,7 +121,7 @@ export const createWebChatApi = ({
     .use(webApi);
 };
 
-export const setupDashboard = async ({
+export const setupDashboard = ({
   app,
   dashboard,
   webBuildPath,
@@ -135,23 +135,28 @@ export const setupDashboard = async ({
   }
 
   try {
-    const webIndexHtml = await readFile(join(webBuildPath, "index.html"));
-    app.use(
-      staticPlugin({
-        assets: webBuildPath,
-        prefix: "/",
-        alwaysStatic: true,
-        indexHTML: false,
-      })
-    );
+    const indexHtmlPath = join(webBuildPath, "index.html");
 
-    app.get("/*", ({ set }) => {
-      set.headers["content-type"] = "text/html; charset=utf-8";
-      return webIndexHtml;
-    });
+    if (!existsSync(indexHtmlPath)) {
+      throw new Error("index.html not found in build output.");
+    }
+
+    app
+      .use(
+        staticPlugin({
+          assets: webBuildPath,
+          prefix: "/",
+          alwaysStatic: true,
+        })
+      )
+      .get("/*", ({ path }) => {
+        const requestedPath = `${webBuildPath}/${path}`;
+        if (existsSync(requestedPath)) {
+          return file(requestedPath);
+        }
+        return file(indexHtmlPath);
+      });
   } catch (error) {
-    throw new Error("Dashboard build not found.", {
-      cause: error,
-    });
+    throw new Error("Dashboard build not found.", { cause: error });
   }
 };
