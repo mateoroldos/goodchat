@@ -1,8 +1,8 @@
 import type { Platform } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NoopLoggerService } from "../logger/service";
 import type { ChatGatewayService } from "../gateway/interface";
+import { NoopLoggerService } from "../logger/service";
 import { webhookChatController } from "./webhook-chat-controller";
 
 const createGateway = ({
@@ -68,9 +68,7 @@ describe("webhookChatController gateway initialization", () => {
   });
 
   it("returns 503 when gateway initialization fails for platform webhook", async () => {
-    const initialize = vi.fn(async () => {
-      throw new Error("boom");
-    });
+    const initialize = vi.fn(() => Promise.reject(new Error("boom")));
     const slackWebhook = vi.fn(async () => new Response("ok", { status: 200 }));
     const gateway = createGateway({
       initialize,

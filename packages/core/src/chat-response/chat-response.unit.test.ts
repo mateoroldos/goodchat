@@ -159,6 +159,75 @@ describe("DefaultChatResponseService", () => {
     expect(requestLogger.error).toHaveBeenCalledTimes(1);
   });
 
+  it("returns a hook error result when beforeMessage hook throws", async () => {
+    const requestLogger = createLogger({ requestId: "req-1" });
+    const beforeHook = vi.fn(() => {
+      throw new Error("before hook failed");
+    });
+    const aiResponse: AiResponseService = {
+      generate: vi.fn(),
+      stream: vi.fn(),
+    };
+    const logger = createLoggerService(requestLogger);
+
+    const service = createService({
+      aiResponse,
+      bot: createBot({
+        database: createDatabaseStub(),
+        hooks: {
+          afterMessage: [],
+          beforeMessage: [beforeHook],
+        },
+      }),
+      logger,
+    });
+
+    const result = await service.handleMessage(createContext());
+
+    expect(result.isErr()).toBe(true);
+    if (result.isOk()) {
+      throw new Error("Expected handleMessage to return an error");
+    }
+    expect(result.error.code).toBe("CHAT_RESPONSE_HOOK_FAILED");
+    expect(beforeHook).toHaveBeenCalledTimes(1);
+    expect(aiResponse.generate).not.toHaveBeenCalled();
+  });
+
+  it("continues sync response when afterMessage hook throws", async () => {
+    const requestLogger = createLogger({ requestId: "req-1" });
+    const afterHook = vi.fn(() => {
+      throw new Error("after hook failed");
+    });
+    const aiResponse: AiResponseService = {
+      generate: vi.fn(async () =>
+        Result.ok({
+          telemetry: createTelemetry("sync"),
+          text: "AI: Hello",
+        })
+      ),
+      stream: vi.fn(),
+    };
+    const logger = createLoggerService(requestLogger);
+
+    const service = createService({
+      aiResponse,
+      bot: createBot({
+        database: createDatabaseStub(),
+        hooks: {
+          afterMessage: [afterHook],
+          beforeMessage: [],
+        },
+      }),
+      logger,
+    });
+
+    const result = await service.handleMessage(createContext());
+
+    expect(result.isOk()).toBe(true);
+    expect(afterHook).toHaveBeenCalledTimes(1);
+    expect(requestLogger.warn).toHaveBeenCalledTimes(1);
+  });
+
   it("uses background logger for stream persistence failures", async () => {
     const requestLogger = createLogger({ requestId: "req-1" });
     const backgroundLogger = createLogger();

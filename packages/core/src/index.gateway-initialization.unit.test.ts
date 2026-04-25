@@ -24,7 +24,7 @@ const createTestApp = async (isServerless: boolean) => {
   vi.doMock("./runtime/create-chat-runtime", () => ({
     createChatRuntime: vi.fn(() => ({
       initializeGateway,
-      responseHandler: {
+      chatResponse: {
         handleMessage: vi.fn(),
         handleMessageStream: vi.fn(),
       },

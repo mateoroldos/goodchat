@@ -69,6 +69,7 @@ const resolveWebChatAccess = (input: {
 };
 
 export const createGoodchat = (options: BotConfigInput) => {
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: initialization intentionally wires the full runtime graph in one place.
   const initialize = async () => {
     const botConfig = botConfigSchema.parse(options);
 
@@ -124,6 +125,9 @@ export const createGoodchat = (options: BotConfigInput) => {
     });
 
     const chatRuntime = createChatRuntime({ aiTelemetry, bot, logger });
+    // For non serverless environments we initialize the gateway on startup
+    // For serverless environments we pass the initialization to webhook controller
+    // so gatweay only boots when webhhoks are hit
     if (!bot.isServerless) {
       await chatRuntime.initializeGateway();
     }
@@ -206,7 +210,7 @@ export const createGoodchat = (options: BotConfigInput) => {
         botName: bot.name,
         logger,
         platforms: bot.platforms,
-        responseHandler: chatRuntime.responseHandler,
+        responseHandler: chatRuntime.chatResponse,
       })
     );
 

@@ -29,3 +29,24 @@ export class ChatResponseGenerationError extends TaggedError(
     }
   }
 }
+
+export class ChatResponseHookExecutionError extends TaggedError(
+  "ChatResponseHookExecutionError"
+)<{
+  message: string;
+  code: "CHAT_RESPONSE_HOOK_FAILED";
+  details?: string[];
+  stage: "before" | "after";
+}>() {
+  constructor(
+    message: string,
+    stage: "before" | "after",
+    details?: string[],
+    cause?: unknown
+  ) {
+    super({ message, code: "CHAT_RESPONSE_HOOK_FAILED", details, stage });
+    if (cause) {
+      (this as { cause?: unknown }).cause = cause;
+    }
+  }
+}

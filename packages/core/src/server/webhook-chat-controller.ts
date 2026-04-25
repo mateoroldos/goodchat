@@ -2,8 +2,8 @@ import type { DiscordAdapter } from "@chat-adapter/discord";
 import { cron, Patterns } from "@elysiajs/cron";
 import type { Bot, Platform } from "@goodchat/contracts/config/types";
 import { Elysia } from "elysia";
-import type { LoggerService } from "../logger/interface";
 import type { ChatGatewayService } from "../gateway/interface";
+import type { LoggerService } from "../logger/interface";
 
 export interface WebhookEnv {
   CRON_SECRET?: string;
@@ -64,8 +64,7 @@ export const webhookChatController = ({
   const hasDiscordBots = platforms.includes("discord");
 
   const ensureGatewayReady = async (): Promise<
-    | { ok: true; gateway: ChatGatewayService }
-    | { error: unknown; ok: false }
+    { ok: true; gateway: ChatGatewayService } | { error: unknown; ok: false }
   > => {
     try {
       const gateway = await initializeGateway();

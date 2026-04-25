@@ -1,20 +1,17 @@
-import type { Bot, Platform } from "@goodchat/contracts/config/types";
-import type { MessageContext } from "@goodchat/contracts/plugins/types";
+import type { Bot } from "@goodchat/contracts/config/types";
 import { generateText, streamText } from "ai";
 import { DefaultAiResponseService } from "../ai-response";
 import type { AiTelemetryService } from "../ai-telemetry/interface";
 import { DefaultChatResponseService } from "../chat-response";
 import type { ChatResponseService } from "../chat-response/interface";
 import { DefaultChatGatewayService } from "../gateway/index";
-import type {
-  ChatGatewayHandlers,
-  ChatGatewayService,
-} from "../gateway/interface";
+import type { ChatGatewayService } from "../gateway/interface";
 import type { LoggerService } from "../logger/interface";
+import { registerGatewayMessageHandlers } from "./gateway-message-processor";
 
 export interface ChatRuntime {
+  chatResponse: ChatResponseService;
   initializeGateway(): Promise<ChatGatewayService>;
-  responseHandler: ChatResponseService;
 }
 
 export const createChatRuntime = ({
@@ -30,87 +27,11 @@ export const createChatRuntime = ({
     { generateText, streamText },
     aiTelemetry
   );
-  const responseHandler = new DefaultChatResponseService({
+  const chatResponse = new DefaultChatResponseService({
     aiResponse,
     bot,
     logger,
   });
-
-  const handleMessage = async (
-    thread: ThreadHandle,
-    message: ThreadMessage,
-    shouldSubscribe: boolean
-  ) => {
-    const log = logger.request();
-    log.set({
-      adapter: "gateway",
-      message: {
-        length: message.text.length,
-      },
-      thread: { id: thread.id },
-      user: { id: message.author.userId },
-    });
-
-    if (shouldSubscribe) {
-      await thread.subscribe();
-    }
-
-    const platform = parsePlatform(thread.id);
-    if (!platform) {
-      log.warn("Gateway message ignored because platform is invalid", {
-        error: {
-          code: "CHAT_PLATFORM_INVALID",
-          fix: "Use thread IDs formatted as '<platform>:<id>'.",
-          why: "The incoming thread id does not include a known platform.",
-        },
-      });
-      await thread.post(DEFAULT_ERROR_MESSAGE);
-      return;
-    }
-
-    log.set({
-      platform,
-      request: {
-        kind: shouldSubscribe ? "mention" : "subscribed-message",
-      },
-    });
-
-    const context: MessageContext = {
-      adapterName: platform,
-      botId: bot.id,
-      botName: bot.name,
-      platform,
-      text: message.text,
-      threadId: thread.id,
-      userId: message.author.userId,
-    };
-
-    const result = await responseHandler.handleMessage(context);
-    if (result.isErr()) {
-      log.error("Failed to handle gateway message", {
-        error: {
-          code: result.error.code,
-          message: result.error.message,
-          type: result.error.name,
-          why: "Chat response pipeline failed while generating a reply.",
-          fix: "Inspect AI provider, hooks, MCP servers, and database availability.",
-        },
-      });
-      await thread.post(DEFAULT_ERROR_MESSAGE);
-      return;
-    }
-
-    log.set({
-      outcome: {
-        status: "success",
-      },
-      response: {
-        length: result.value.text.length,
-      },
-    });
-
-    await thread.post(result.value.text);
-  };
 
   let gateway: ChatGatewayService | null = null;
   let initializationPromise: Promise<ChatGatewayService> | null = null;
@@ -128,17 +49,17 @@ export const createChatRuntime = ({
       state: bot.state,
     });
 
-    createdGateway.registerHandlers({
-      onNewMention: (thread, message) => handleMessage(thread, message, true),
-      onSubscribedMessage: (thread, message) =>
-        handleMessage(thread, message, false),
+    registerGatewayMessageHandlers(createdGateway, {
+      bot,
+      chatResponse,
+      logger,
     });
 
     gateway = createdGateway;
     return createdGateway;
   };
 
-  const initializeGateway = async () => {
+  const initializeGateway = () => {
     if (initializationPromise) {
       return initializationPromise;
     }
@@ -155,19 +76,8 @@ export const createChatRuntime = ({
     return initializationPromise;
   };
 
-  return { initializeGateway, responseHandler };
+  return {
+    chatResponse,
+    initializeGateway,
+  };
 };
-
-const DEFAULT_ERROR_MESSAGE = "Sorry, I ran into an error while responding.";
-
-const parsePlatform = (threadId: string): Platform | null => {
-  const [platform] = threadId.split(":");
-  return platform ? (platform as Platform) : null;
-};
-
-type ThreadHandle = Parameters<
-  NonNullable<ChatGatewayHandlers["onNewMention"]>
->[0];
-type ThreadMessage = Parameters<
-  NonNullable<ChatGatewayHandlers["onNewMention"]>
->[1];

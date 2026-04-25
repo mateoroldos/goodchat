@@ -3,6 +3,7 @@ import type { UIMessageChunk } from "ai";
 import type { Result } from "better-result";
 import type {
   ChatResponseGenerationError,
+  ChatResponseHookExecutionError,
   ChatResponseInputInvalidError,
 } from "./errors";
 
@@ -17,6 +18,7 @@ export interface ResponseMessageStreamResult {
 
 export type ResponseMessageError =
   | ChatResponseInputInvalidError
+  | ChatResponseHookExecutionError
   | ChatResponseGenerationError;
 
 export interface ChatResponseService {

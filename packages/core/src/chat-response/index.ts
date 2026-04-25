@@ -1,18 +1,21 @@
 import type { Bot } from "@goodchat/contracts/config/types";
 import type { HookContext } from "@goodchat/contracts/hooks/types";
-import type { UIMessageChunk } from "ai";
-import { readUIMessageStream } from "ai";
 import { Result } from "better-result";
 import type { AiResponseService } from "../ai-response/interface";
-import type { AiRunTelemetry } from "../ai-response/models";
 import type { LoggerService } from "../logger/interface";
 import type { MessageContext } from "../types";
 import {
   ChatResponseGenerationError,
+  ChatResponseHookExecutionError,
   ChatResponseInputInvalidError,
 } from "./errors";
+import { runBeforeHooks } from "./hook-runner";
 import type { ChatResponseService } from "./interface";
-import { persistChatResponse } from "./persistence";
+import {
+  runAfterHooksResilient,
+  runStreamPostProcess,
+  runSyncPostProcess,
+} from "./post-process";
 
 type ChatResponseMode = "stream" | "sync";
 
@@ -50,39 +53,52 @@ export class DefaultChatResponseService implements ChatResponseService {
       return Result.err(inputError);
     }
 
-    const { hookContext, requestLogger } = await this.#prepareRequest(
-      context,
-      "sync"
-    );
+    try {
+      const { hookContext, requestLogger } = await this.#prepareRequest(
+        context,
+        "sync"
+      );
 
-    const botResponse = await this.#aiResponse.generate(
-      this.#buildAiParams(context, requestLogger, "sync")
-    );
+      const botResponse = await this.#aiResponse.generate(
+        this.#buildAiParams(context, requestLogger, "sync")
+      );
 
-    if (botResponse.isErr()) {
-      this.#logAiFailure(requestLogger, botResponse.error, "sync");
-      return Result.err(this.#toGenerationError(botResponse.error));
+      if (botResponse.isErr()) {
+        this.#logAiFailure(requestLogger, botResponse.error, "sync");
+        return Result.err(this.#toGenerationError(botResponse.error));
+      }
+
+      const { telemetry, text } = botResponse.value;
+      await runAfterHooksResilient({
+        hookContext,
+        hooks: this.#bot.hooks.afterMessage,
+        responseText: text,
+      });
+
+      this.#setResponseStatus(requestLogger, "success", text.length);
+
+      const backgroundLogger = this.#createBackgroundLogger(
+        requestLogger,
+        context,
+        "sync"
+      );
+
+      runSyncPostProcess({
+        context,
+        database: this.#bot.database,
+        logger: backgroundLogger,
+        responseText: text,
+        setResponseStatus: this.#setResponseStatus.bind(this),
+        telemetry,
+      }).catch(() => undefined);
+
+      return Result.ok({
+        text,
+        threadEntryId: context.threadId,
+      });
+    } catch (error) {
+      return Result.err(this.#toResponseError(error));
     }
-
-    const { telemetry, text } = botResponse.value;
-    await this.#runAfterHooks(hookContext, text);
-
-    this.#setResponseStatus(requestLogger, "success", text.length);
-
-    const backgroundLogger = this.#createBackgroundLogger(
-      requestLogger,
-      context,
-      "sync"
-    );
-
-    this.#runSyncPostProcess(context, text, telemetry, backgroundLogger).catch(
-      () => undefined
-    );
-
-    return Result.ok({
-      text,
-      threadEntryId: context.threadId,
-    });
   }
 
   async handleMessageStream(context: MessageContext) {
@@ -91,33 +107,41 @@ export class DefaultChatResponseService implements ChatResponseService {
       return Result.err(inputError);
     }
 
-    const { requestLogger } = await this.#prepareRequest(context, "stream");
+    try {
+      const { requestLogger } = await this.#prepareRequest(context, "stream");
 
-    const botResponse = await this.#aiResponse.stream(
-      this.#buildAiParams(context, requestLogger, "stream")
-    );
+      const botResponse = await this.#aiResponse.stream(
+        this.#buildAiParams(context, requestLogger, "stream")
+      );
 
-    if (botResponse.isErr()) {
-      this.#logAiFailure(requestLogger, botResponse.error, "stream");
-      return Result.err(this.#toGenerationError(botResponse.error));
+      if (botResponse.isErr()) {
+        this.#logAiFailure(requestLogger, botResponse.error, "stream");
+        return Result.err(this.#toGenerationError(botResponse.error));
+      }
+
+      const [clientStream, storeStream] = botResponse.value.uiStream.tee();
+      const backgroundLogger = this.#createBackgroundLogger(
+        requestLogger,
+        context,
+        "stream"
+      );
+      runStreamPostProcess({
+        buildHookContext: this.#buildHookContext.bind(this),
+        context,
+        database: this.#bot.database,
+        hooks: this.#bot.hooks.afterMessage,
+        logger: backgroundLogger,
+        setResponseStatus: this.#setResponseStatus.bind(this),
+        stream: storeStream,
+        telemetry: botResponse.value.telemetry,
+      }).catch(() => undefined);
+
+      this.#setResponseStatus(requestLogger, "streaming");
+
+      return Result.ok({ uiStream: clientStream });
+    } catch (error) {
+      return Result.err(this.#toResponseError(error));
     }
-
-    const [clientStream, storeStream] = botResponse.value.uiStream.tee();
-    const backgroundLogger = this.#createBackgroundLogger(
-      requestLogger,
-      context,
-      "stream"
-    );
-    this.#runStreamPostProcess(
-      context,
-      storeStream,
-      botResponse.value.telemetry,
-      backgroundLogger
-    ).catch(() => undefined);
-
-    this.#setResponseStatus(requestLogger, "streaming");
-
-    return Result.ok({ uiStream: clientStream });
   }
 
   #validateInput(text: string): ChatResponseInputInvalidError | undefined {
@@ -170,9 +194,10 @@ export class DefaultChatResponseService implements ChatResponseService {
   }
 
   async #runBeforeHooks(hookContext: HookContext, logger: HookContext["log"]) {
-    for (const hook of this.#bot.hooks.beforeMessage) {
-      await hook(hookContext);
-    }
+    await runBeforeHooks({
+      context: hookContext,
+      hooks: this.#bot.hooks.beforeMessage,
+    });
 
     logger.set({
       hooks: {
@@ -181,17 +206,27 @@ export class DefaultChatResponseService implements ChatResponseService {
     });
   }
 
-  async #runAfterHooks(hookContext: HookContext, responseText: string) {
-    for (const hook of this.#bot.hooks.afterMessage) {
-      await hook(hookContext, { text: responseText });
-    }
-  }
-
   #toGenerationError(error: {
     details?: string[];
     message: string;
   }): ChatResponseGenerationError {
     return new ChatResponseGenerationError(error.message, error.details, error);
+  }
+
+  #toResponseError(error: unknown) {
+    if (
+      error instanceof ChatResponseInputInvalidError ||
+      error instanceof ChatResponseGenerationError ||
+      error instanceof ChatResponseHookExecutionError
+    ) {
+      return error;
+    }
+
+    if (error instanceof Error) {
+      return new ChatResponseGenerationError(error.message, [], error);
+    }
+
+    return new ChatResponseGenerationError("Failed to generate response", []);
   }
 
   #createBackgroundLogger(
@@ -276,97 +311,6 @@ export class DefaultChatResponseService implements ChatResponseService {
             },
           }
         : {}),
-    });
-  }
-
-  async #runSyncPostProcess(
-    context: MessageContext,
-    responseText: string,
-    telemetry: AiRunTelemetry,
-    logger: HookContext["log"]
-  ) {
-    try {
-      await this.#persistResponse(context, responseText, telemetry);
-      this.#setResponseStatus(logger, "success", responseText.length);
-    } catch (error) {
-      logger.error(this.#toError(error, "Failed to persist chat response"), {
-        error: {
-          code: "CHAT_RESPONSE_PERSISTENCE_FAILED",
-          stage: "sync-post-process",
-          why: "Chat response was generated but database writes failed.",
-          fix: "Check database connectivity and migrations.",
-        },
-      });
-    } finally {
-      logger.emit();
-    }
-  }
-
-  async #runStreamPostProcess(
-    context: MessageContext,
-    stream: ReadableStream<UIMessageChunk>,
-    telemetry: Promise<AiRunTelemetry>,
-    logger: HookContext["log"]
-  ) {
-    try {
-      const responseText = await this.#collectAssistantText(stream);
-      const hookContext = this.#buildHookContext(context, logger);
-      await this.#runAfterHooks(hookContext, responseText);
-      await this.#persistResponse(context, responseText, await telemetry);
-      this.#setResponseStatus(logger, "success", responseText.length);
-    } catch (error) {
-      logger.error(
-        this.#toError(error, "Failed to persist streamed chat response"),
-        {
-          error: {
-            code: "CHAT_RESPONSE_STREAM_PERSISTENCE_FAILED",
-            stage: "stream-post-process",
-            why: "Streaming response finished but post-processing failed.",
-            fix: "Check database connectivity and afterMessage hook behavior.",
-          },
-        }
-      );
-    } finally {
-      logger.emit();
-    }
-  }
-
-  #toError(error: unknown, fallbackMessage: string): Error {
-    if (error instanceof Error) {
-      return error;
-    }
-
-    if (typeof error === "string") {
-      return new Error(error);
-    }
-
-    return new Error(fallbackMessage);
-  }
-
-  async #collectAssistantText(stream: ReadableStream<UIMessageChunk>) {
-    let responseText = "";
-    for await (const uiMessage of readUIMessageStream({ stream })) {
-      if (uiMessage.role !== "assistant") {
-        continue;
-      }
-      responseText = uiMessage.parts
-        .filter((part) => part.type === "text")
-        .map((part) => part.text)
-        .join("");
-    }
-    return responseText;
-  }
-
-  async #persistResponse(
-    context: MessageContext,
-    responseText: string,
-    telemetry: AiRunTelemetry
-  ) {
-    await persistChatResponse({
-      context,
-      database: this.#bot.database,
-      responseText,
-      telemetry,
     });
   }
 }
