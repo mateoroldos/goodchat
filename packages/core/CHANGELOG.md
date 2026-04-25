@@ -1,5 +1,12 @@
 # @goodchat/core
 
+## 0.0.19
+
+### Patch Changes
+
+- 822f3a6: Initialize chat gateway lazily on serverless
+  - @goodchat/contracts@0.0.19
+
 ## 0.0.18
 
 ### Patch Changes
