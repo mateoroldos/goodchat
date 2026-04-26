@@ -115,4 +115,32 @@ describe("webhookChatController gateway initialization", () => {
     expect(initialize).toHaveBeenCalledTimes(1);
     expect(startGatewayListener).toHaveBeenCalledTimes(1);
   });
+
+  it("uses request origin by default for discord gateway listener webhook URL", async () => {
+    vi.stubEnv("CRON_SECRET", "secret");
+
+    const startGatewayListener = vi.fn(async () => ({ ok: true }));
+    const gateway = createGateway({
+      initialize: vi.fn(async () => undefined),
+      platforms: ["discord"],
+      discordAdapter: {
+        startGatewayListener,
+      },
+    });
+    const app = createApp(gateway);
+
+    const response = await app.handle(
+      new Request("http://localhost/webhook/discord/gateway?cronSecret=secret", {
+        method: "GET",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(startGatewayListener).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.any(Number),
+      expect.any(Object),
+      "http://localhost/api/webhook/discord"
+    );
+  });
 });

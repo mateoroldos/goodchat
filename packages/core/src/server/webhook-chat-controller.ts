@@ -7,7 +7,6 @@ import type { LoggerService } from "../logger/interface";
 
 export interface WebhookEnv {
   CRON_SECRET?: string;
-  WEBHOOK_FORWARD_URL?: string;
 }
 
 const gatewayListenerDurationMs = 10 * 60 * 1000;
@@ -42,8 +41,7 @@ const isCronAuthorized = (request: Request, env: WebhookEnv) => {
 const buildDiscordWebhookUrl = (baseUrl: string, overrideUrl?: string | null) =>
   overrideUrl ?? new URL("/api/webhook/discord", baseUrl).toString();
 
-const getDefaultBaseUrl = (env: WebhookEnv) =>
-  env.WEBHOOK_FORWARD_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+const getDefaultBaseUrl = () => `http://localhost:${process.env.PORT ?? 3000}`;
 
 interface WebhookChatControllerOptions {
   botId: Bot["id"];
@@ -76,7 +74,6 @@ export const webhookChatController = ({
 
   const env = {
     CRON_SECRET: process.env.CRON_SECRET,
-    WEBHOOK_FORWARD_URL: process.env.WEBHOOK_FORWARD_URL,
   };
 
   const startDiscordGatewayListener = async (
@@ -249,7 +246,7 @@ export const webhookChatController = ({
       }
 
       const url = new URL(request.url);
-      const webhookBaseUrl = env.WEBHOOK_FORWARD_URL ?? url.origin;
+      const webhookBaseUrl = url.origin;
       const webhookUrl = buildDiscordWebhookUrl(
         webhookBaseUrl,
         url.searchParams.get("webhookUrl")
@@ -305,7 +302,7 @@ export const webhookChatController = ({
       return;
     }
 
-    const baseUrl = getDefaultBaseUrl(env);
+    const baseUrl = getDefaultBaseUrl();
     const gatewayUrl = new URL("/api/webhook/discord/gateway", baseUrl);
 
     try {

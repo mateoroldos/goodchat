@@ -68,13 +68,6 @@ const ENV_METADATA: EnvVariableMeta[] = [
     schema: 'z.string().min(1, "GOODCHAT_AUTH_SECRET is required")',
   },
   {
-    key: "WEBHOOK_FORWARD_URL",
-    description:
-      "Optional URL to forward platform webhooks for internal request. In Railway set to http://localhost:8080",
-    category: "core",
-    schema: "z.string().url().optional()",
-  },
-  {
     key: "CRON_SECRET",
     description: "Secret used to authorize cron requests",
     category: "core",
