@@ -2,7 +2,7 @@
   <img src="packages/styles/assets/logo-light.svg#gh-light-mode-only" alt="Goodchat logo" width="420">
   <img src="packages/styles/assets/logo-dark.svg#gh-dark-mode-only" alt="Goodchat logo" width="420">
 </p>
-<p align="center">An <strong><i>almost good</i></strong> framework for building multiplatform AI chatbots.</p>
+<p align="center">An <strong><i>almost good</i></strong> framework for building multi-platform AI chatbots.</p>
 <p align="center">Works with</p>
 <p align="center">
   <a href="https://slack.com"><img alt="Slack" src="https://api.iconify.design/logos:slack-icon.svg" width="20"></a>&nbsp;&nbsp;

@@ -6,7 +6,7 @@ export const renderAsciiTitle = (value: string): string => {
   const safeValue = normalized.length > 0 ? normalized : "goodchat";
   try {
     return figlet.textSync(safeValue, {
-      font: "Larry 3D",
+      font: "Pagga",
       horizontalLayout: "fitted",
       verticalLayout: "default",
       whitespaceBreak: true,

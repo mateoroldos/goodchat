@@ -132,7 +132,8 @@ const printBanner = (): void => {
   process.stdout.write(`${FG_AMB}${BOLD}${renderAsciiWordmark()}${RST}\n\n`);
 };
 
-const SLOGAN = "An almost good chatbot for every platform";
+const SLOGAN =
+  "An almost good framework for building multi-platform AI chatbots.";
 
 const renderScaffoldIncludes = (): { detail: string; label: string }[] => {
   return [
