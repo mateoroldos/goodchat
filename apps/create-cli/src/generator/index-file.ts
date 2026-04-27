@@ -10,14 +10,12 @@ export const renderIndexFile = (
 import { goodchat } from "./goodchat";
 // @ts-ignore TS6133: required for vercel platform detection
 import { Elysia } from "elysia";
+import { serve } from "./serve";
 
-const port = Number(process.env.PORT ?? 3000);
 const { app } = await goodchat.ready;
 
 if (process.env.VERCEL !== "1" && process.env.__VERCEL_DEV_RUNNING !== "1") {
-  app.listen(port, () => {
-    console.log(\`Server is running on http://localhost:\${port}\`);
-  });
+  await serve(app);
 }
 
 export default app;
@@ -35,14 +33,10 @@ export default app;
 
   return `import "./env";
 import { goodchat } from "./goodchat";
+import { serve } from "./serve";
 
-const port = Number(process.env.PORT ?? 3000);
 const { app } = await goodchat.ready;
-
-app.listen(port, () => {
-  console.log(\`Server is running on http://localhost:\${port}\`);
-});
-
+await serve(app);
 export default app;
 `;
 };

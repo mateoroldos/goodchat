@@ -13,6 +13,7 @@ import {
 import { renderIndexFile as renderIndexFileInternal } from "./generator/index-file";
 import { renderPackageJson as renderPackageJsonInternal } from "./generator/package-json";
 import { renderGoodchatFile as renderGoodchatFileInternal } from "./generator/runtime";
+import { renderServeFile as renderServeFileInternal } from "./generator/serve-file";
 import { renderSqliteMigrateFile as renderSqliteMigrateFileInternal } from "./generator/sqlite-migrate";
 import type { GeneratorConfig, ProjectFile } from "./scaffold-types";
 
@@ -116,6 +117,10 @@ export const createProjectFiles = async (
         ]
       : [];
 
+  const serveFile = [
+    { path: "src/serve.ts", content: renderServeFileInternal() },
+  ];
+
   return [
     {
       path: "package.json",
@@ -145,6 +150,7 @@ export const createProjectFiles = async (
     { path: ".gitignore", content: renderGitignore() },
     { path: "README.md", content: profile.readme(input.config) },
     ...profile.configFiles(input.config),
+    ...serveFile,
     ...sqliteMigrateFile,
     ...Object.entries(schemaFiles).map(([path, content]) => ({
       path,
