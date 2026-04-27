@@ -13,6 +13,7 @@
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
     "build": "tsdown",
     "start": "bun run dist/index.mjs",
+    "start:railway": "bun run db:migrate && bun run start",
     "railway:link": "bunx @railway/cli link",
     "railway:up": "bunx @railway/cli up",
     "railway:logs": "bunx @railway/cli logs",

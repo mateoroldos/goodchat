@@ -131,9 +131,15 @@ describe("generator integration", () => {
     expect(railwayConfig).toBeDefined();
     const parsedRailwayConfig = JSON.parse(railwayConfig?.content ?? "{}") as {
       deploy?: {
+        preDeployCommand?: string;
         requiredMountPath?: string;
+        startCommand?: string;
       };
     };
+    expect(parsedRailwayConfig.deploy?.preDeployCommand).toBeUndefined();
+    expect(parsedRailwayConfig.deploy?.startCommand).toBe(
+      "bun run start:railway"
+    );
     expect(parsedRailwayConfig.deploy?.requiredMountPath).toBe("/data");
   });
 

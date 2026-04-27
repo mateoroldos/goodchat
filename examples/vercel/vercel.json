@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "elysia",
   "crons": [
     {
       "path": "/api/discord/gateway",

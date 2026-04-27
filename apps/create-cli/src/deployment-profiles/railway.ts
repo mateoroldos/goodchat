@@ -8,8 +8,12 @@ const renderRailwayJson = (dialect: DatabaseDialect): string =>
       $schema: "https://railway.com/railway.schema.json",
       build: { builder: "RAILPACK" },
       deploy: {
-        preDeployCommand: "bun run db:migrate",
-        startCommand: "bun run start",
+        ...(dialect === "sqlite"
+          ? { startCommand: "bun run start:railway" }
+          : {
+              preDeployCommand: "bun run db:migrate",
+              startCommand: "bun run start",
+            }),
         restartPolicyType: "ON_FAILURE",
         restartPolicyMaxRetries: 10,
         ...(dialect === "sqlite" ? { requiredMountPath: "/data" } : {}),
@@ -36,7 +40,9 @@ const renderReadme = (config: GeneratorConfig): string => {
     "",
     "Quick CLI path: `bun run railway:link`, then `bun run railway:up`.",
     "",
-    "Railway runs `bun run db:migrate` before `bun run start`.",
+    config.databaseDialect === "sqlite"
+      ? "For SQLite, Railway runs `bun run start:railway` so migrations execute after the `/data` volume is mounted."
+      : "Railway runs `bun run db:migrate` before `bun run start`.",
     dbNote,
     "",
     "If deploy fails, check migration output first. The app usually just reports the bad news.",
@@ -46,9 +52,12 @@ const renderReadme = (config: GeneratorConfig): string => {
 export const railwayProfile = {
   allowedDialects: ["sqlite", "postgres", "mysql"] as const,
   isServerless: false,
-  scripts: () => ({
+  scripts: (dialect: DatabaseDialect) => ({
     build: "tsdown",
     start: "bun run dist/index.mjs",
+    ...(dialect === "sqlite"
+      ? { "start:railway": "bun run db:migrate && bun run start" }
+      : {}),
     "railway:link": "bunx @railway/cli link",
     "railway:up": "bunx @railway/cli up",
     "railway:logs": "bunx @railway/cli logs",

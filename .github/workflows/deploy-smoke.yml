@@ -1,0 +1,454 @@
+name: Deploy Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_all:
+        description: Run full provider matrix
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  # Keep concurrency isolated per event + ref so push/PR/manual runs don't cancel each other.
+  group: deploy-smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect_changes:
+    name: Detect changed targets
+    runs-on: ubuntu-latest
+    outputs:
+      run_all: ${{ steps.flags.outputs.run_all }}
+      vercel: ${{ steps.filter.outputs.vercel }}
+      railway: ${{ steps.filter.outputs.railway }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute matrix mode
+        id: flags
+        run: |
+          should_run_all=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.run_all }}" = "true" ]; then
+            should_run_all=true
+          fi
+          echo "run_all=$should_run_all" >> "$GITHUB_OUTPUT"
+
+      - name: Detect path changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          # shared captures root/tooling files that can change example deploy behavior.
+          filters: |
+            vercel:
+              - 'examples/vercel/**'
+            railway:
+              - 'examples/railway/**'
+            shared:
+              - 'packages/**'
+              - 'bun.lock'
+              - 'turbo.json'
+              - 'tsconfig*.json'
+              - '.github/workflows/deploy-smoke.yml'
+
+  preflight_vercel:
+    name: Preflight vercel example
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: detect_changes
+    if: needs.detect_changes.outputs.run_all == 'true' || needs.detect_changes.outputs.vercel == 'true' || needs.detect_changes.outputs.shared == 'true'
+    defaults:
+      run:
+        working-directory: examples/vercel
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.4
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Typecheck
+        run: bun run check-types
+
+  preflight_railway:
+    name: Preflight railway example
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: detect_changes
+    if: needs.detect_changes.outputs.run_all == 'true' || needs.detect_changes.outputs.railway == 'true' || needs.detect_changes.outputs.shared == 'true'
+    defaults:
+      run:
+        working-directory: examples/railway
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.4
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Typecheck
+        run: bun run check-types
+
+      - name: Build
+        run: bun run build
+
+  deploy_vercel:
+    name: Deploy preview on Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: deploy-smoke-vercel-preview
+      cancel-in-progress: true
+    needs:
+      - detect_changes
+      - preflight_vercel
+    if: |
+      (needs.detect_changes.outputs.run_all == 'true' || needs.detect_changes.outputs.vercel == 'true' || needs.detect_changes.outputs.shared == 'true') &&
+      (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+    environment: ci-vercel
+    defaults:
+      run:
+        working-directory: examples/vercel
+    env:
+      VERCEL_CLI_VERSION: 48.0.0
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_EXAMPLES_VERCEL }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.4
+
+      - name: Validate secrets
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required secret: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Pull project settings
+        run: bunx vercel@${VERCEL_CLI_VERSION} pull --yes --environment=preview --token "$VERCEL_TOKEN"
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          # Vercel prints the deployment URL to stdout; keep stderr for diagnostics.
+          stderr_file="$(mktemp)"
+          if ! deployment_url="$(bunx vercel@${VERCEL_CLI_VERSION} deploy --yes --target=preview --token "$VERCEL_TOKEN" 2>"$stderr_file")"; then
+            cat "$stderr_file" >&2
+            exit 1
+          fi
+          if [ -z "$deployment_url" ]; then
+            echo "Vercel deploy returned empty deployment URL" >&2
+            cat "$stderr_file" >&2 || true
+            exit 1
+          fi
+          deployment_url="$(printf '%s' "$deployment_url" | tr -d '\r\n')"
+          printf 'Deployment URL: %s\n' "$deployment_url"
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Vercel build completion
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: bunx vercel@${VERCEL_CLI_VERSION} inspect "$DEPLOYMENT_URL" --wait --timeout=15m --logs --token "$VERCEL_TOKEN"
+
+      - name: Wait for deployment readiness
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: |
+          attempts=36
+          sleep_seconds=10
+          health_url="${DEPLOYMENT_URL%/}/api/health"
+          for attempt in $(seq 1 "$attempts"); do
+            headers_file="$(mktemp)"
+            body_file="$(mktemp)"
+
+            curl_args=(
+              --silent
+              --show-error
+              --location
+              --connect-timeout 5
+              --max-time 15
+              --retry 2
+              --retry-delay 3
+              --retry-all-errors
+              --dump-header "$headers_file"
+              --output "$body_file"
+              "$health_url"
+            )
+            if [ -n "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" ]; then
+              curl_args+=(--header "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}")
+            fi
+
+            curl_exit=0
+            curl "${curl_args[@]}" || curl_exit=$?
+
+            status="$(awk 'toupper($1) ~ /^HTTP/ {code=$2} END {print code+0}' "$headers_file")"
+            location="$(awk 'BEGIN {IGNORECASE=1} /^Location:/ {sub(/\r$/,"",$2); print $2; exit}' "$headers_file")"
+            content_type="$(awk 'BEGIN {IGNORECASE=1} /^Content-Type:/ {$1=""; sub(/^\s+/,""); sub(/\r$/,""); print; exit}' "$headers_file")"
+            health_body="$(tr -d '\r' < "$body_file")"
+            health_trimmed="$(printf '%s' "$health_body" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            body_preview="$(printf '%s' "$health_trimmed" | cut -c1-180)"
+
+            if [ "$curl_exit" -eq 0 ] && [ "$status" = "200" ] && [ "$health_trimmed" = "OK" ]; then
+              echo "Deployment is ready after $attempt attempt(s)."
+              rm -f "$headers_file" "$body_file"
+              exit 0
+            fi
+
+            if [ "$status" = "401" ] || [ "$status" = "403" ]; then
+              echo "Health endpoint returned $status. This usually means Vercel Deployment Protection blocked CI." >&2
+              echo "Set VERCEL_AUTOMATION_BYPASS_SECRET and ensure the health endpoint allows automation." >&2
+              rm -f "$headers_file" "$body_file"
+              exit 1
+            fi
+
+            if [ "$status" = "302" ] || [ "$status" = "307" ] || [ "$status" = "308" ]; then
+              echo "Health endpoint redirected with $status to ${location:-<none>} (middleware/auth redirect likely)." >&2
+              rm -f "$headers_file" "$body_file"
+              exit 1
+            fi
+
+            echo "Waiting for readiness ($attempt/$attempts): curl_exit=$curl_exit status=${status:-0} content_type='${content_type:-unknown}' body='${body_preview}'"
+            rm -f "$headers_file" "$body_file"
+            sleep "$sleep_seconds"
+          done
+          echo "Deployment did not become ready in expected time" >&2
+          exit 1
+
+      - name: Smoke check deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: |
+          extra_headers=()
+          if [ -n "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" ]; then
+            extra_headers=(--header "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}")
+          fi
+          health_body="$(curl --fail --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors "${extra_headers[@]}" "$DEPLOYMENT_URL/api/health")"
+          health_body="$(printf '%s' "$health_body" | tr -d '\r')"
+          health_body="$(printf '%s' "$health_body" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          if [ "$health_body" != "OK" ]; then
+            echo "Unexpected /api/health response: $health_body" >&2
+            exit 1
+          fi
+          auth_body="$(curl --fail --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors "${extra_headers[@]}" "$DEPLOYMENT_URL/api/auth-status")"
+          AUTH_BODY="$auth_body" node -e 'const raw = process.env.AUTH_BODY ?? ""; let data; try { data = JSON.parse(raw); } catch { process.stderr.write("auth-status response is not valid JSON\\n"); process.exit(1); } if (typeof data?.authenticated !== "boolean") { process.stderr.write("auth-status.authenticated is not a boolean\\n"); process.exit(1); } if (typeof data?.enabled !== "boolean") { process.stderr.write("auth-status.enabled is not a boolean\\n"); process.exit(1); }'
+
+      - name: Dump Vercel logs on failure
+        if: failure() && steps.deploy.outputs.deployment_url != ''
+        run: bunx vercel@${VERCEL_CLI_VERSION} logs "${{ steps.deploy.outputs.deployment_url }}" --token "$VERCEL_TOKEN" || true
+
+  deploy_railway:
+    name: Deploy preview on Railway
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: deploy-smoke-railway-preview
+      cancel-in-progress: true
+    needs:
+      - detect_changes
+      - preflight_railway
+    if: |
+      (needs.detect_changes.outputs.run_all == 'true' || needs.detect_changes.outputs.railway == 'true' || needs.detect_changes.outputs.shared == 'true') &&
+      (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
+    outputs:
+      deployment_id: ${{ steps.deploy.outputs.deployment_id }}
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+    environment: ci-railway
+    defaults:
+      run:
+        working-directory: examples/railway
+    env:
+      RAILWAY_CLI_VERSION: 4.42.1
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID_EXAMPLES_RAILWAY }}
+      RAILWAY_SMOKE_URL: ${{ secrets.RAILWAY_SMOKE_URL_EXAMPLES_RAILWAY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Validate secrets
+        run: |
+          for name in RAILWAY_TOKEN RAILWAY_SERVICE_ID RAILWAY_SMOKE_URL; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required secret: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli@${RAILWAY_CLI_VERSION}
+
+      - name: Deploy
+        id: deploy
+        run: |
+          previous_deployments_output="$(railway deployment list --json --service "$RAILWAY_SERVICE_ID" --limit 1 2>/dev/null || true)"
+          previous_deployment_id="$(DEPLOYMENTS_JSON="$previous_deployments_output" node -e 'const text = process.env.DEPLOYMENTS_JSON ?? ""; let deployments; try { deployments = JSON.parse(text); } catch { process.stdout.write(""); process.exit(0); } if (!Array.isArray(deployments) || deployments.length === 0) { process.stdout.write(""); process.exit(0); } const id = deployments[0]?.id; process.stdout.write(typeof id === "string" ? id : "");')"
+
+          railway up --ci --service "$RAILWAY_SERVICE_ID"
+
+          deployment_id=""
+          attempts=60
+          sleep_seconds=5
+          for attempt in $(seq 1 "$attempts"); do
+            deployments_output="$(railway deployment list --json --service "$RAILWAY_SERVICE_ID" --limit 1 2>/dev/null || true)"
+            parsed="$(DEPLOYMENTS_JSON="$deployments_output" node -e 'const text = process.env.DEPLOYMENTS_JSON ?? ""; let deployments; try { deployments = JSON.parse(text); } catch { process.stdout.write("\t"); process.exit(0); } if (!Array.isArray(deployments) || deployments.length === 0) { process.stdout.write("\t"); process.exit(0); } const latest = deployments[0] ?? {}; const id = typeof latest.id === "string" ? latest.id : ""; const status = typeof latest.status === "string" ? latest.status : ""; process.stdout.write([id, status].join("\t"));')"
+            IFS=$'\t' read -r latest_deployment_id latest_deployment_status <<< "$parsed"
+            latest_status_upper="$(printf '%s' "$latest_deployment_status" | tr '[:lower:]' '[:upper:]')"
+
+            if [ -z "$latest_deployment_id" ]; then
+              echo "Waiting for Railway deployment metadata ($attempt/$attempts)..."
+              sleep "$sleep_seconds"
+              continue
+            fi
+
+            if [ -n "$previous_deployment_id" ] && [ "$latest_deployment_id" = "$previous_deployment_id" ]; then
+              echo "Waiting for a new Railway deployment ID ($attempt/$attempts)..."
+              sleep "$sleep_seconds"
+              continue
+            fi
+
+            if [ "$latest_status_upper" = "SUCCESS" ]; then
+              deployment_id="$latest_deployment_id"
+              echo "Detected successful Railway deployment $deployment_id after $attempt attempt(s)."
+              break
+            fi
+
+            if [ "$latest_status_upper" = "FAILED" ] || [ "$latest_status_upper" = "CRASHED" ] || [ "$latest_status_upper" = "REMOVED" ] || [ "$latest_status_upper" = "CANCELED" ] || [ "$latest_status_upper" = "CANCELLED" ]; then
+              echo "Railway deployment $latest_deployment_id finished with status $latest_deployment_status" >&2
+              exit 1
+            fi
+
+            echo "Waiting for Railway deployment success ($attempt/$attempts): id=$latest_deployment_id status=${latest_deployment_status:-unknown}"
+            sleep "$sleep_seconds"
+          done
+
+          if [ -z "$deployment_id" ]; then
+            echo "Could not detect a successful new Railway deployment" >&2
+            exit 1
+          fi
+
+          deployment_url="${RAILWAY_SMOKE_URL%/}"
+          if [ -z "$deployment_url" ]; then
+            echo "Missing Railway smoke URL; set RAILWAY_SMOKE_URL_EXAMPLES_RAILWAY" >&2
+            exit 1
+          fi
+
+          if [ "${deployment_url#http://}" = "$deployment_url" ] && [ "${deployment_url#https://}" = "$deployment_url" ]; then
+            echo "RAILWAY_SMOKE_URL_EXAMPLES_RAILWAY must start with http:// or https://" >&2
+            exit 1
+          fi
+
+          echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for deployment readiness
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: |
+          attempts=36
+          sleep_seconds=10
+          for attempt in $(seq 1 "$attempts"); do
+            health_body="$(curl --silent --show-error --retry 2 --retry-delay 3 --retry-all-errors "$DEPLOYMENT_URL/api/health" || true)"
+            if [ "$health_body" = "OK" ]; then
+              echo "Deployment is ready after $attempt attempt(s)."
+              exit 0
+            fi
+            echo "Waiting for readiness ($attempt/$attempts)..."
+            sleep "$sleep_seconds"
+          done
+          echo "Deployment did not become ready in expected time" >&2
+          exit 1
+
+      - name: Smoke check deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: |
+          health_body="$(curl --fail --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors "$DEPLOYMENT_URL/api/health")"
+          if [ "$health_body" != "OK" ]; then
+            echo "Unexpected /api/health response: $health_body" >&2
+            exit 1
+          fi
+          auth_body="$(curl --fail --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors "$DEPLOYMENT_URL/api/auth-status")"
+          AUTH_BODY="$auth_body" node -e 'const raw = process.env.AUTH_BODY ?? ""; let data; try { data = JSON.parse(raw); } catch { process.stderr.write("auth-status response is not valid JSON\\n"); process.exit(1); } if (typeof data?.authenticated !== "boolean") { process.stderr.write("auth-status.authenticated is not a boolean\\n"); process.exit(1); } if (typeof data?.enabled !== "boolean") { process.stderr.write("auth-status.enabled is not a boolean\\n"); process.exit(1); }'
+
+      - name: Dump Railway logs on failure
+        if: failure()
+        run: |
+          railway logs --build || true
+          railway logs || true
+
+  smoke_summary:
+    name: Smoke summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - detect_changes
+      - deploy_vercel
+      - deploy_railway
+    steps:
+      - name: Write summary
+        run: |
+          {
+            echo "## Deploy smoke summary"
+            echo ""
+            echo "- run_all: ${{ needs.detect_changes.outputs.run_all }}"
+            echo "- vercel changed: ${{ needs.detect_changes.outputs.vercel }}"
+            echo "- railway changed: ${{ needs.detect_changes.outputs.railway }}"
+            echo "- shared changed: ${{ needs.detect_changes.outputs.shared }}"
+            echo ""
+            echo "### Deploy jobs"
+            echo "- vercel result: ${{ needs.deploy_vercel.result }}"
+            echo "- vercel url: ${{ needs.deploy_vercel.outputs.deployment_url || 'n/a' }}"
+            echo "- railway result: ${{ needs.deploy_railway.result }}"
+            echo "- railway deployment id: ${{ needs.deploy_railway.outputs.deployment_id || 'n/a' }}"
+            echo "- railway url: ${{ needs.deploy_railway.outputs.deployment_url || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

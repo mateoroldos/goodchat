@@ -28,7 +28,7 @@ This bot is your source of truth. Edit it, commit it, deploy it, and blame it wi
 
 Quick CLI path: `bun run railway:link`, then `bun run railway:up`.
 
-Railway runs `bun run db:migrate` before `bun run start`.
+For SQLite, Railway runs `bun run start:railway` so migrations execute after the `/data` volume is mounted.
 SQLite selected: mount a Railway volume at `/data` and set `DATABASE_URL=/data/goodchat.db`.
 
 If deploy fails, check migration output first. The app usually just reports the bad news.
