@@ -37,7 +37,7 @@
   "devDependencies": {
     "@goodchat/contracts": "workspace:*",
     "@goodchat/typescript-config": "workspace:*",
-    "@types/bun": "catalog:",
+    "@types/node": "^25.6.0",
     "tsdown": "^0.21.4",
     "typescript": "catalog:",
     "vitest": "^4.1.0"
