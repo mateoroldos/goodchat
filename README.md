@@ -1,621 +1,129 @@
-# goodchat
+<p align="center">
+  <img src="packages/styles/assets/logo-light.svg#gh-light-mode-only" alt="Goodchat logo" width="420">
+  <img src="packages/styles/assets/logo-dark.svg#gh-dark-mode-only" alt="Goodchat logo" width="420">
+</p>
+<p align="center">An <strong><i>almost good</i></strong> framework for building multiplatform AI chatbots.</p>
+<p align="center">Works with</p>
+<p align="center">
+  <a href="https://slack.com"><img alt="Slack" src="https://api.iconify.design/logos:slack-icon.svg" width="20"></a>&nbsp;&nbsp;
+  <a href="https://discord.com"><img alt="Discord" src="https://api.iconify.design/logos:discord-icon.svg" width="20"></a>&nbsp;&nbsp;
+  <a href="https://www.microsoft.com/microsoft-teams"><img alt="Microsoft Teams" src="https://api.iconify.design/logos:microsoft-teams.svg" width="20"></a>&nbsp;&nbsp;
+  <a href="https://github.com"><img alt="GitHub" src="https://api.iconify.design/logos:github-icon.svg" width="20"></a>&nbsp;&nbsp;
+  <a href="https://linear.app"><img alt="Linear" src="https://api.iconify.design/simple-icons:linear.svg?color=%235E6AD2" width="20"></a>&nbsp;&nbsp;
+  <a href="https://en.wikipedia.org/wiki/Web_application"><img alt="Web" src="https://api.iconify.design/simple-icons:googlechrome.svg?color=%230EA5E9" width="20"></a>
+</p>
+<p align="center">Self-hostable. Deploy on Docker, Railway, or Vercel.</p>
+<p align="center">
+  <a href="https://www.docker.com"><img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white"></a>
+  <a href="https://railway.app"><img alt="Railway" src="https://img.shields.io/badge/Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white"></a>
+  <a href="https://vercel.com"><img alt="Vercel" src="https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white"></a>
+</p>
 
-`goodchat` is a minimalistic framework for building and deploying AI-powered chatbots across Slack, Discord, Microsoft Teams, and Google Chat — from a single bot module.
+## About
 
-## How to use
-
-Create your bot in `src/goodchat.ts` with `createGoodchat`:
+- Build AI chatbots in minutes and ship them to web and chat platforms from one codebase.
+- Deploy anywhere useful: Docker, Railway, or Vercel.
+- Use whichever LLM you trust this week.
+- Configure everything from a single file.
 
 ```ts
-import { createGoodchat } from "@goodchat/core";
+import { createGoodchat, openai } from "@goodchat/core";
+
+export const goodchat = createGoodchat({
+  name: "Support Bot",
+  prompt: "You are a helpful support assistant.",
+  platforms: ["web", "slack", "discord"],
+  model: openai("gpt-4.1-mini"),
+  plugins: [linear({ team: "ENG" })],
+});
+```
+
+## When to Use Goodchat
+
+Use it when your team or community needs one shared, controlled, multi-platform bot with shared context, tools, plugins, and boring operational control - not a personal assistant for one person.
+
+Practical examples:
+- Internal support bot answering policy, product, and onboarding questions in Slack + Teams.
+- Community Discord bot that handles FAQs, docs lookup, and moderation workflows.
+- GitHub/Linear project bot that triages issues, posts updates, and assists contributors.
+
+Don’t use it for:
+
+- Coding copilots: [OpenCode](https://opencode.ai), [Claude](https://claude.ai), [Phi](https://www.phind.com).
+- Powerful personal assistants: [OpenClaw](https://openclaw.ai) and Claude personal-agent setups.
+- Heavy custom orchestration/agent architecture: [LangChain](https://www.langchain.com) or [Vercel AI SDK](https://ai-sdk.dev).
+- Low-level chat plumbing and full event-level control: [Chat SDK](https://chat-sdk.dev).
+
+If you genuinely want to build a fully custom multi-platform bot from scratch, that is a valid choice (and honestly pretty fun if you have the time). Chat SDK (https://chat-sdk.dev) is excellent.
+
+Goodchat builds on top of it with quality-of-life abstractions so teams can ship faster, with less glue code and fewer integration headaches.
+
+## Start
+
+```bash
+npm create @goodchat
+```
+
+### What You Get
+
+- One `src/goodchat.ts` to configure your chatbot.
+- A bun server with platform webhooks + web chat API wiring handled for you.
+- Dashboard for bot status, platform setup, and thread visibility.
+- Storage adapter for sqlite/postgres/mysql.
+
+### Configuration
+
+Your bot lives in `src/goodchat.ts`. One file. No maze.
+
+```ts
+import { createGoodchat, openai } from "@goodchat/core";
 import { linear } from "@goodchat/plugins/linear";
+import { sqlite } from "@goodchat/storage/sqlite";
+import { schema } from "./db/schema";
+import { env } from "./env";
 
-const { app } = await createGoodchat({
-  name: "Linear Assistant",
-  prompt:
-    "You are a Linear assistant. Respond briefly with what I have on Linear.",
-  platforms: ["web", "discord"],
-  plugins: [linear],
-});
-
-export { app };
-```
-
-Bot IDs are derived from the name (for example `Linear Assistant` becomes `Linear Assistant`).
-
-Goodchat runs one bot per server. Changes require a rebuild and redeploy.
-
-Then run:
-
-```bash
-goodchat dev
-```
-
-Your bot is live. Connect it to Slack or Discord in the dashboard at `http://localhost:3000` with one click — no webhook URLs, no API key copying.
-
-### Chat state backend
-
-Goodchat now chooses Chat SDK state from your configured database dialect:
-
-- `postgres` -> `@chat-adapter/state-pg`
-- `mysql` -> `@goodchat/state-mysql`
-- `sqlite` -> `@goodchat/state-sqlite` (single-node oriented)
-
-This is the default path (`state.adapter = "database"`) and removes Redis as a required dependency.
-
-You can still opt into Redis explicitly:
-
-```ts
-createGoodchat({
-  // ...
-  state: {
-    adapter: "redis",
-    redisUrl: process.env.REDIS_URL,
-  },
-});
-```
-
-If the selected state adapter cannot initialize (for example, missing DB URL), Goodchat falls back to in-memory state and logs a warning.
-
----
-
-## Features
-
-### One config. Every platform
-
-Write your bot logic once. `goodchat` handles the adapter layer, webhook routing, and message formatting for each platform automatically.
-
-```ts
-await createGoodchat({
-  name: "support-bot",
-  prompt: "You are a support assistant. Answer questions about our product.",
-  platforms: ["slack", "discord", "teams", "google-chat"],
-});
-```
-
-Deploy once. Works everywhere.
-
-### Context — give your bot knowledge
-
-Attach files, URLs, or folders as context. Your bot will use them to answer questions.
-
-```ts
-await createGoodchat({
-  name: "docs-bot",
-  prompt:
-    "You are a documentation assistant. Answer only based on the provided docs.",
-  platforms: ["slack"],
-  context: [
-    { type: "url", src: "https://docs.acme.com" },
-    { type: "file", src: "./docs/faq.pdf" },
-    { type: "folder", src: "./knowledge-base" },
-  ],
-});
-```
-
-Context is chunked, embedded, and retrieved automatically. It re-indexes whenever your sources change.
-
-### Streaming responses
-
-Responses stream in real time across every connected platform. Users see the bot typing progressively — no waiting for a complete reply.
-
-```ts
-await createGoodchat({
-  name: "my-bot",
-  prompt: "...",
-  platforms: ["slack"],
-  streaming: true, // default
-});
-```
-
-### Tools — let your bot take actions
-
-Give your bot the ability to look things up, check statuses, or call your APIs in real time.
-
-```ts
-import { tool } from "goodchat";
-import { z } from "zod";
-
-await createGoodchat({
-  name: "support-bot",
-  prompt: "You are a support assistant. You can look up order statuses.",
-  platforms: ["slack"],
-  tools: {
-    getOrderStatus: tool({
-      description: "Look up the status of a customer order by ID",
-      parameters: z.object({ orderId: z.string() }),
-      execute: async ({ orderId }) => {
-        const order = await db.orders.find(orderId);
-        return order.status;
+export const goodchat = createGoodchat({
+  name: "Juan",
+  prompt: "You are a startup CEO. You pivot weekly, monetize everything, and call panic 'vision'.",
+  platforms: ["web", "slack", "discord"],
+  model: openai("gpt-4.1-mini"),
+  plugins: [linear({ team: "ENG" })],
+  mcp: [
+    {
+      name: "github",
+      transport: {
+        type: "http",
+        url: "https://api.githubcopilot.com/mcp/",
+        headers: {
+          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        },
       },
-    }),
-  },
-});
-```
-
-### Escalation — know when to hand off
-
-Define when the bot should stop and bring a human in.
-
-```ts
-await createGoodchat({
-  name: "support-bot",
-  prompt: "...",
-  platforms: ["slack"],
-  escalation: {
-    trigger:
-      "when the user is frustrated or the question is outside your knowledge",
-    action: { type: "tag", user: "@support-team" },
-  },
-});
-```
-
-The bot will gracefully hand off the conversation instead of guessing.
-
-### Events — react to what happens
-
-Go beyond responding to messages. React to reactions, new members joining, threads being created, and more.
-
-```ts
-await createGoodchat({
-  name: "community-bot",
-  prompt: "...",
-  platforms: ["discord"],
-  events: {
-    onMemberJoin: async ({ member, thread }) => {
-      await thread.post(
-        `Welcome ${member.name}! 👋 Ask me anything to get started.`,
-      );
     },
-    onReaction: async ({ emoji, message, thread }) => {
-      if (emoji === "❓") {
-        await thread.post("Looks like someone has a question — let me help.");
-      }
+  ],
+  hooks: {
+    beforeMessage: async (context) => {
+      context.log.set({ source: "readme-example" });
     },
   },
-});
-```
-
-### Plugins — extend with one line
-
-Plugins are pre-built, shareable bundles of tools, context loaders, event handlers, and prompt fragments. Install one and your bot instantly gains new capabilities.
-
-```bash
-npm install @goodchat/plugin-github
-npm install @goodchat/plugin-linear
-npm install @goodchat/plugin-stripe
-```
-
-```ts
-import { github } from "@goodchat/plugins/github";
-import { linear } from "@goodchat/plugins/linear";
-
-await createGoodchat({
-  name: "dev-bot",
-  prompt: "You are an assistant for our engineering team.",
-  platforms: ["slack"],
-  plugins: [
-    github({ repo: "acme/backend", token: process.env.GITHUB_TOKEN }),
-    linear({ team: "ENG", token: process.env.LINEAR_TOKEN }),
-  ],
-});
-```
-
-Now your bot can look up open PRs, check issue statuses, create Linear tickets — without writing a single tool. The plugins register their tools, context, and event handlers automatically.
-
-Plugins can be configured, composed, and overridden:
-
-```ts
-plugins: [
-  github({
-    repo: "acme/backend",
-    token: process.env.GITHUB_TOKEN,
-    // only expose specific tools
-    tools: ["getPR", "listOpenIssues"],
-  }),
-];
-```
-
----
-
-## Extending goodchat
-
-### Writing your own plugin
-
-A plugin is just a function that returns a `BotPlugin` object. It can contribute tools, context sources, event handlers, and prompt fragments — all of which get merged into the bot at runtime.
-
-```ts
-import { definePlugin, tool } from "goodchat";
-import { z } from "zod";
-
-export const myPlugin = definePlugin((options) => ({
-  // Injected into the system prompt automatically
-  promptFragment: "You can look up inventory levels when asked.",
-
-  // Tools registered on the bot
-  tools: {
-    getInventory: tool({
-      description: "Get current inventory for a product SKU",
-      parameters: z.object({ sku: z.string() }),
-      execute: async ({ sku }) => {
-        return await myApi.inventory.get(sku);
-      },
-    }),
-  },
-
-  // Context sources added to the RAG pipeline
-  context: [{ type: "url", src: options.docsUrl }],
-
-  // Event handlers merged with the bot's own
-  events: {
-    onMemberJoin: async ({ member, thread }) => {
-      await thread.post(
-        `Hey ${member.name}, ask me about stock levels anytime.`,
-      );
-    },
-  },
-}));
-```
-
-Use it like any other plugin:
-
-```ts
-import { myPlugin } from "./plugins/my-plugin";
-
-await createGoodchat({
-  name: "ops-bot",
-  prompt: "...",
-  platforms: ["slack"],
-  plugins: [myPlugin({ docsUrl: "https://internal.acme.com/inventory" })],
-});
-```
-
-### Writing your own adapter
-
-Need a platform not yet supported? Adapters wrap the Vercel Chat SDK and teach `goodchat` how to speak a new platform's language.
-
-```ts
-import { defineAdapter } from "goodchat";
-
-export const myPlatform = defineAdapter({
-  name: "my-platform",
-
-  // Parse the incoming webhook into goodchat's internal message format
-  parseWebhook(req) {
-    return {
-      threadId: req.body.conversation_id,
-      userId: req.body.user_id,
-      text: req.body.text,
-    };
-  },
-
-  // Send a response back to the platform
-  async sendMessage({ threadId, text, stream }) {
-    await myPlatformApi.messages.send({ conversation_id: threadId, text });
+  database: sqlite({ path: env.DATABASE_URL, schema }),
+  auth: {
+    enabled: env.ENVIRONMENT !== "development",
+    password: env.GOODCHAT_DASHBOARD_PASSWORD,
   },
 });
 ```
-
-Register it in your config:
-
-```ts
-import { myPlatform } from "./adapters/my-platform";
-
-await createGoodchat({
-  name: "my-bot",
-  prompt: "...",
-  adapters: [myPlatform()],
-});
-```
-
-### Middleware — intercept every message
-
-Middleware runs before and after every message cycle. Use it for logging, rate limiting, content filtering, or injecting context dynamically.
-
-```ts
-import { defineMiddleware } from "goodchat";
-
-const rateLimiter = defineMiddleware({
-  name: "rate-limiter",
-  before: async ({ message, user, next }) => {
-    const count = await redis.incr(`msg:${user.id}`);
-    if (count > 10) return message.reply("Slow down — try again in a minute.");
-    return next();
-  },
-});
-
-const logger = defineMiddleware({
-  name: "logger",
-  before: async ({ message, next }) => {
-    console.log(`[${message.platform}] ${message.userId}: ${message.text}`);
-    return next();
-  },
-  after: async ({ message, response }) => {
-    console.log(`[response] ${response.text.slice(0, 80)}...`);
-  },
-});
-
-await createGoodchat({
-  name: "my-bot",
-  prompt: "...",
-  platforms: ["slack"],
-  middleware: [rateLimiter, logger],
-});
-```
-
-### Custom context loaders
-
-Need to pull context from a source not built in? Define your own loader.
-
-```ts
-import { defineContextLoader } from "goodchat";
-
-const notionLoader = defineContextLoader({
-  type: "notion",
-  load: async (src) => {
-    const pages = await notion.databases.query({ database_id: src });
-    return pages.results.map((p) => ({
-      content: p.properties.content.rich_text[0].plain_text,
-      metadata: { id: p.id, title: p.properties.title },
-    }));
-  },
-});
-```
-
-Register it globally so any bot in your project can use it:
-
-```ts
-// apps/server/src/app.ts
-import { defineConfig } from "goodchat";
-
-export const config = defineConfig({
-  loaders: [notionLoader],
-});
-
-await createGoodchat({
-  name: "my-bot",
-  prompt: "...",
-  platforms: ["slack"],
-  context: [
-    { type: "notion", src: "your-database-id" }, // uses your custom loader
-  ],
-});
-```
-
----
-
-### Variables — dynamic context per user
-
-Inject runtime data into your prompt using `{{ }}` syntax.
-
-```ts
-await createGoodchat({
-  name: "onboarding-bot",
-  prompt: `
-    You are onboarding {{ user.name }} who joined {{ user.company }} on {{ user.startDate }}.
-    Their role is {{ user.role }}. Guide them through their first week.
-  `,
-  platforms: ["slack"],
-});
-```
-
-Pass variables via the API when triggering the bot programmatically:
-
-```bash
-curl -X POST https://your-instance.com/api/bot/message \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "text": "What should I do first?",
-    "variables": {
-      "user": { "name": "Sara", "company": "Acme", "role": "Engineer", "startDate": "today" }
-    }
-  }'
-```
-
----
-
-## Real-world examples
-
-### Customer support bot for a SaaS product
-
-```ts
-await createGoodchat({
-  name: "support-bot",
-  prompt: `
-    You are a support assistant for Acme. Help users with product questions.
-    Be concise. If you don't know something, say so and tell them to email help@acme.com.
-  `,
-  platforms: ["slack", "discord"],
-  context: [
-    { type: "url", src: "https://docs.acme.com" },
-    { type: "file", src: "./pricing-faq.pdf" },
-  ],
-  escalation: {
-    trigger: "billing issues, account problems, or angry users",
-    action: { type: "tag", user: "@support" },
-  },
-});
-```
-
-### Internal knowledge bot for a team
-
-```ts
-await createGoodchat({
-  name: "handbook-bot",
-  prompt: `
-    You are the internal assistant for our team.
-    Answer questions about policies, processes, and who owns what.
-    Only use the provided context. Never make things up.
-  `,
-  platforms: ["slack"],
-  context: [
-    { type: "folder", src: "./notion-export" },
-    { type: "url", src: "https://www.notion.so/acme/handbook" },
-  ],
-});
-```
-
-### Community onboarding bot for Discord
-
-```ts
-await createGoodchat({
-  name: "community-bot",
-  prompt: "You help new members get oriented in our developer community.",
-  platforms: ["discord"],
-  context: [
-    { type: "file", src: "./community-rules.md" },
-    { type: "url", src: "https://acme.com/community/faq" },
-  ],
-  events: {
-    onMemberJoin: async ({ member, thread }) => {
-      await thread.post(
-        `Hey ${member.name}! Welcome 👋 — I'm here to help you get started.`,
-      );
-    },
-  },
-});
-```
-
----
-
-## Dashboard
-
-Not a developer? Run `goodchat dev` and open `http://localhost:3000`.
-
-The dashboard lets you configure your bot, attach context, connect platforms via OAuth, and read conversation threads. Changes require a rebuild and redeploy.
-
----
-
-## Deployment
-
-Every bot is ready to deploy the moment you define it.
-
-```bash
-goodchat build
-goodchat start
-```
-
-Or deploy to your own infrastructure with Docker:
-
-```bash
-docker run -p 3000:3000 -v $(pwd):/app goodchat/goodchat
-```
-
-````
-
-For a managed cloud deployment with zero setup, use [goodchat.dev](https://goodchat.dev).
-
----
-
-## CLI
-
-```bash
-npx create-goodchat@latest  # Scaffold a new bot project
-goodchat db schema sync     # Sync generated schema artifacts
-goodchat dev             # Start local dev server with hot reload
-goodchat build           # Build for production
-goodchat start           # Start production server
-goodchat threads <name>  # Stream live conversation threads
-goodchat deploy          # Deploy to goodchat.dev
-````
-
----
-
-## Self-hosting
-
-`goodchat` is fully self-hostable. You own your data, your prompts, and your infrastructure. No telemetry, no vendor lock-in.
-
-```bash
-git clone https://github.com/your-org/goodchat
-cp .env.example .env      # Add your LLM API key and platform credentials
-docker compose up
-```
-
-The cloud version at [goodchat.dev](https://goodchat.dev) is the same codebase — just hosted for you.
-
----
-
-## Testing database adapters locally
-
-Integration tests manage the Docker lifecycle and default to local URLs if you do not provide env vars:
-
-- `POSTGRES_TEST_URL=postgres://goodchat:goodchat@localhost:5432/postgres`
-- `MYSQL_TEST_URL=mysql://root:goodchat@localhost:3306/mysql`
-
-Run the integration suite:
-
-```bash
-bun run test:integration
-```
-
-Override the database URLs if needed:
-
-```bash
-POSTGRES_TEST_URL=postgres://goodchat:goodchat@localhost:5432/postgres \
-MYSQL_TEST_URL=mysql://root:goodchat@localhost:3306/mysql \
-bun run test:integration
-```
-
-Manual control is still available:
-
-```bash
-bun run test:db:up
-bun run test:db:down
-```
-
----
-
-## Philosophy
-
-Most bot builders make you choose between simplicity and power. `goodchat` doesn't.
-
-The bot package is the product. Everything — prompts, platforms, context, tools, events — lives in one place and is readable by anyone on your team, technical or not. The complexity of multi-platform deployment, webhook routing, and streaming lives in the framework layer so you never have to see it.
-
----
-
-## Deployment providers
-
-When you scaffold with `create-goodchat`, you choose one deployment target first and the CLI generates only that provider file.
-
-| Provider | Runtime             | Generated file                                                    | SQLite support               | Notes                                  |
-| -------- | ------------------- | ----------------------------------------------------------------- | ---------------------------- | -------------------------------------- |
-| Docker   | Process/container   | `Dockerfile`, `.dockerignore` (+ `docker-compose.yml` for SQLite) | Yes                          | Run migrations as a one-off step       |
-| Railway  | Process/container   | `railway.json`                                                    | Yes (with persistent volume) | Uses `preDeployCommand` for migrations |
-| Vercel   | Serverless function | `vercel.json`                                                     | No                           | Requires external Postgres/MySQL       |
-
-### Docker
-
-Generated projects include a production `Dockerfile` and `.dockerignore`.
-
-If you select SQLite during scaffolding, the CLI also generates `docker-compose.yml` with a named volume mounted at `/data` and sets `DATABASE_URL=/data/goodchat.db` for container runtime persistence.
-
-For local host development (`bun run dev`, `bun run db:migrate`), keep `.env` as a host path (for example `./goodchat.db`). Use `/data/goodchat.db` only inside container runtime.
-
-Recommended Docker flow is to run migrations as a separate one-off task before starting the app service:
-
-```bash
-docker compose run --rm migrate
-docker compose up -d app
-```
-
-The app container only runs `bun run start`; it does not run migrations on startup.
-
-### Railway
-
-Generated projects include `railway.json` with:
-
-- `preDeployCommand: bun run db:migrate`
-- `startCommand: bun run start`
-- `requiredMountPath: /data` when SQLite is selected
-
-On Railway, set your required environment variables and make sure `DATABASE_URL` points to a managed DB (or configure a persistent volume before using SQLite).
-
-For SQLite on Railway, set `DATABASE_URL=/data/goodchat.db` in Railway environment variables so it matches the mounted volume path.
-
-### Vercel (Bun)
-
-Generated projects include `vercel.json` configured for Bun serverless functions with `src/index.ts` as the entrypoint.
-
-- Vercel deployments are stateless: use external Postgres/MySQL.
-- Set environment variables in the Vercel dashboard (`OPENAI_API_KEY`, `DATABASE_URL`, adapter credentials).
-- If you deploy on another serverless platform, set `SERVERLESS=true` to disable watchers and static file serving.
+That's it.
+
+## Support Matrix
+
+What we support right now (in actual code, not vibes):
+
+| Category          | Supported                                                            | Notes                    |
+| ---               | ---                                                                  | ---                      |
+| Deployment        | Docker, Railway, Vercel                                              | Cloudflare coming soon   |
+| LLM providers     | OpenAI, Anthropic, Google, OpenRouter, AI Gateway, Vercel AI Gateway | Bring your own model/key |
+| Chat platforms    | Web, Slack, Discord, Microsoft Teams, Google Chat, Linear, GitHub    | Whatsapp comming soon    |
+| Database adapters | SQLite, Postgres, MySQL                                              |                          |
+| State adapters    | Database, Redis, Memory                                              |                          |
+| MCP transports    | HTTP, SSE, stdio                                                     |                          |
+| Built-in plugins  | Linear                                                               | Notion comming soon      |

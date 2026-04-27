@@ -73,9 +73,6 @@ packages/core/src/
     threads-controller.ts                    # guarded
     web-chat-controller.ts                 # public/guarded toggle
 
-apps/server/src/
-  app.ts                                     # consumer example only (no auth logic)
-
 apps/web/src/
   routes/login/+page.svelte                  # password-only form
   routes/+layout.ts                          # redirect/session bootstrap
