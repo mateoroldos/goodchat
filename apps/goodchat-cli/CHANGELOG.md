@@ -1,5 +1,14 @@
 # @goodchat/cli
 
+## 0.0.14
+
+### Patch Changes
+
+- 7141892: Fix tsc emitting build on type checking
+- Updated dependencies [7141892]
+  - @goodchat/templates@0.0.20
+  - @goodchat/contracts@0.0.20
+
 ## 0.0.13
 
 ### Patch Changes

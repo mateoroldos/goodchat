@@ -1,5 +1,17 @@
 # @goodchat/create
 
+## 0.0.23
+
+### Patch Changes
+
+- 7141892: Fix tsc emitting build on type checking
+- 5b7bae7: Add custom server command
+- abdb642: Remove unused WEBHOOK_FORWARD_URL env variable
+- 511a6ab: Use node module resolution for vercel output
+- 80da01f: Improve deployment target scaffolding
+- Updated dependencies [7141892]
+  - @goodchat/templates@0.0.20
+
 ## 0.0.22
 
 ### Patch Changes

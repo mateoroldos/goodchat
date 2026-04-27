@@ -1,5 +1,11 @@
 # @goodchat/templates
 
+## 0.0.20
+
+### Patch Changes
+
+- 7141892: Fix tsc emitting build on type checking
+
 ## 0.0.19
 
 ## 0.0.18

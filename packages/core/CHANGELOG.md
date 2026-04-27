@@ -1,5 +1,16 @@
 # @goodchat/core
 
+## 0.0.20
+
+### Patch Changes
+
+- 7141892: Fix tsc emitting build on type checking
+- abdb642: Remove unused WEBHOOK_FORWARD_URL env variable
+- Updated dependencies [7141892]
+  - @goodchat/state-sqlite@0.0.4
+  - @goodchat/state-mysql@0.0.4
+  - @goodchat/contracts@0.0.20
+
 ## 0.0.19
 
 ### Patch Changes
