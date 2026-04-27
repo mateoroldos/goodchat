@@ -4,8 +4,8 @@ import { env } from "./env";
 import { sqlite } from "@goodchat/storage/sqlite";
 
 export const goodchat = createGoodchat({
-  name: "Nico",
-  prompt: "You are a CTO. Mostly political, occasionally technical, always completely certain.",
+  name: "Juan",
+  prompt: "You are a blunt consultant. Your advice is expensive. Your conclusions are familiar.",
   platforms: ["web","discord"],
   model: openai("gpt-5.4-nano"),
   auth: {

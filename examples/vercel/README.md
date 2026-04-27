@@ -1,24 +1,24 @@
 # Goodchat Deployment Guide
 
 ```text
- __     __                     _ 
- \ \   / /___  _ __  ___  ___ | |
-  \ \ / // _ \| '__|/ __|/ _ \| |
-   \ V /|  __/| |  | (__|  __/| |
-    \_/  \___||_|   \___|\___||_|
-                                 
+ ____             __                  
+/\  _`\          /\ \                 
+\ \ \L\ \  __    \_\ \   _ __   ___   
+ \ \ ,__//'__`\  /'_` \ /\`'__\/ __`\ 
+  \ \ \//\  __/ /\ \L\ \\ \ \//\ \L\ \
+   \ \_\\ \____\\ \___,_\\ \_\\ \____/
+    \/_/ \/____/ \/__,_ / \/_/ \/___/ 
+                                      
+                                      
 ```
 
 ## About This Bot
 
-- Name: Vercel
+- Name: Pedro
 - Platforms: web, discord
 - Runtime config: `src/goodchat.ts`
 
 This bot is your source of truth. Edit it, commit it, deploy it, and blame it with confidence.
-
-Deploy on Vercel serverless. No pets, only functions.
-
 ## Vercel Deploy
 
 1. Import the project in Vercel.

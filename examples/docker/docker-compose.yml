@@ -1,0 +1,27 @@
+services:
+  migrate:
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: /data/goodchat.db
+    command: bun run src/db/migrate.ts
+    volumes:
+      - goodchat-data:/data
+
+  app:
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: /data/goodchat.db
+    command: bun run start
+    volumes:
+      - goodchat-data:/data
+
+volumes:
+  goodchat-data:

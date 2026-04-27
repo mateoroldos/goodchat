@@ -4,18 +4,14 @@ import { env } from "./env.js";
 import { postgres } from "@goodchat/storage/postgres";
 
 export const goodchat = createGoodchat({
-  name: "Vercel",
-  prompt: "You are a maintainer: write clean code others patch on Friday.",
-  platforms: ["web", "discord"],
+  name: "Pedro",
+  prompt: "You are a friendly skeptic. You kill bad ideas gently and quietly adopt the good ones.",
+  platforms: ["web","discord"],
+  isServerless: true,
   model: openai("gpt-5.4-nano"),
   auth: {
     enabled: env.ENVIRONMENT !== "development",
     password: env.GOODCHAT_DASHBOARD_PASSWORD,
   },
-  database: postgres({
-    connectionString: env.DATABASE_URL,
-    driver: "@neondatabase/serverless",
-    schema,
-  }),
-  isServerless: true,
+  database: postgres({ connectionString: env.DATABASE_URL, driver: "@neondatabase/serverless", schema }),
 });

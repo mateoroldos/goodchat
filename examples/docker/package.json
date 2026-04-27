@@ -1,5 +1,5 @@
 {
-  "name": "nico",
+  "name": "juan",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
@@ -13,10 +13,18 @@
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
     "build": "tsdown",
     "start": "bun run dist/index.mjs",
-    "railway:link": "bunx @railway/cli link",
-    "railway:up": "bunx @railway/cli up",
-    "railway:logs": "bunx @railway/cli logs",
-    "railway:migrate": "bunx @railway/cli run bun run db:migrate"
+    "docker:build": "docker build -t goodchat-bot .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env goodchat-bot",
+    "docker:dev": "docker compose up app",
+    "docker:rebuild": "docker compose up --build app",
+    "docker:up": "docker compose up -d app",
+    "docker:ready": "docker compose run --rm migrate && docker compose up -d --wait --wait-timeout 60 app",
+    "docker:migrate": "docker compose run --rm migrate",
+    "docker:start": "docker compose up -d app",
+    "docker:down": "docker compose down --remove-orphans",
+    "docker:logs": "docker compose logs -f app",
+    "docker:ps": "docker compose ps --all",
+    "docker:check": "docker compose ps --format json app"
   },
   "dependencies": {
     "@goodchat/cli": "^0.0.13",

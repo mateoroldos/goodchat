@@ -1,24 +1,24 @@
 # Goodchat Deployment Guide
 
 ```text
-  ____            _             
- |  _ \  ___   __| | _ __  ___  
- | |_) |/ _ \ / _` || '__|/ _ \ 
- |  __/|  __/| (_| || |  | (_) |
- |_|    \___| \__,_||_|   \___/ 
-                                
+ __  __                          
+/\ \/\ \   __                    
+\ \ `\\ \ /\_\     ___     ___   
+ \ \ , ` \\/\ \   /'___\  / __`\ 
+  \ \ \`\ \\ \ \ /\ \__/ /\ \L\ \
+   \ \_\ \_\\ \_\\ \____\\ \____/
+    \/_/\/_/ \/_/ \/____/ \/___/ 
+                                 
+                                 
 ```
 
 ## About This Bot
 
-- Name: Pedro
-- Platforms: web
+- Name: Nico
+- Platforms: web, discord
 - Runtime config: `src/goodchat.ts`
 
 This bot is your source of truth. Edit it, commit it, deploy it, and blame it with confidence.
-
-Deploy on Railway. Let predeploy migrations do the arguing.
-
 ## Railway Deploy
 
 1. Create a Railway service from this repo.
