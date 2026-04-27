@@ -67,7 +67,33 @@ export const renderSqliteMigrateFile = (
   ...args: Parameters<typeof renderSqliteMigrateFileInternal>
 ) => renderSqliteMigrateFileInternal(...args);
 
-export const renderTsconfig = (): string => `{
+const renderNodeEsmTsconfig = (): string => `{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ESNext"],
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}
+`;
+
+export const renderTsconfig = (deploymentTarget?: DeploymentTarget): string =>
+  deploymentTarget === "vercel" ? renderNodeEsmTsconfig() : `{
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -97,16 +123,29 @@ dist
 .env
 `;
 
+const renderNodeEsmDbSchemaFile = (content: string): string =>
+  content
+    .replaceAll('"./auth-schema"', '"./auth-schema.js"')
+    .replaceAll('"./core-schema"', '"./core-schema.js"')
+    .replaceAll('"./plugins/schema"', '"./plugins/schema.js"');
+
 export const createProjectFiles = async (
   input: ProjectTemplateInput
 ): Promise<ProjectFile[]> => {
   const target = input.deploymentTarget ?? "docker";
   const profile = DEPLOYMENT_PROFILES[target];
   const usesPlugins = (input.config.plugins ?? []).length > 0;
+  const nodeEsm = target === "vercel";
   const schemaFiles = await renderDbSchemaArtifacts({
     authEnabled: input.config.authEnabled,
     dialect: input.config.databaseDialect,
   });
+  if (nodeEsm) {
+    const dbSchemaFile = schemaFiles["src/db/schema.ts"];
+    if (dbSchemaFile) {
+      schemaFiles["src/db/schema.ts"] = renderNodeEsmDbSchemaFile(dbSchemaFile);
+    }
+  }
   const sqliteMigrateFile =
     input.config.databaseDialect === "sqlite"
       ? [
@@ -133,10 +172,14 @@ export const createProjectFiles = async (
         usesPlugins,
       }),
     },
-    { path: "tsconfig.json", content: renderTsconfig() },
+    { path: "tsconfig.json", content: renderTsconfig(target) },
     {
       path: "src/goodchat.ts",
-      content: renderGoodchatFileInternal(input.config, profile.isServerless),
+      content: renderGoodchatFileInternal(
+        input.config,
+        profile.isServerless,
+        nodeEsm
+      ),
     },
     {
       path: "src/index.ts",

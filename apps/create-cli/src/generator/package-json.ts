@@ -14,6 +14,7 @@ const DRIZZLE_KIT_VERSION = "^0.31.10";
 const TSDOWN_VERSION = "^0.16.5";
 const TYPESCRIPT_VERSION = "^5.9.3";
 const TYPES_BUN_VERSION = "^1.3.4";
+const TYPES_NODE_VERSION = "^24.9.1";
 
 export const formatPublishedVersion = (
   version: string | null,
@@ -75,6 +76,10 @@ export const renderPackageJson = (input: {
     tsdown: TSDOWN_VERSION,
     typescript: TYPESCRIPT_VERSION,
   };
+
+  if (input.deploymentTarget === "vercel") {
+    devDependencies["@types/node"] = TYPES_NODE_VERSION;
+  }
 
   const migrateCommand =
     input.databaseDialect === "sqlite"

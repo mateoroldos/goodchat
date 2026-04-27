@@ -16,7 +16,8 @@ describe("index file renderer", () => {
   it("renders vercel serverless index with Elysia import", () => {
     const content = renderIndexFile(true, "vercel");
 
-    expect(content).toContain('import "./env";');
+    expect(content).toContain('import "./env.js";');
+    expect(content).toContain('import { goodchat } from "./goodchat.js";');
     expect(content).toContain(
       "// @ts-ignore TS6133: required for vercel platform detection"
     );

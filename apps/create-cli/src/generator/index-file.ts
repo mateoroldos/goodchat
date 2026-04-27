@@ -6,8 +6,8 @@ export const renderIndexFile = (
 ): string => {
   if (isServerless) {
     if (deploymentTarget === "vercel") {
-      return `import "./env";
-import { goodchat } from "./goodchat";
+      return `import "./env.js";
+import { goodchat } from "./goodchat.js";
 // @ts-ignore TS6133: required for vercel platform detection
 import { Elysia } from "elysia";
 import { serve } from "./serve";

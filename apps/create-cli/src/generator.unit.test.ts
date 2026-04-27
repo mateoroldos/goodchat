@@ -159,8 +159,15 @@ describe("generator integration", () => {
     expect(filePaths).not.toContain("railway.json");
 
     const indexFile = files.find((file) => file.path === "src/index.ts");
+    const goodchatFile = files.find((file) => file.path === "src/goodchat.ts");
+    const schemaFile = files.find((file) => file.path === "src/db/schema.ts");
+    const tsconfigFile = files.find((file) => file.path === "tsconfig.json");
     expect(indexFile?.content).toContain(
       'if (process.env.VERCEL !== "1" && process.env.__VERCEL_DEV_RUNNING !== "1")'
+    );
+    expect(indexFile?.content).toContain('import "./env.js";');
+    expect(indexFile?.content).toContain(
+      'import { goodchat } from "./goodchat.js";'
     );
     expect(indexFile?.content).toContain("app.listen(port");
     expect(indexFile?.content).toContain(
@@ -168,6 +175,20 @@ describe("generator integration", () => {
     );
     expect(indexFile?.content).toContain('import { Elysia } from "elysia";');
     expect(indexFile?.content).toContain("export default app;");
+    expect(goodchatFile?.content).toContain('import { schema } from "./db/schema.js";');
+    expect(goodchatFile?.content).toContain('import { env } from "./env.js";');
+    expect(schemaFile?.content).toContain(
+      'import { authSchema } from "./auth-schema.js";'
+    );
+    expect(schemaFile?.content).toContain(
+      'import { coreSchema } from "./core-schema.js";'
+    );
+    expect(schemaFile?.content).toContain(
+      'import { pluginSchema } from "./plugins/schema.js";'
+    );
+    expect(tsconfigFile?.content).toContain('"module": "NodeNext"');
+    expect(tsconfigFile?.content).toContain('"moduleResolution": "NodeNext"');
+    expect(tsconfigFile?.content).toContain('"types": ["node"]');
 
     const vercelConfig = files.find((file) => file.path === "vercel.json");
     expect(vercelConfig).toBeDefined();

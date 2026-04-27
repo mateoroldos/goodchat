@@ -67,6 +67,7 @@ describe("package json renderer", () => {
         usesPlugins: false,
       })
     ) as {
+      devDependencies: Record<string, string>;
       scripts: Record<string, string>;
     };
 
@@ -90,6 +91,7 @@ describe("package json renderer", () => {
         usesPlugins: false,
       })
     ) as {
+      devDependencies: Record<string, string>;
       scripts: Record<string, string>;
     };
 
@@ -103,6 +105,7 @@ describe("package json renderer", () => {
     expect(packageJson.scripts["docker:build"]).toBeUndefined();
     expect(packageJson.scripts.build).toBeUndefined();
     expect(packageJson.scripts.start).toBeUndefined();
+    expect(packageJson.devDependencies["@types/node"]).toBeDefined();
   });
 
   it("renders drizzle migrate script for non-sqlite dialects", () => {

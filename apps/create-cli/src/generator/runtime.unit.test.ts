@@ -117,6 +117,23 @@ describe("runtime renderer", () => {
     );
   });
 
+  it("renders Node ESM-safe relative imports when enabled", () => {
+    const output = renderGoodchatFile(
+      {
+        authEnabled: true,
+        databaseDialect: "postgres",
+        name: "Node Bot",
+        prompt: "Be helpful",
+        platforms: ["web"],
+      },
+      true,
+      true
+    );
+
+    expect(output).toContain('import { schema } from "./db/schema.js";');
+    expect(output).toContain('import { env } from "./env.js";');
+  });
+
   it.each<{
     provider: ModelProvider;
     modelId: string;

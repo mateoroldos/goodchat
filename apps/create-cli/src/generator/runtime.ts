@@ -15,7 +15,10 @@ export const buildDatabaseExpression = (config: GeneratorConfig): string => {
     : "mysql({ connectionString: env.DATABASE_URL, schema })";
 };
 
-export const buildImports = (config: GeneratorConfig): string[] => {
+export const buildImports = (
+  config: GeneratorConfig,
+  nodeEsm?: boolean
+): string[] => {
   const coreImports = ["createGoodchat"];
   if (config.model) {
     coreImports.push(resolveModelFactoryName(config.model.provider));
@@ -23,8 +26,8 @@ export const buildImports = (config: GeneratorConfig): string[] => {
 
   const imports = [
     `import { ${coreImports.join(", ")} } from "@goodchat/core";`,
-    'import { schema } from "./db/schema";',
-    'import { env } from "./env";',
+    `import { schema } from "./db/schema${nodeEsm ? ".js" : ""}";`,
+    `import { env } from "./env${nodeEsm ? ".js" : ""}";`,
   ];
   if (config.databaseDialect === "sqlite") {
     imports.push('import { sqlite } from "@goodchat/storage/sqlite";');
@@ -43,10 +46,11 @@ export const buildImports = (config: GeneratorConfig): string[] => {
 
 export const renderGoodchatFile = (
   config: GeneratorConfig,
-  isServerless?: boolean
+  isServerless?: boolean,
+  nodeEsm?: boolean
 ): string => {
   const plugins = config.plugins ?? [];
-  const imports = buildImports(config);
+  const imports = buildImports(config, nodeEsm);
   const db = buildDatabaseExpression(config);
 
   const entries: string[] = [
