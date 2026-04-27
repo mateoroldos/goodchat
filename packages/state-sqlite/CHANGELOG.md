@@ -1,5 +1,11 @@
 # @goodchat/state-sqlite
 
+## 0.0.4
+
+### Patch Changes
+
+- 7141892: Fix tsc emitting build on type checking
+
 ## 0.0.3
 
 ### Patch Changes
