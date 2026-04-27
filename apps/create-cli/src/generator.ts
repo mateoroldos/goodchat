@@ -93,7 +93,9 @@ const renderNodeEsmTsconfig = (): string => `{
 `;
 
 export const renderTsconfig = (deploymentTarget?: DeploymentTarget): string =>
-  deploymentTarget === "vercel" ? renderNodeEsmTsconfig() : `{
+  deploymentTarget === "vercel"
+    ? renderNodeEsmTsconfig()
+    : `{
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",

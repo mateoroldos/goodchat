@@ -169,13 +169,16 @@ describe("generator integration", () => {
     expect(indexFile?.content).toContain(
       'import { goodchat } from "./goodchat.js";'
     );
-    expect(indexFile?.content).toContain("app.listen(port");
+    expect(indexFile?.content).toContain("await serve(app);");
+    expect(indexFile?.content).not.toContain("app.listen(");
     expect(indexFile?.content).toContain(
       "// @ts-ignore TS6133: required for vercel platform detection"
     );
     expect(indexFile?.content).toContain('import { Elysia } from "elysia";');
     expect(indexFile?.content).toContain("export default app;");
-    expect(goodchatFile?.content).toContain('import { schema } from "./db/schema.js";');
+    expect(goodchatFile?.content).toContain(
+      'import { schema } from "./db/schema.js";'
+    );
     expect(goodchatFile?.content).toContain('import { env } from "./env.js";');
     expect(schemaFile?.content).toContain(
       'import { authSchema } from "./auth-schema.js";'

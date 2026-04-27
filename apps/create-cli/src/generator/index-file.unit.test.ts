@@ -25,17 +25,20 @@ describe("index file renderer", () => {
     expect(content).toContain(
       'if (process.env.VERCEL !== "1" && process.env.__VERCEL_DEV_RUNNING !== "1")'
     );
+    expect(content).toContain("await serve(app);");
     expect(content).toContain("const { app } = await goodchat.ready;");
     expect(content).toContain("export default app;");
-    expect(content).toContain("app.listen(port");
+    expect(content).not.toContain("app.listen(");
   });
 
   it("renders runtime index with listener", () => {
     const content = renderIndexFile(false);
 
     expect(content).toContain('import "./env";');
-    expect(content).toContain("const port = Number(process.env.PORT ?? 3000);");
-    expect(content).toContain("app.listen(port");
+    expect(content).toContain('import { serve } from "./serve";');
+    expect(content).toContain("await serve(app);");
+    expect(content).not.toContain("const port = Number");
+    expect(content).not.toContain("app.listen(");
     expect(content).toContain("export default app;");
   });
 });

@@ -1,7 +1,5 @@
-import { spawn } from "node:child_process";
 import { readdirSync, statSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { styleText } from "node:util";
 import {
   cancel,
@@ -51,6 +49,7 @@ import {
   type ScaffolderConfig,
   type SelectedModel,
 } from "./generator";
+import { runCommand, writeFiles } from "./utils/files";
 import {
   DEPENDENCY_CHANNELS,
   type DependencyChannel,
@@ -100,53 +99,6 @@ const ensureEmptyDirValidation = (
   }
 
   return undefined;
-};
-
-const writeFiles = async (
-  targetDir: string,
-  files: { path: string; content: string }[]
-): Promise<void> => {
-  for (const file of files) {
-    const filePath = join(targetDir, file.path);
-    await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(filePath, file.content, "utf8");
-  }
-};
-
-const runCommand = async (
-  targetDir: string,
-  command: string,
-  args: string[]
-): Promise<void> => {
-  await new Promise<void>((resolvePromise, rejectPromise) => {
-    const child = spawn(command, args, {
-      cwd: targetDir,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let output = "";
-    child.stdout.on("data", (chunk) => {
-      output += String(chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      output += String(chunk);
-    });
-
-    child.on("error", (error) => {
-      rejectPromise(error);
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolvePromise();
-        return;
-      }
-      const message =
-        output.trim() ||
-        `${command} ${args.join(" ")} failed with exit code ${code ?? "unknown"}`;
-      rejectPromise(new Error(message));
-    });
-  });
 };
 
 // ── Primary color ─────────────────────────────────────────────────────────-

@@ -3,6 +3,7 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "dist",
+    "noEmit": true,
     "strictNullChecks": true
   },
   "include": ["scaffold/**/*.ts", "scripts/**/*.ts", "tsdown.config.ts"]

@@ -130,9 +130,12 @@ describe("webhookChatController gateway initialization", () => {
     const app = createApp(gateway);
 
     const response = await app.handle(
-      new Request("http://localhost/webhook/discord/gateway?cronSecret=secret", {
-        method: "GET",
-      })
+      new Request(
+        "http://localhost/webhook/discord/gateway?cronSecret=secret",
+        {
+          method: "GET",
+        }
+      )
     );
 
     expect(response.status).toBe(200);

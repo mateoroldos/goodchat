@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawn } from "bun";
 
 type Dialect = "sqlite" | "postgres" | "mysql";
 
@@ -81,45 +81,28 @@ const runCommand = async (input: {
   args: string[];
   cwd: string;
 }): Promise<void> => {
-  await new Promise<void>((resolvePromise, rejectPromise) => {
-    const child = spawn("bun", input.args, {
-      cwd: input.cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-
-    child.on("error", (error) => {
-      rejectPromise(error);
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolvePromise();
-        return;
-      }
-
-      rejectPromise(
-        new Error(
-          [
-            `Command failed with exit code ${code}.`,
-            stdout.trim(),
-            stderr.trim(),
-          ]
-            .filter((line) => line.length > 0)
-            .join("\n")
-        )
-      );
-    });
+  const child = spawn(["bun", ...input.args], {
+    cwd: input.cwd,
+    stdin: "ignore",
+    stdout: "pipe",
+    stderr: "pipe",
   });
+
+  const [stdout, stderr, code] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+
+  if (code === 0) {
+    return;
+  }
+
+  throw new Error(
+    [`Command failed with exit code ${code}.`, stdout.trim(), stderr.trim()]
+      .filter((line) => line.length > 0)
+      .join("\n")
+  );
 };
 
 const generateForDialect = async (input: {
