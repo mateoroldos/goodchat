@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.24
+
+### Patch Changes
+
+- 54b3cdf: Fix runtime compatibility for `bun create @goodchat` by removing the Bun-specific `spawn` import from the create CLI runtime.
+
 ## 0.0.23
 
 ### Patch Changes
