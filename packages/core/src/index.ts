@@ -153,7 +153,6 @@ export const createGoodchat = (options: BotConfigInput) => {
     const publicApi = new Elysia()
       .use(
         webhookChatController({
-          botId: bot.id,
           isServerless: bot.isServerless,
           logger,
           initializeGateway: chatRuntime.initializeGateway,
@@ -193,7 +192,6 @@ export const createGoodchat = (options: BotConfigInput) => {
       .use(
         threadsController({
           database: bot.database,
-          botId: bot.id,
           logger,
         })
       );
@@ -206,7 +204,6 @@ export const createGoodchat = (options: BotConfigInput) => {
 
     const webChatApi = new Elysia().use(
       webChatController({
-        botId: bot.id,
         botName: bot.name,
         logger,
         platforms: bot.platforms,

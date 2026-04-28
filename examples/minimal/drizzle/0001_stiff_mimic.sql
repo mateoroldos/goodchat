@@ -15,7 +15,6 @@ CREATE TABLE `ai_runs` (
 	`id` text PRIMARY KEY NOT NULL,
 	`thread_id` text NOT NULL,
 	`assistant_message_id` text NOT NULL,
-	`bot_id` text NOT NULL,
 	`user_id` text NOT NULL,
 	`mode` text NOT NULL,
 	`provider` text NOT NULL,

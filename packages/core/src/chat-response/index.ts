@@ -1,7 +1,12 @@
 import type { Bot } from "@goodchat/contracts/config/types";
-import type { HookContext } from "@goodchat/contracts/hooks/types";
+import type {
+  BeforeHookDenyResult,
+  HookContext,
+} from "@goodchat/contracts/hooks/types";
+import type { UIMessageChunk } from "ai";
 import { Result } from "better-result";
 import type { AiResponseService } from "../ai-response/interface";
+import type { AiRunTelemetry } from "../ai-response/models";
 import type { LoggerService } from "../logger/interface";
 import type { MessageContext } from "../types";
 import {
@@ -9,26 +14,15 @@ import {
   ChatResponseHookExecutionError,
   ChatResponseInputInvalidError,
 } from "./errors";
-import { runBeforeHooks } from "./hook-runner";
+import { runAfterHooks, runBeforeHooks } from "./hook-runner";
 import type { ChatResponseService } from "./interface";
-import {
-  runAfterHooksResilient,
-  runStreamPostProcess,
-  runSyncPostProcess,
-} from "./post-process";
+import { runPostProcess } from "./post-process";
 
-type ChatResponseMode = "stream" | "sync";
+type Mode = "stream" | "sync";
 
-const MODE_META = {
-  stream: {
-    aiFailureMessage: "Failed to generate streamed chat response",
-    aiFailureWhy: "The AI provider failed while opening the stream.",
-  },
-  sync: {
-    aiFailureMessage: "Failed to generate chat response",
-    aiFailureWhy: "The AI provider failed while generating the response.",
-  },
-} as const;
+type PreflightResult =
+  | { proceed: true; hookContext: HookContext; logger: HookContext["log"] }
+  | { proceed: false; denied: BeforeHookDenyResult };
 
 interface ChatResponseDependencies {
   aiResponse: AiResponseService;
@@ -48,191 +42,187 @@ export class DefaultChatResponseService implements ChatResponseService {
   }
 
   async handleMessage(context: MessageContext) {
-    const inputError = this.#validateInput(context.text);
-    if (inputError) {
-      return Result.err(inputError);
-    }
-
     try {
-      const { hookContext, requestLogger } = await this.#prepareRequest(
-        context,
-        "sync"
-      );
-
-      const botResponse = await this.#aiResponse.generate(
-        this.#buildAiParams(context, requestLogger, "sync")
-      );
-
-      if (botResponse.isErr()) {
-        this.#logAiFailure(requestLogger, botResponse.error, "sync");
-        return Result.err(this.#toGenerationError(botResponse.error));
+      const preflight = await this.#preflight(context, "sync");
+      if (preflight.isErr()) {
+        return Result.err(preflight.error);
+      }
+      if (!preflight.value.proceed) {
+        return Result.ok(preflight.value.denied);
       }
 
-      const { telemetry, text } = botResponse.value;
-      await runAfterHooksResilient({
-        hookContext,
+      const { hookContext, logger } = preflight.value;
+
+      const response = await this.#aiResponse.generate(
+        this.#aiParams(context, logger, "sync")
+      );
+      if (response.isErr()) {
+        this.#logAiFailure(logger, response.error, "sync");
+        return Result.err(this.#toGenerationError(response.error));
+      }
+
+      const { text, telemetry } = response.value;
+      await runAfterHooks({
+        context: hookContext,
         hooks: this.#bot.hooks.afterMessage,
         responseText: text,
       });
 
-      this.#setResponseStatus(requestLogger, "success", text.length);
+      this.#logStatus(logger, "success", text.length);
 
-      const backgroundLogger = this.#createBackgroundLogger(
-        requestLogger,
-        context,
-        "sync"
+      const bgLogger = this.#backgroundLogger(logger, context, "sync");
+      this.#background(
+        runPostProcess({
+          context,
+          database: this.#bot.database,
+          logger: bgLogger,
+          mode: "sync",
+          responseText: text,
+          telemetry,
+        }),
+        bgLogger,
+        "sync-post-process"
       );
 
-      runSyncPostProcess({
-        context,
-        database: this.#bot.database,
-        logger: backgroundLogger,
-        responseText: text,
-        setResponseStatus: this.#setResponseStatus.bind(this),
-        telemetry,
-      }).catch(() => undefined);
-
       return Result.ok({
+        action: "respond" as const,
         text,
         threadEntryId: context.threadId,
       });
     } catch (error) {
-      return Result.err(this.#toResponseError(error));
+      return Result.err(this.#toError(error));
     }
   }
 
   async handleMessageStream(context: MessageContext) {
-    const inputError = this.#validateInput(context.text);
-    if (inputError) {
-      return Result.err(inputError);
-    }
-
     try {
-      const { requestLogger } = await this.#prepareRequest(context, "stream");
-
-      const botResponse = await this.#aiResponse.stream(
-        this.#buildAiParams(context, requestLogger, "stream")
-      );
-
-      if (botResponse.isErr()) {
-        this.#logAiFailure(requestLogger, botResponse.error, "stream");
-        return Result.err(this.#toGenerationError(botResponse.error));
+      const preflight = await this.#preflight(context, "stream");
+      if (preflight.isErr()) {
+        return Result.err(preflight.error);
+      }
+      if (!preflight.value.proceed) {
+        return Result.ok(preflight.value.denied);
       }
 
-      const [clientStream, storeStream] = botResponse.value.uiStream.tee();
-      const backgroundLogger = this.#createBackgroundLogger(
-        requestLogger,
-        context,
-        "stream"
+      const { logger } = preflight.value;
+
+      const response = await this.#aiResponse.stream(
+        this.#aiParams(context, logger, "stream")
       );
-      runStreamPostProcess({
-        buildHookContext: this.#buildHookContext.bind(this),
-        context,
-        database: this.#bot.database,
-        hooks: this.#bot.hooks.afterMessage,
-        logger: backgroundLogger,
-        setResponseStatus: this.#setResponseStatus.bind(this),
-        stream: storeStream,
-        telemetry: botResponse.value.telemetry,
-      }).catch(() => undefined);
+      if (response.isErr()) {
+        this.#logAiFailure(logger, response.error, "stream");
+        return Result.err(this.#toGenerationError(response.error));
+      }
 
-      this.#setResponseStatus(requestLogger, "streaming");
+      const [clientStream, postProcessStream] = response.value.uiStream.tee();
+      const bgLogger = this.#backgroundLogger(logger, context, "stream");
 
-      return Result.ok({ uiStream: clientStream });
+      this.#background(
+        this.#streamPostProcess({
+          context,
+          logger: bgLogger,
+          stream: postProcessStream,
+          telemetry: response.value.telemetry,
+        }),
+        bgLogger,
+        "stream-post-process"
+      );
+
+      this.#logStatus(logger, "streaming");
+
+      return Result.ok({ action: "respond" as const, uiStream: clientStream });
     } catch (error) {
-      return Result.err(this.#toResponseError(error));
+      return Result.err(this.#toError(error));
     }
   }
 
-  #validateInput(text: string): ChatResponseInputInvalidError | undefined {
-    if (text.trim()) {
-      return undefined;
-    }
-
-    return new ChatResponseInputInvalidError("Message text is required");
-  }
-
-  async #prepareRequest(
+  async #preflight(
     context: MessageContext,
-    mode: ChatResponseMode
-  ): Promise<{ hookContext: HookContext; requestLogger: HookContext["log"] }> {
-    const requestLogger = this.#createRequestLogger(context, mode);
-    const hookContext = this.#buildHookContext(context, requestLogger);
-    await this.#runBeforeHooks(hookContext, requestLogger);
-    return { hookContext, requestLogger };
-  }
+    mode: Mode
+  ): Promise<Result<PreflightResult, ChatResponseInputInvalidError>> {
+    if (!context.text.trim()) {
+      return Result.err(
+        new ChatResponseInputInvalidError("Message text is required")
+      );
+    }
 
-  #logAiFailure(
-    logger: HookContext["log"],
-    error: { code: string; message: string; name: string },
-    mode: ChatResponseMode
-  ) {
-    const meta = MODE_META[mode];
+    const logger = this.#requestLogger(context, mode);
+    logger.set({ platform: context.platform, adapter: context.adapterName });
+    const hookContext: HookContext = { ...context, log: logger };
 
-    logger.error(meta.aiFailureMessage, {
-      error: {
-        code: error.code,
-        message: error.message,
-        type: error.name,
-        why: meta.aiFailureWhy,
-        fix: "Check model credentials, model availability, and tool/MCP connectivity.",
-      },
-    });
-  }
-
-  #createRequestLogger(context: MessageContext, mode: ChatResponseMode) {
-    const logger = this.#logger.request();
-    logger.set({
-      message: {
-        length: context.text.length,
-      },
-      request: {
-        mode,
-      },
-    });
-    return logger;
-  }
-
-  async #runBeforeHooks(hookContext: HookContext, logger: HookContext["log"]) {
-    await runBeforeHooks({
+    const denied = await runBeforeHooks({
       context: hookContext,
       hooks: this.#bot.hooks.beforeMessage,
     });
 
-    logger.set({
-      hooks: {
-        beforeCount: this.#bot.hooks.beforeMessage.length,
-      },
+    if (denied) {
+      return Result.ok({ proceed: false, denied });
+    }
+
+    return Result.ok({ proceed: true, hookContext, logger });
+  }
+
+  async #streamPostProcess({
+    context,
+    logger,
+    stream,
+    telemetry,
+  }: {
+    context: MessageContext;
+    logger: HookContext["log"];
+    stream: ReadableStream<UIMessageChunk>;
+    telemetry: Promise<AiRunTelemetry>;
+  }): Promise<void> {
+    const hookContext: HookContext = { ...context, log: logger };
+
+    const { responseText } = await runAfterHooks({
+      context: hookContext,
+      hooks: this.#bot.hooks.afterMessage,
+      stream,
+    });
+
+    await runPostProcess({
+      context,
+      database: this.#bot.database,
+      logger,
+      mode: "stream",
+      responseText,
+      telemetry,
+    });
+
+    this.#logStatus(logger, "success", responseText.length);
+  }
+
+  #background(
+    task: Promise<void>,
+    logger: HookContext["log"],
+    stage: "stream-post-process" | "sync-post-process"
+  ) {
+    // Background failures are logged and intentionally not propagated to the
+    // request flow because response delivery already completed.
+    task.catch((error: unknown) => {
+      logger.warn("Background post-process failed", {
+        error: {
+          message: error instanceof Error ? error.message : "Unknown error",
+          stage,
+        },
+      });
     });
   }
 
-  #toGenerationError(error: {
-    details?: string[];
-    message: string;
-  }): ChatResponseGenerationError {
-    return new ChatResponseGenerationError(error.message, error.details, error);
+  #requestLogger(context: MessageContext, mode: Mode) {
+    const logger = this.#logger.request();
+    logger.set({
+      message: { length: context.text.length },
+      request: { mode },
+    });
+    return logger;
   }
 
-  #toResponseError(error: unknown) {
-    if (
-      error instanceof ChatResponseInputInvalidError ||
-      error instanceof ChatResponseGenerationError ||
-      error instanceof ChatResponseHookExecutionError
-    ) {
-      return error;
-    }
-
-    if (error instanceof Error) {
-      return new ChatResponseGenerationError(error.message, [], error);
-    }
-
-    return new ChatResponseGenerationError("Failed to generate response", []);
-  }
-
-  #createBackgroundLogger(
+  #backgroundLogger(
     requestLogger: HookContext["log"],
     context: MessageContext,
-    mode: ChatResponseMode
+    mode: Mode
   ) {
     const requestContext = requestLogger.getContext();
     const requestId =
@@ -246,33 +236,15 @@ export class DefaultChatResponseService implements ChatResponseService {
       thread: { id: context.threadId },
       user: { id: context.userId },
     });
-    logger.set({
-      adapter: context.adapterName,
-      platform: context.platform,
-    });
+    logger.set({ adapter: context.adapterName, platform: context.platform });
     return logger;
   }
 
-  #buildHookContext(
-    context: MessageContext,
-    log: HookContext["log"]
-  ): HookContext {
-    log.set({
-      platform: context.platform,
-      adapter: context.adapterName,
-    });
-    return { ...context, log };
-  }
-
-  #buildAiParams(
-    context: MessageContext,
-    logger: HookContext["log"],
-    mode: ChatResponseMode
-  ) {
+  #aiParams(context: MessageContext, logger: HookContext["log"], mode: Mode) {
     return {
       logger,
       mode,
-      systemPrompt: this.#buildSystemPrompt(),
+      systemPrompt: this.#systemPrompt(),
       threadId: context.threadId,
       userMessage: context.text,
       userId: context.userId,
@@ -282,35 +254,70 @@ export class DefaultChatResponseService implements ChatResponseService {
     };
   }
 
-  #buildSystemPrompt() {
-    const { systemPrompt: promptExtension } = this.#bot;
-    const basePrompt = `${this.#bot.prompt}\n\nBot name: ${this.#bot.name}`;
-    if (!promptExtension) {
-      return basePrompt;
-    }
-
-    return `${basePrompt}\n\n${promptExtension}`;
+  #systemPrompt() {
+    const { systemPrompt: extension } = this.#bot;
+    const base = `${this.#bot.prompt}\n\nBot name: ${this.#bot.name}`;
+    return extension ? `${base}\n\n${extension}` : base;
   }
 
-  #setResponseStatus(
+  #logAiFailure(
+    logger: HookContext["log"],
+    error: { code: string; message: string; name: string },
+    mode: Mode
+  ) {
+    const isStream = mode === "stream";
+    logger.error(
+      isStream
+        ? "Failed to generate streamed chat response"
+        : "Failed to generate chat response",
+      {
+        error: {
+          code: error.code,
+          message: error.message,
+          type: error.name,
+          why: isStream
+            ? "The AI provider failed while opening the stream."
+            : "The AI provider failed while generating the response.",
+          fix: "Check model credentials, model availability, and tool/MCP connectivity.",
+        },
+      }
+    );
+  }
+
+  #logStatus(
     logger: HookContext["log"],
     status: "streaming" | "success",
     responseLength?: number
   ) {
     logger.set({
-      hooks: {
-        afterCount: this.#bot.hooks.afterMessage.length,
-      },
-      outcome: {
-        status,
-      },
+      hooks: { afterCount: this.#bot.hooks.afterMessage.length },
+      outcome: { status },
       ...(typeof responseLength === "number"
-        ? {
-            response: {
-              length: responseLength,
-            },
-          }
+        ? { response: { length: responseLength } }
         : {}),
     });
+  }
+
+  #toGenerationError(error: {
+    details?: string[];
+    message: string;
+  }): ChatResponseGenerationError {
+    return new ChatResponseGenerationError(error.message, error.details, error);
+  }
+
+  #toError(error: unknown) {
+    if (
+      error instanceof ChatResponseInputInvalidError ||
+      error instanceof ChatResponseGenerationError ||
+      error instanceof ChatResponseHookExecutionError
+    ) {
+      return error;
+    }
+
+    if (error instanceof Error) {
+      return new ChatResponseGenerationError(error.message, [], error);
+    }
+
+    return new ChatResponseGenerationError("Failed to generate response", []);
   }
 }

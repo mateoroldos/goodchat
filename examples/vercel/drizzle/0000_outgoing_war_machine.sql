@@ -94,7 +94,6 @@ CREATE TABLE "messages" (
 --> statement-breakpoint
 CREATE TABLE "threads" (
 	"id" text PRIMARY KEY NOT NULL,
-	"bot_id" text NOT NULL,
 	"bot_name" text NOT NULL,
 	"platform" text NOT NULL,
 	"adapter_name" text NOT NULL,

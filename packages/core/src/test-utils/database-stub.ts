@@ -151,9 +151,7 @@ export const createDatabaseStub = (): Database => {
       list: (input: Parameters<Database["threads"]["list"]>[0]) => {
         const sort = input.sort ?? "desc";
         const limit = input.limit ?? 50;
-        const threads = Array.from(threadStore.values()).filter(
-          (thread) => thread.botId === input.botId
-        );
+        const threads = Array.from(threadStore.values());
         const sorted = applyCursor(
           threads.sort(compareByCreatedAt(sort)),
           input.cursor,

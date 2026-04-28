@@ -2,7 +2,6 @@ import type { Platform } from "../config/types";
 
 export interface Thread {
   adapterName: string;
-  botId: string;
   botName: string;
   createdAt: string;
   id: string;

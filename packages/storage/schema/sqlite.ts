@@ -2,7 +2,6 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const threads = sqliteTable("threads", {
   id: text("id").primaryKey(),
-  botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
   platform: text("platform").notNull(),
   adapterName: text("adapter_name").notNull(),

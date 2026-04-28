@@ -29,7 +29,6 @@ const createGateway = ({
 const createApp = (gateway: ChatGatewayService, isServerless = true) =>
   new Elysia().use(
     webhookChatController({
-      botId: "bot-1",
       initializeGateway: async () => {
         await gateway.initialize();
         return gateway;

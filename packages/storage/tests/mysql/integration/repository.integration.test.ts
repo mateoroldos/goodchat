@@ -15,7 +15,6 @@ const describeMysql = connectionString ? describe : describe.skip;
 const buildThread = (overrides: Partial<ThreadCreate> = {}): ThreadCreate => {
   return {
     id: "thread-1",
-    botId: "bot-1",
     botName: "Support Bot",
     platform: "slack",
     adapterName: "slack",
@@ -105,7 +104,6 @@ describeMysql("mysql repositories", () => {
       );
 
       const threads = await database.threads.list({
-        botId: "bot-1",
         limit: 10,
         sort: "asc",
       });

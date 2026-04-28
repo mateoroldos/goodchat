@@ -14,7 +14,6 @@ interface ListCursor {
 }
 
 interface ThreadListInput {
-  botId: string;
   cursor?: ListCursor;
   limit?: number;
   sort?: "asc" | "desc";
@@ -77,7 +76,7 @@ export interface Database<
     update: (id: string, patch: AiRunToolCallUpdate) => Promise<AiRunToolCall>;
   };
   analytics: {
-    weeklyStats: (botId: string) => Promise<WeeklyStats>;
+    weeklyStats: () => Promise<WeeklyStats>;
   };
   connection: TConnection;
   connectionFlavor?: TConnectionFlavor;

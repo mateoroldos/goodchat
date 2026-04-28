@@ -7,7 +7,6 @@ import type { ChatResponseService } from "../chat-response/interface";
 import type { LoggerService } from "../logger/interface";
 
 interface WebChatControllerOptions {
-  botId: Bot["id"];
   botName: Bot["name"];
   logger: LoggerService;
   platforms: Bot["platforms"];
@@ -15,13 +14,15 @@ interface WebChatControllerOptions {
 }
 
 export const webChatController = ({
-  botId,
   botName,
   logger,
   platforms,
   responseHandler,
 }: WebChatControllerOptions) => {
   const controller = new Elysia({ prefix: "/web" });
+
+  const toRetryAfterSeconds = (retryAfterMs: number) =>
+    Math.max(1, Math.ceil(retryAfterMs / 1000));
 
   const getLatestUserText = (messages: unknown) => {
     if (!Array.isArray(messages)) {
@@ -76,7 +77,7 @@ export const webChatController = ({
 
   controller.post(
     "/chat",
-    async ({ body, status }) => {
+    async ({ body, set, status }) => {
       const log = logger.request();
       log.set({
         request: {
@@ -121,7 +122,6 @@ export const webChatController = ({
 
       const context: MessageContext = {
         adapterName: "web",
-        botId,
         botName,
         platform: "web",
         text: messageText,
@@ -143,6 +143,22 @@ export const webChatController = ({
         });
 
         return status(500, { message: "Failed to generate response" });
+      }
+
+      if (result.value.action === "deny") {
+        const retryAfterSeconds =
+          typeof result.value.retryAfterMs === "number"
+            ? toRetryAfterSeconds(result.value.retryAfterMs)
+            : undefined;
+
+        if (typeof retryAfterSeconds === "number") {
+          set.headers["Retry-After"] = `${retryAfterSeconds}`;
+        }
+
+        return status(429, {
+          message: result.value.userMessage,
+          reason: result.value.reason,
+        });
       }
 
       log.set({
@@ -170,7 +186,7 @@ export const webChatController = ({
 
   controller.post(
     "/chat/stream",
-    async ({ body, status }) => {
+    async ({ body, set, status }) => {
       const log = logger.request();
       log.set({
         request: {
@@ -215,7 +231,6 @@ export const webChatController = ({
 
       const context: MessageContext = {
         adapterName: "web",
-        botId,
         botName,
         platform: "web",
         text: messageText,
@@ -237,6 +252,22 @@ export const webChatController = ({
         });
 
         return status(500, { message: "Failed to generate response" });
+      }
+
+      if (result.value.action === "deny") {
+        const retryAfterSeconds =
+          typeof result.value.retryAfterMs === "number"
+            ? toRetryAfterSeconds(result.value.retryAfterMs)
+            : undefined;
+
+        if (typeof retryAfterSeconds === "number") {
+          set.headers["Retry-After"] = `${retryAfterSeconds}`;
+        }
+
+        return status(429, {
+          message: result.value.userMessage,
+          reason: result.value.reason,
+        });
       }
 
       log.set({

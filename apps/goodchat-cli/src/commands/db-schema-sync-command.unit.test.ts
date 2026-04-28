@@ -62,7 +62,29 @@ describe("db schema sync command", () => {
     expect(coreSchema).toContain('sqliteTable("threads"');
     expect(schema).toContain("export const schema = {");
     expect(authSchema).toBe("export const authSchema = {};\n");
-    expect(pluginSchema).toBe("export const pluginSchema = {};\n");
+    expect(pluginSchema).toContain("User-managed plugin schema file");
+    expect(pluginSchema).toContain("export const pluginSchema = {};");
+  });
+
+  it("preserves existing plugins schema on sync rerun", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    await writeFile(
+      join(projectRoot, "src/db/plugins/schema.ts"),
+      'export const pluginSchema = { customPluginTable: "keep-me" };\n',
+      "utf8"
+    );
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    const pluginSchema = await readFile(
+      join(projectRoot, "src/db/plugins/schema.ts"),
+      "utf8"
+    );
+
+    expect(pluginSchema).toBe(
+      'export const pluginSchema = { customPluginTable: "keep-me" };\n'
+    );
   });
 
   it("fails in check mode when generated artifacts drift", async () => {
@@ -82,6 +104,20 @@ describe("db schema sync command", () => {
   it("passes in check mode when generated artifacts are in sync", async () => {
     const projectRoot = await createTempProject("postgres");
     await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    await expect(
+      runDbSchemaSync({ cwd: projectRoot, check: true })
+    ).resolves.toBeUndefined();
+  });
+
+  it("ignores user-managed plugins schema drift in check mode", async () => {
+    const projectRoot = await createTempProject("postgres");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    await writeFile(
+      join(projectRoot, "src/db/plugins/schema.ts"),
+      "export const pluginSchema = { userManaged: true };\n",
+      "utf8"
+    );
 
     await expect(
       runDbSchemaSync({ cwd: projectRoot, check: true })

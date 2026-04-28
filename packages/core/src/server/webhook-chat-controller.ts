@@ -12,7 +12,7 @@ export interface WebhookEnv {
 const gatewayListenerDurationMs = 10 * 60 * 1000;
 const gatewayCronIntervalMinutes = 9;
 const gatewayCronPattern = Patterns.everyMinutes(gatewayCronIntervalMinutes);
-const gatewayAbortControllers = new Map<string, AbortController>();
+let gatewayAbortController: AbortController | null = null;
 
 const getCronSecret = (request: Request) => {
   const url = new URL(request.url);
@@ -44,7 +44,6 @@ const buildDiscordWebhookUrl = (baseUrl: string, overrideUrl?: string | null) =>
 const getDefaultBaseUrl = () => `http://localhost:${process.env.PORT ?? 3000}`;
 
 interface WebhookChatControllerOptions {
-  botId: Bot["id"];
   initializeGateway: () => Promise<ChatGatewayService>;
   isServerless: Bot["isServerless"];
   logger: LoggerService;
@@ -52,7 +51,6 @@ interface WebhookChatControllerOptions {
 }
 
 export const webhookChatController = ({
-  botId,
   initializeGateway,
   isServerless,
   logger,
@@ -252,18 +250,16 @@ export const webhookChatController = ({
         url.searchParams.get("webhookUrl")
       );
 
-      const existingController = gatewayAbortControllers.get(botId);
-      if (existingController) {
-        existingController.abort();
+      if (gatewayAbortController) {
+        gatewayAbortController.abort();
       }
 
       const controller = new AbortController();
-      gatewayAbortControllers.set(botId, controller);
+      gatewayAbortController = controller;
 
       setTimeout(() => {
-        const currentController = gatewayAbortControllers.get(botId);
-        if (currentController === controller) {
-          gatewayAbortControllers.delete(botId);
+        if (gatewayAbortController === controller) {
+          gatewayAbortController = null;
         }
       }, gatewayListenerDurationMs + 1000);
 

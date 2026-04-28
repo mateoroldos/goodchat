@@ -5,6 +5,11 @@ import {
 
 export type DatabaseDialect = "sqlite" | "postgres" | "mysql";
 
+const USER_MANAGED_PLUGIN_SCHEMA = `// User-managed plugin schema file.
+// Add plugin table exports here and merge them into pluginSchema.
+export const pluginSchema = {};
+`;
+
 const CORE_SCHEMA_EXPORT_REGEX =
   /export const (sqliteSchema|postgresSchema|mysqlSchema)\s*=/;
 
@@ -139,6 +144,6 @@ ${renderDrizzleCredentials(input.dialect)}
     "src/db/core-schema.ts": coreSchema,
     "src/db/schema.ts": renderComposedSchemaFile(),
     "src/db/auth-schema.ts": authSchema,
-    "src/db/plugins/schema.ts": "export const pluginSchema = {};\n",
+    "src/db/plugins/schema.ts": USER_MANAGED_PLUGIN_SCHEMA,
   };
 };

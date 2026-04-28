@@ -15,9 +15,14 @@ const bot: Pick<Bot, "id" | "name" | "platforms"> = {
 
 const createResponseHandler = (chunks: string[]): ChatResponseService => ({
   handleMessage: async () =>
-    Result.ok({ text: chunks.join(""), threadEntryId: "thread-1" }),
+    Result.ok({
+      action: "respond" as const,
+      text: chunks.join(""),
+      threadEntryId: "thread-1",
+    }),
   handleMessageStream: async () =>
     Result.ok({
+      action: "respond" as const,
       uiStream: createUIMessageStream({
         execute({ writer }) {
           writer.write({ type: "text-start", id: "greeting" });
@@ -33,7 +38,6 @@ const createResponseHandler = (chunks: string[]): ChatResponseService => ({
 const createApp = (chunks: string[]) =>
   new Elysia().use(
     webChatController({
-      botId: bot.id,
       botName: bot.name,
       logger: new NoopLoggerService(),
       platforms: bot.platforms,
@@ -107,5 +111,46 @@ describe("webChatController", () => {
     const body = (await response.json()) as { text: string; threadId: string };
     expect(body.text).toBe("Hello world");
     expect(body.threadId).toBe("thread-1");
+  });
+
+  it("returns 429 and retry-after when sync request is denied", async () => {
+    const app = new Elysia().use(
+      webChatController({
+        botName: bot.name,
+        logger: new NoopLoggerService(),
+        platforms: bot.platforms,
+        responseHandler: {
+          handleMessage: async () =>
+            Result.ok({
+              action: "deny" as const,
+              reason: "rate_limited" as const,
+              retryAfterMs: 25_000,
+              userMessage: "Rate limit reached",
+            }),
+          handleMessageStream: async () =>
+            Result.ok({
+              action: "respond" as const,
+              uiStream: createUIMessageStream({
+                execute: () => undefined,
+              }),
+            }),
+        },
+      })
+    );
+
+    const response = await app.handle(
+      new Request("http://localhost/web/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: "thread-1", message: "Hi" }),
+      })
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("25");
+    await expect(response.json()).resolves.toEqual({
+      message: "Rate limit reached",
+      reason: "rate_limited",
+    });
   });
 });

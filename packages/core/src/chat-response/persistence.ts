@@ -98,7 +98,6 @@ const upsertThread = async (
 
   const thread: ThreadCreate = {
     adapterName: context.adapterName,
-    botId: context.botId,
     botName: context.botName,
     createdAt: timestamp,
     id: context.threadId,
@@ -144,7 +143,7 @@ const createMessages = async ({
     role: "assistant",
     text: responseText,
     threadId,
-    userId: context.botId,
+    userId: "assistant",
   };
   await database.messages.create(assistantMessage);
   return assistantMessage;

@@ -82,13 +82,17 @@ export const resolvePlugins = (bot: BotConfigInput): GoodchatPlugin[] =>
           );
           return {
             name: pluginDefinition.name,
-            ...pluginDefinition.create(env, params),
+            ...pluginDefinition.create(env, params, {
+              database: bot.database,
+            }),
           };
         }
 
         return {
           name: pluginDefinition.name,
-          ...pluginDefinition.create(env, undefined),
+          ...pluginDefinition.create(env, undefined, {
+            database: bot.database,
+          }),
         };
       })
     : [];

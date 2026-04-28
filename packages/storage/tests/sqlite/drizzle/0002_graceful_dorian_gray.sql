@@ -1,1 +1,1 @@
-ALTER TABLE `ai_runs` DROP COLUMN `bot_id`;
+SELECT 1;

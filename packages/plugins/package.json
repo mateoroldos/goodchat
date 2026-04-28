@@ -23,11 +23,28 @@
       "types": "./dist/linear.d.mts",
       "import": "./dist/linear.mjs"
     },
+    "./rate-limit": {
+      "types": "./dist/rate-limit.d.mts",
+      "import": "./dist/rate-limit.mjs"
+    },
+    "./rate-limit/schema/sqlite": {
+      "types": "./dist/rate-limit/schema/sqlite.d.mts",
+      "import": "./dist/rate-limit/schema/sqlite.mjs"
+    },
+    "./rate-limit/schema/postgres": {
+      "types": "./dist/rate-limit/schema/postgres.d.mts",
+      "import": "./dist/rate-limit/schema/postgres.mjs"
+    },
+    "./rate-limit/schema/mysql": {
+      "types": "./dist/rate-limit/schema/mysql.d.mts",
+      "import": "./dist/rate-limit/schema/mysql.mjs"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {
     "@goodchat/contracts": "workspace:*",
     "ai": "^6.0.116",
+    "drizzle-orm": "^0.45.2",
     "zod": "catalog:"
   },
   "devDependencies": {

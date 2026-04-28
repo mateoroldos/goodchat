@@ -2,7 +2,6 @@ import { boolean, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
 export const threads = pgTable("threads", {
   id: text("id").primaryKey(),
-  botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
   platform: text("platform").notNull(),
   adapterName: text("adapter_name").notNull(),

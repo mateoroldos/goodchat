@@ -9,7 +9,6 @@ import {
 
 export const threads = mysqlTable("threads", {
   id: varchar("id", { length: 191 }).primaryKey(),
-  botId: text("bot_id").notNull(),
   botName: text("bot_name").notNull(),
   platform: text("platform").notNull(),
   adapterName: text("adapter_name").notNull(),

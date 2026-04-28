@@ -32,7 +32,6 @@ const createTelemetry = (mode: "stream" | "sync"): AiRunTelemetry => ({
 
 const createContext = (text = "Hello"): MessageContext => ({
   adapterName: "web",
-  botId: "bot-id",
   botName: "Echo",
   platform: "web",
   text,
@@ -226,6 +225,52 @@ describe("DefaultChatResponseService", () => {
     expect(result.isOk()).toBe(true);
     expect(afterHook).toHaveBeenCalledTimes(1);
     expect(requestLogger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns deny outcome and skips ai generation when before hook denies", async () => {
+    const requestLogger = createLogger({ requestId: "req-1" });
+    const beforeHook = vi.fn(async () => ({
+      action: "deny" as const,
+      reason: "rate_limited" as const,
+      retryAfterMs: 10_000,
+      userMessage: "Slow down",
+    }));
+    const aiResponse: AiResponseService = {
+      generate: vi.fn(async () =>
+        Result.ok({
+          telemetry: createTelemetry("sync"),
+          text: "AI: Hello",
+        })
+      ),
+      stream: vi.fn(),
+    };
+    const logger = createLoggerService(requestLogger);
+
+    const service = createService({
+      aiResponse,
+      bot: createBot({
+        database: createDatabaseStub(),
+        hooks: {
+          afterMessage: [],
+          beforeMessage: [beforeHook as never],
+        },
+      }),
+      logger,
+    });
+
+    const result = await service.handleMessage(createContext());
+
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw new Error("Expected handleMessage to return deny outcome");
+    }
+    expect(result.value).toEqual({
+      action: "deny",
+      reason: "rate_limited",
+      retryAfterMs: 10_000,
+      userMessage: "Slow down",
+    });
+    expect(aiResponse.generate).not.toHaveBeenCalled();
   });
 
   it("uses background logger for stream persistence failures", async () => {

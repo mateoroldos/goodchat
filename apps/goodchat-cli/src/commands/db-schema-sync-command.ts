@@ -13,6 +13,7 @@ export interface DbSchemaSyncOptions {
 }
 
 const GOODCHAT_CONFIG_PATH = "src/goodchat.ts";
+const USER_MANAGED_SCHEMA_PATH = "src/db/plugins/schema.ts";
 
 const readTextFileOrNull = async (path: string): Promise<string | null> => {
   try {
@@ -147,6 +148,10 @@ export const runDbSchemaSync = async (
 
   const driftErrors: string[] = [];
   for (const file of existingFiles) {
+    if (file.path === USER_MANAGED_SCHEMA_PATH && file.content !== null) {
+      continue;
+    }
+
     const expectedContent =
       expectedFiles[file.path as keyof typeof expectedFiles];
     if (file.content !== expectedContent) {
@@ -165,6 +170,11 @@ export const runDbSchemaSync = async (
 
   for (const [path, content] of Object.entries(expectedFiles)) {
     const absolutePath = join(options.cwd, path);
+    const existingFile = existingFiles.find((file) => file.path === path);
+    if (path === USER_MANAGED_SCHEMA_PATH && existingFile?.content !== null) {
+      continue;
+    }
+
     await ensureParentDirectory(absolutePath);
     await writeFile(absolutePath, content, "utf8");
   }

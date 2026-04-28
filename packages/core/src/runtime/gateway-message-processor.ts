@@ -78,7 +78,6 @@ const buildMessageContext = (
   message: ThreadMessage
 ): MessageContext => ({
   adapterName: platform,
-  botId: bot.id,
   botName: bot.name,
   platform,
   text: message.text,
@@ -137,6 +136,11 @@ const handleGatewayMessage = async (
       },
     });
     await postDefaultError(thread);
+    return;
+  }
+
+  if (result.value.action === "deny") {
+    await thread.post(result.value.userMessage);
     return;
   }
 

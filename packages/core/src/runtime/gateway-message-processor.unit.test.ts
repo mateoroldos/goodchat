@@ -140,7 +140,11 @@ describe("registerGatewayMessageHandlers", () => {
   it("subscribes mentions and posts successful response", async () => {
     const ai: ChatResponseService = {
       handleMessage: vi.fn(async () =>
-        Result.ok({ text: "AI: Hello", threadEntryId: "web:thread-1" })
+        Result.ok({
+          action: "respond" as const,
+          text: "AI: Hello",
+          threadEntryId: "web:thread-1",
+        })
       ),
       handleMessageStream: vi.fn(),
     };
@@ -164,5 +168,42 @@ describe("registerGatewayMessageHandlers", () => {
 
     expect(thread.subscribe).toHaveBeenCalledTimes(1);
     expect(thread.post).toHaveBeenCalledWith("AI: Hello");
+  });
+
+  it("posts deny message and skips success flow when response is denied", async () => {
+    const ai: ChatResponseService = {
+      handleMessage: vi.fn(async () =>
+        Result.ok({
+          action: "deny" as const,
+          reason: "rate_limited" as const,
+          userMessage: "Rate limit reached",
+        })
+      ),
+      handleMessageStream: vi.fn(),
+    };
+    const logger = createLoggerService();
+    const { gateway, getHandlers } = createGatewayHarness();
+
+    registerGatewayMessageHandlers(gateway, {
+      bot: createBot(),
+      chatResponse: ai,
+      logger,
+    });
+
+    const thread = {
+      id: "web:thread-1",
+      post: vi.fn(async () => undefined),
+      subscribe: vi.fn(async () => undefined),
+    };
+    const message = { author: { userId: "user-1" }, text: "Hello" };
+
+    await getHandlers().onSubscribedMessage?.(
+      thread as never,
+      message as never
+    );
+
+    expect(ai.handleMessage).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledWith("Rate limit reached");
   });
 });

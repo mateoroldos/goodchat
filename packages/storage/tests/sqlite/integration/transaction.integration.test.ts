@@ -10,7 +10,6 @@ describe("sqlite transactions", () => {
       database.transaction(async (tx: Database) => {
         await tx.threads.create({
           id: "thread-1",
-          botId: "bot-1",
           botName: "Support Bot",
           platform: "slack",
           adapterName: "slack",
@@ -27,7 +26,6 @@ describe("sqlite transactions", () => {
     ).rejects.toThrow("fail");
 
     const threads = await database.threads.list({
-      botId: "bot-1",
       limit: 10,
       sort: "asc",
     });

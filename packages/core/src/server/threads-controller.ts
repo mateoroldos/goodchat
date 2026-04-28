@@ -16,14 +16,12 @@ const threadParamsModel = t.Object({
 const createRequestId = (): string => nanoid();
 
 interface ThreadsControllerOptions {
-  botId: string;
   database: Database;
   logger: LoggerService;
 }
 
 export const threadsController = ({
   database,
-  botId,
   logger,
 }: ThreadsControllerOptions) =>
   new Elysia({ prefix: "/threads" })
@@ -37,7 +35,6 @@ export const threadsController = ({
 
         try {
           const threads = await database.threads.list({
-            botId,
             limit: query.limit,
             sort: "desc",
           });
@@ -202,7 +199,7 @@ export const threadsController = ({
     )
     .get("/analytics", async ({ status }) => {
       try {
-        return await database.analytics.weeklyStats(botId);
+        return await database.analytics.weeklyStats();
       } catch (error) {
         const requestId = createRequestId();
         const unknownError =

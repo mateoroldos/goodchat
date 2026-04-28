@@ -34,7 +34,7 @@ export const createMysqlRepositories = (db: MysqlDatabase): Repositories => {
 
   return {
     analytics: {
-      async weeklyStats(botId: string) {
+      async weeklyStats() {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 6);
         const cutoffStr = cutoff.toISOString().slice(0, 10);
@@ -45,9 +45,7 @@ export const createMysqlRepositories = (db: MysqlDatabase): Repositories => {
             count: sql<number>`cast(count(*) as signed)`,
           })
           .from(threads)
-          .where(
-            and(eq(threads.botId, botId), gte(threads.createdAt, cutoffStr))
-          )
+          .where(gte(threads.createdAt, cutoffStr))
           .groupBy(sql`DATE(${threads.createdAt})`)
           .orderBy(sql`DATE(${threads.createdAt})`);
 
@@ -58,9 +56,7 @@ export const createMysqlRepositories = (db: MysqlDatabase): Repositories => {
           })
           .from(aiRuns)
           .innerJoin(threads, eq(aiRuns.threadId, threads.id))
-          .where(
-            and(eq(threads.botId, botId), gte(aiRuns.createdAt, cutoffStr))
-          )
+          .where(gte(aiRuns.createdAt, cutoffStr))
           .groupBy(sql`DATE(${aiRuns.createdAt})`)
           .orderBy(sql`DATE(${aiRuns.createdAt})`);
 
@@ -199,7 +195,6 @@ export const createMysqlRepositories = (db: MysqlDatabase): Repositories => {
       async list(input: Parameters<Database["threads"]["list"]>[0]) {
         const sortDirection = input.sort ?? "desc";
         const limit = input.limit ?? DEFAULT_LIST_LIMIT;
-        const baseFilter = eq(threads.botId, input.botId);
         const cursorFilter = input.cursor
           ? buildCursorFilter(
               sortDirection,
@@ -209,18 +204,13 @@ export const createMysqlRepositories = (db: MysqlDatabase): Repositories => {
               input.cursor.id
             )
           : undefined;
-        const whereClause = cursorFilter
-          ? and(baseFilter, cursorFilter)
-          : baseFilter;
         const orderBy =
           sortDirection === "asc"
             ? [asc(threads.createdAt), asc(threads.id)]
             : [desc(threads.createdAt), desc(threads.id)];
 
-        const rows = await db
-          .select()
-          .from(threads)
-          .where(whereClause)
+        const query = db.select().from(threads);
+        const rows = await (cursorFilter ? query.where(cursorFilter) : query)
           .orderBy(...orderBy)
           .limit(limit);
 
