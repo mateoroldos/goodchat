@@ -1,5 +1,11 @@
 # @goodchat/create
 
+## 0.0.25
+
+### Patch Changes
+
+- 72d2a4e: Update generated ascii font title in README
+
 ## 0.0.24
 
 ### Patch Changes
