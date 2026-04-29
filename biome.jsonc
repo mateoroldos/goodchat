@@ -10,6 +10,7 @@
       "!.agents",
       "!**/*.d.ts",
       "!examples/*",
+      "!packages/storage/schema/auth/*.ts",
       "!**/lib/components/ui",
       "!**/lib/components/ai-elements"
     ]
