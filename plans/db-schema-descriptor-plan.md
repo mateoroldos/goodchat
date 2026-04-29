@@ -13,6 +13,7 @@ DBFieldAttribute (atom)
 ```
 
 Key properties of `DBFieldAttribute`:
+
 - `type`: `"string" | "number" | "boolean" | "date" | "json"`
 - `required`, `unique`, `index`, `returned`, `input`
 - `references`: `{ model, field, onDelete }`
@@ -52,6 +53,7 @@ GoodchatPlugin / GoodchatPluginDefinition
 ```
 
 **Problems:**
+
 1. Core schema duplicated: drizzle objects in `packages/storage` + string copies in `packages/templates`.
 2. `pluginSchema` is always empty — plugins can't contribute tables.
 3. Hard to maintain: changing a core table requires updating both places.
@@ -76,6 +78,7 @@ apps/create-cli scaffold                     ← generate schema from core only 
 ```
 
 Data flow:
+
 ```
 core-schema.ts ──┐
                   ├─→ getGoodchatTables(plugins) → merged GoodchatSchema
@@ -96,40 +99,54 @@ plugin.schema ───┘              │
 Create `packages/contracts/src/db/types.ts`:
 
 ```ts
-export type GoodchatFieldType = "string" | "number" | "boolean" | "date" | "json"
+export type GoodchatFieldType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "date"
+  | "json";
 
 export type GoodchatFieldAttribute = {
-  type: GoodchatFieldType
-  required?: boolean
-  unique?: boolean
-  index?: boolean
-  returned?: boolean          // mirrors better-auth: exclude from output
-  input?: boolean             // mirrors better-auth: disallow on write
-  defaultValue?: string | number | boolean | (() => string | number | boolean | Date)
-  onUpdate?: () => Date
+  type: GoodchatFieldType;
+  required?: boolean;
+  unique?: boolean;
+  index?: boolean;
+  returned?: boolean; // mirrors better-auth: exclude from output
+  input?: boolean; // mirrors better-auth: disallow on write
+  defaultValue?:
+    | string
+    | number
+    | boolean
+    | (() => string | number | boolean | Date);
+  onUpdate?: () => Date;
   references?: {
-    model: string
-    field: string
-    onDelete?: "cascade" | "no action" | "restrict" | "set null" | "set default"
-  }
-  fieldName?: string          // override column name in DB
-}
+    model: string;
+    field: string;
+    onDelete?:
+      | "cascade"
+      | "no action"
+      | "restrict"
+      | "set null"
+      | "set default";
+  };
+  fieldName?: string; // override column name in DB
+};
 
 export type GoodchatTableSchema = {
-  modelName?: string          // override table name in DB (defaults to key)
-  fields: Record<string, GoodchatFieldAttribute>
-  order?: number              // generation order hint
-}
+  modelName?: string; // override table name in DB (defaults to key)
+  fields: Record<string, GoodchatFieldAttribute>;
+  order?: number; // generation order hint
+};
 
-export type GoodchatSchema = Record<string, GoodchatTableSchema>
+export type GoodchatSchema = Record<string, GoodchatTableSchema>;
 ```
 
 Create `packages/contracts/src/db/plugin-schema.ts`:
 
 ```ts
-import type { GoodchatTableSchema } from "./types"
+import type { GoodchatTableSchema } from "./types";
 
-export type GoodchatPluginSchema = Record<string, GoodchatTableSchema>
+export type GoodchatPluginSchema = Record<string, GoodchatTableSchema>;
 ```
 
 **Tests:** none (pure types)
@@ -168,15 +185,15 @@ export const coreSchema = {
 Add `schema` to `GoodchatPlugin`:
 
 ```ts
-import type { GoodchatPluginSchema } from "../db/plugin-schema"
+import type { GoodchatPluginSchema } from "../db/plugin-schema";
 
 export interface GoodchatPlugin {
-  name: string
-  schema?: GoodchatPluginSchema   // ← new
-  hooks?: GoodchatHooks
-  mcp?: MCPServerConfig[]
-  systemPrompt?: string
-  tools?: Record<string, Tool>
+  name: string;
+  schema?: GoodchatPluginSchema; // ← new
+  hooks?: GoodchatHooks;
+  mcp?: MCPServerConfig[];
+  systemPrompt?: string;
+  tools?: Record<string, Tool>;
 }
 ```
 
@@ -189,26 +206,32 @@ No change to `GoodchatPluginDefinition` — `schema` stays a static property (no
 ### Step 4 — Merge function in `packages/core/src/db/get-tables.ts`
 
 ```ts
-import type { GoodchatPlugin } from "@goodchat/contracts/plugins"
-import type { GoodchatSchema } from "@goodchat/contracts/db"
-import { coreSchema } from "./core-schema"
+import type { GoodchatPlugin } from "@goodchat/contracts/plugins";
+import type { GoodchatSchema } from "@goodchat/contracts/db";
+import { coreSchema } from "./core-schema";
 
-export const getGoodchatTables = (plugins: GoodchatPlugin[]): GoodchatSchema => {
-  return plugins.reduce((acc, plugin) => {
-    if (!plugin.schema) return acc
-    for (const [table, def] of Object.entries(plugin.schema)) {
-      acc[table] = {
-        ...def,
-        modelName: def.modelName ?? table,
-        fields: { ...acc[table]?.fields, ...def.fields },
+export const getGoodchatTables = (
+  plugins: GoodchatPlugin[],
+): GoodchatSchema => {
+  return plugins.reduce(
+    (acc, plugin) => {
+      if (!plugin.schema) return acc;
+      for (const [table, def] of Object.entries(plugin.schema)) {
+        acc[table] = {
+          ...def,
+          modelName: def.modelName ?? table,
+          fields: { ...acc[table]?.fields, ...def.fields },
+        };
       }
-    }
-    return acc
-  }, structuredClone(coreSchema) as GoodchatSchema)
-}
+      return acc;
+    },
+    structuredClone(coreSchema) as GoodchatSchema,
+  );
+};
 ```
 
 **Tests** (`packages/core/src/db/get-tables.unit.test.ts`):
+
 - Returns core schema when plugins is empty
 - Plugin new table is included in output
 - Plugin field extends existing core table
@@ -231,6 +254,7 @@ export const generateDrizzleSchema = (
 ```
 
 Logic (modelled on better-auth's `drizzle.ts` but sqlite-only first pass, expand to pg/mysql):
+
 1. Build import list from field types present in schema
 2. For each table in schema (sorted by `order`):
    - Emit `export const {camelTableName} = {dialect}Table("{modelName || key}", { id: text/varchar("id").primaryKey(), ...fields })`
@@ -240,15 +264,16 @@ Logic (modelled on better-auth's `drizzle.ts` but sqlite-only first pass, expand
 
 Type mapping (sqlite):
 
-| GoodchatFieldType | SQLite             | Postgres          | MySQL                |
-|-------------------|--------------------|-------------------|----------------------|
-| string            | `text`             | `text`            | `text` / `varchar`   |
-| number            | `integer`          | `integer`         | `int`                |
-| boolean           | `integer({mode:boolean})` | `boolean` | `boolean`           |
-| date              | `text`             | `timestamp`       | `timestamp`          |
-| json              | `text({mode:json})`| `jsonb`           | `json`               |
+| GoodchatFieldType | SQLite                    | Postgres    | MySQL              |
+| ----------------- | ------------------------- | ----------- | ------------------ |
+| string            | `text`                    | `text`      | `text` / `varchar` |
+| number            | `integer`                 | `integer`   | `int`              |
+| boolean           | `integer({mode:boolean})` | `boolean`   | `boolean`          |
+| date              | `text`                    | `timestamp` | `timestamp`        |
+| json              | `text({mode:json})`       | `jsonb`     | `json`             |
 
 **Tests** (`packages/core/src/db/drizzle-generator.unit.test.ts`):
+
 - Single table, all field types → output contains correct drizzle builders per dialect
 - `required: false` field → no `.notNull()`
 - `unique: true` field → `.unique()`
@@ -265,6 +290,7 @@ Type mapping (sqlite):
 **File:** `apps/goodchat-cli/src/commands/db-schema-sync-command.ts`
 
 Changes:
+
 1. After loading config via jiti, also extract `plugins` from the goodchat instance (need to extend `LoadedGoodchatConfig` to include `plugins?: GoodchatPlugin[]`)
 2. Call `getGoodchatTables(plugins ?? [])` to get merged schema
 3. Call `generateDrizzleSchema(tables, dialect)` to produce the consumer schema string
@@ -275,6 +301,7 @@ The `src/db/plugins/schema.ts` placeholder disappears — plugin tables are in `
 **Tests** (`db-schema-sync-command.unit.test.ts`):
 
 Keep existing cases, update assertions for new output format, add:
+
 - Config with plugin that declares a table → generated schema includes plugin table
 - Config with plugin extending core table → generated schema has extended column
 - Config with no plugins → generated schema matches core-only baseline
@@ -289,17 +316,18 @@ Keep existing cases, update assertions for new output format, add:
 At scaffold time there are no user plugins yet, so generate from `coreSchema` only:
 
 ```ts
-import { coreSchema } from "@goodchat/core/db"
-import { getGoodchatTables, generateDrizzleSchema } from "@goodchat/core/db"
+import { coreSchema } from "@goodchat/core/db";
+import { getGoodchatTables, generateDrizzleSchema } from "@goodchat/core/db";
 
 export const renderSchemaFile = (dialect: DatabaseDialect): string =>
-  generateDrizzleSchema(getGoodchatTables([]), dialect)
+  generateDrizzleSchema(getGoodchatTables([]), dialect);
 ```
 
 Remove dependency on `packages/templates/scaffold/generated/db-schema-templates.ts`.
 `renderDbSchemaArtifacts` in `packages/templates` calls `renderSchemaFile` instead of the hardcoded template.
 
 **Tests** (`apps/create-cli/src/generator/schema.unit.test.ts`):
+
 - sqlite scaffold → output contains `threads`, `messages`, `aiRuns`, `aiRunToolCalls` tables
 - postgres scaffold → uses `pgTable` import
 - mysql scaffold → uses `mysqlTable` import
@@ -309,6 +337,7 @@ Remove dependency on `packages/templates/scaffold/generated/db-schema-templates.
 ### Step 8 — Delete hardcoded templates
 
 Once both CLIs use the generator:
+
 - Delete `packages/templates/scaffold/generated/db-schema-templates.ts`
 - Simplify `packages/templates/scaffold/db-schema-artifacts.ts` to use generator
 
