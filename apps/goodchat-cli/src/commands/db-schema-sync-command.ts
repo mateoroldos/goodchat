@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import { databaseDialectSchema } from "@goodchat/contracts/config/models";
 import type { DatabaseDialect } from "@goodchat/contracts/config/types";
+import type { GoodchatPluginSchema } from "@goodchat/contracts/db/types";
 import { renderDbSchemaArtifacts } from "@goodchat/templates/scaffold/db-schema-artifacts";
 import { createJiti } from "jiti";
 
@@ -38,9 +39,8 @@ const resolveConfigPath = (cwd: string, configPath: string): string => {
 
 interface LoadedGoodchatConfig {
   auth?: { enabled?: boolean };
-  database?: {
-    dialect?: unknown;
-  };
+  database?: { dialect?: unknown };
+  plugins?: unknown[];
 }
 
 const loadGoodchatConfig = async (input: {
@@ -72,32 +72,34 @@ const loadGoodchatConfig = async (input: {
   );
 };
 
-const resolveDialectFromGoodchatConfig = async (input: {
-  configPath: string;
-  cwd: string;
-}): Promise<DatabaseDialect> => {
-  const moduleExports = await loadGoodchatConfig(input);
-  const parsedDialect = databaseDialectSchema.safeParse(
-    moduleExports.database?.dialect
-  );
-  if (parsedDialect.success) {
-    return parsedDialect.data;
-  }
+// Extracts schema descriptors from plugins without running env/param validation.
+// Handles all three plugin shapes: GoodchatPlugin, GoodchatPluginDefinition, GoodchatPluginFactory.
+const extractPluginSchemas = (
+  plugins: unknown[]
+): Array<{ schema?: GoodchatPluginSchema }> =>
+  plugins.flatMap((p) => {
+    // factory function → call with no args to get the definition
+    let resolved = p;
+    if (typeof resolved === "function") {
+      try {
+        resolved = resolved();
+      } catch {
+        return [];
+      }
+    }
+    if (
+      resolved !== null &&
+      typeof resolved === "object" &&
+      "schema" in resolved
+    ) {
+      return [
+        { schema: (resolved as { schema?: GoodchatPluginSchema }).schema },
+      ];
+    }
+    return [{}];
+  });
 
-  throw new Error(
-    `Could not resolve a valid database dialect from ${input.configPath}. Export goodchat.database with a supported dialect.`
-  );
-};
-
-const resolveAuthEnabledFromGoodchatConfig = async (input: {
-  configPath: string;
-  cwd: string;
-}): Promise<boolean> => {
-  const moduleExports = await loadGoodchatConfig(input);
-  return moduleExports.auth?.enabled === true;
-};
-
-const resolveDialect = (options: {
+const resolveDialect = async (options: {
   configPath: string;
   cwd: string;
   dialect?: string;
@@ -109,32 +111,39 @@ const resolveDialect = (options: {
         `Invalid --dialect value: ${options.dialect}. Expected one of sqlite, postgres, mysql.`
       );
     }
-    return Promise.resolve(parsed.data);
+    return parsed.data;
   }
 
-  return resolveDialectFromGoodchatConfig({
+  const config = await loadGoodchatConfig({
     configPath: options.configPath,
     cwd: options.cwd,
   });
+  const parsed = databaseDialectSchema.safeParse(config.database?.dialect);
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  throw new Error(
+    `Could not resolve a valid database dialect from ${options.configPath}. Export goodchat.database with a supported dialect.`
+  );
 };
 
 export const runDbSchemaSync = async (
   options: DbSchemaSyncOptions
 ): Promise<void> => {
   const configPath = options.configPath ?? GOODCHAT_CONFIG_PATH;
+  const config = await loadGoodchatConfig({ configPath, cwd: options.cwd });
+
   const dialect = await resolveDialect({
     dialect: options.dialect,
     configPath,
     cwd: options.cwd,
   });
-  const authEnabled = await resolveAuthEnabledFromGoodchatConfig({
-    configPath,
-    cwd: options.cwd,
-  });
+
   const expectedFiles = await renderDbSchemaArtifacts({
-    authEnabled,
-    cwd: options.cwd,
+    authEnabled: config.auth?.enabled === true,
     dialect,
+    plugins: extractPluginSchemas(config.plugins ?? []),
   });
 
   const existingFiles = await Promise.all(

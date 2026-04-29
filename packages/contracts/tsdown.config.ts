@@ -27,6 +27,7 @@ export default defineConfig({
     "model/catalog/openrouter": "./src/model/catalog/openrouter.ts",
     "model/catalog/ai-gateway": "./src/model/catalog/ai-gateway.ts",
     "model/catalog/vercel-gateway": "./src/model/catalog/vercel-gateway.ts",
+    "db/types": "./src/db/types.ts",
   },
   format: ["esm"],
   dts: {

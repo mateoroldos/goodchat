@@ -7,6 +7,7 @@ import type {
   ZodTypeAny,
 } from "zod";
 import type { MCPServerConfig } from "../capabilities/types";
+import type { GoodchatPluginSchema } from "../db/types";
 import type { GoodchatHooks } from "../hooks/types";
 
 export type {
@@ -21,6 +22,7 @@ export interface GoodchatPlugin {
   hooks?: GoodchatHooks;
   mcp?: MCPServerConfig[];
   name: string;
+  schema?: GoodchatPluginSchema;
   systemPrompt?: string;
   tools?: Record<string, Tool>;
 }
@@ -28,6 +30,7 @@ export interface GoodchatPlugin {
 export interface GoodchatPluginDefinitionBase<TShape extends ZodRawShape> {
   env?: ZodObject<TShape>;
   name: string;
+  schema?: GoodchatPluginSchema;
 }
 
 export type GoodchatPluginDefinitionNoParams<TShape extends ZodRawShape> =
@@ -35,7 +38,7 @@ export type GoodchatPluginDefinitionNoParams<TShape extends ZodRawShape> =
     create: (
       env: ZodOutput<ZodObject<TShape>>,
       params: undefined
-    ) => Omit<GoodchatPlugin, "name">;
+    ) => Omit<GoodchatPlugin, "name" | "schema">;
     params?: undefined;
     paramsSchema?: undefined;
   };
@@ -47,7 +50,7 @@ export type GoodchatPluginDefinitionWithParams<
   create: (
     env: ZodOutput<ZodObject<TShape>>,
     params: ZodInput<TParamsSchema>
-  ) => Omit<GoodchatPlugin, "name">;
+  ) => Omit<GoodchatPlugin, "name" | "schema">;
   params: ZodInput<TParamsSchema>;
   paramsSchema: TParamsSchema;
 };

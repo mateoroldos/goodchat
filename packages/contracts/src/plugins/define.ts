@@ -5,16 +5,18 @@ import type {
   ZodRawShape,
   ZodTypeAny,
 } from "zod";
+import type { GoodchatPluginSchema } from "../db/types";
 import type { GoodchatPlugin, GoodchatPluginFactory } from "./types";
 
 interface DefinePluginNoParamsOptions<TShape extends ZodRawShape> {
   create: (
     env: ZodOutput<ZodObject<TShape>>,
     params: undefined
-  ) => Omit<GoodchatPlugin, "name">;
+  ) => Omit<GoodchatPlugin, "name" | "schema">;
   env?: ZodObject<TShape>;
   name: string;
   paramsSchema?: undefined;
+  schema?: GoodchatPluginSchema;
 }
 
 interface DefinePluginWithParamsOptions<
@@ -24,10 +26,11 @@ interface DefinePluginWithParamsOptions<
   create: (
     env: ZodOutput<ZodObject<TShape>>,
     params: ZodInput<TParamsSchema>
-  ) => Omit<GoodchatPlugin, "name">;
+  ) => Omit<GoodchatPlugin, "name" | "schema">;
   env?: ZodObject<TShape>;
   name: string;
   paramsSchema: TParamsSchema;
+  schema?: GoodchatPluginSchema;
 }
 
 export function definePlugin<TShape extends ZodRawShape>(
@@ -53,6 +56,7 @@ export function definePlugin(
       name: options.name,
       params,
       paramsSchema: options.paramsSchema,
+      schema: options.schema,
     });
   }
 
@@ -62,5 +66,6 @@ export function definePlugin(
     name: options.name,
     params: undefined,
     paramsSchema: undefined,
+    schema: options.schema,
   });
 }

@@ -1,40 +1,11 @@
-import {
-  AUTH_SCHEMA_TEMPLATE_BY_DIALECT,
-  CORE_SCHEMA_TEMPLATE_BY_DIALECT,
-} from "./generated/db-schema-templates";
+import type { GoodchatPluginSchema } from "@goodchat/contracts/db/types";
+import { generateDrizzleSchema } from "@goodchat/core/db/drizzle-generator";
+import { getGoodchatTables } from "@goodchat/core/db/get-tables";
+import { getAuthSchema } from "./get-auth-schema";
 
 export type DatabaseDialect = "sqlite" | "postgres" | "mysql";
 
-const CORE_SCHEMA_EXPORT_REGEX =
-  /export const (sqliteSchema|postgresSchema|mysqlSchema)\s*=/;
-
-const TEMPLATE_BY_RELATIVE_PATH = {
-  "schema/auth/mysql.ts": AUTH_SCHEMA_TEMPLATE_BY_DIALECT.mysql,
-  "schema/auth/postgres.ts": AUTH_SCHEMA_TEMPLATE_BY_DIALECT.postgres,
-  "schema/auth/sqlite.ts": AUTH_SCHEMA_TEMPLATE_BY_DIALECT.sqlite,
-  "schema/mysql.ts": CORE_SCHEMA_TEMPLATE_BY_DIALECT.mysql,
-  "schema/postgres.ts": CORE_SCHEMA_TEMPLATE_BY_DIALECT.postgres,
-  "schema/sqlite.ts": CORE_SCHEMA_TEMPLATE_BY_DIALECT.sqlite,
-} as const;
-
-export const readSchemaTemplate = (input: {
-  relativePath: string;
-  cwd?: string;
-}): Promise<string> => {
-  const template =
-    TEMPLATE_BY_RELATIVE_PATH[
-      input.relativePath as keyof typeof TEMPLATE_BY_RELATIVE_PATH
-    ];
-  if (template) {
-    return Promise.resolve(template);
-  }
-
-  return Promise.reject(
-    new Error(
-      `Could not load schema template from @goodchat/templates (${input.relativePath}). Ensure @goodchat/templates includes this asset.`
-    )
-  );
-};
+const IMPORT_BLOCK_REGEX = /^import\s+\{([\s\S]*?)\}\s+from\s+"([^"]+)";\n\n/;
 
 const getDrizzleDialect = (dialect: DatabaseDialect): string => {
   if (dialect === "postgres") {
@@ -43,87 +14,80 @@ const getDrizzleDialect = (dialect: DatabaseDialect): string => {
   return dialect;
 };
 
-const renderDrizzleCredentials = (dialect: DatabaseDialect): string => {
-  if (dialect === "sqlite") {
-    return "    url: process.env.DATABASE_URL,";
+const extractImportBlock = (
+  source: string
+): {
+  imports: Set<string>;
+  moduleName: string;
+  remainder: string;
+} => {
+  const match = source.match(IMPORT_BLOCK_REGEX);
+  if (!match) {
+    throw new Error("Schema block missing drizzle import statement.");
   }
-  return "    url: process.env.DATABASE_URL,";
-};
 
-const renderCoreSchemaFile = async (input: {
-  dialect: DatabaseDialect;
-  cwd?: string;
-}): Promise<string> => {
-  const schemaPathByDialect = {
-    mysql: "schema/mysql.ts",
-    postgres: "schema/postgres.ts",
-    sqlite: "schema/sqlite.ts",
-  } satisfies Record<DatabaseDialect, string>;
-
-  const template = await readSchemaTemplate({
-    cwd: input.cwd,
-    relativePath: schemaPathByDialect[input.dialect],
-  });
-
-  return template.replace(
-    CORE_SCHEMA_EXPORT_REGEX,
-    "export const coreSchema ="
+  const names = match[1];
+  const moduleName = match[2];
+  if (!names || !moduleName) {
+    throw new Error("Schema import block is malformed.");
+  }
+  const imports = new Set(
+    names
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0)
   );
-};
-
-const renderAuthSchemaFile = (input: {
-  authEnabled: boolean;
-  dialect: DatabaseDialect;
-  cwd?: string;
-}): Promise<string> => {
-  if (!input.authEnabled) {
-    return Promise.resolve("export const authSchema = {};\n");
-  }
-
-  const authSchemaPathByDialect = {
-    mysql: "schema/auth/mysql.ts",
-    postgres: "schema/auth/postgres.ts",
-    sqlite: "schema/auth/sqlite.ts",
-  } satisfies Record<DatabaseDialect, string>;
-
-  return readSchemaTemplate({
-    cwd: input.cwd,
-    relativePath: authSchemaPathByDialect[input.dialect],
-  });
-};
-
-const renderComposedSchemaFile = (): string => {
-  return `import { authSchema } from "./auth-schema";
-import { coreSchema } from "./core-schema";
-import { pluginSchema } from "./plugins/schema";
-
-export * from "./auth-schema";
-export * from "./core-schema";
-export * from "./plugins/schema";
-
-export const schema = {
-  ...coreSchema,
-  ...authSchema,
-  ...pluginSchema,
-};
-`;
-};
-
-export const renderDbSchemaArtifacts = async (input: {
-  authEnabled: boolean;
-  dialect: DatabaseDialect;
-  cwd?: string;
-}): Promise<Record<string, string>> => {
-  const [coreSchema, authSchema] = await Promise.all([
-    renderCoreSchemaFile({ cwd: input.cwd, dialect: input.dialect }),
-    renderAuthSchemaFile({
-      authEnabled: input.authEnabled,
-      cwd: input.cwd,
-      dialect: input.dialect,
-    }),
-  ]);
 
   return {
+    imports,
+    moduleName,
+    remainder: source.replace(IMPORT_BLOCK_REGEX, "").trim(),
+  };
+};
+
+const renderImportBlock = (
+  moduleName: string,
+  imports: Set<string>
+): string => {
+  const names = [...imports].sort((a, b) => a.localeCompare(b));
+  return `import { ${names.join(", ")} } from "${moduleName}";`;
+};
+
+const renderUnifiedSchemaFile = (input: {
+  authEnabled: boolean;
+  dialect: DatabaseDialect;
+  plugins?: Array<{ schema?: GoodchatPluginSchema }>;
+}): string => {
+  const merged = getGoodchatTables(input.plugins ?? []);
+  const coreAndPluginSchema = generateDrizzleSchema(
+    merged,
+    input.dialect,
+    "coreSchema"
+  );
+  const authSchema = getAuthSchema(input);
+
+  const coreImport = extractImportBlock(coreAndPluginSchema);
+  const authImport = extractImportBlock(authSchema);
+
+  if (coreImport.moduleName !== authImport.moduleName) {
+    throw new Error(
+      `Auth and core schema imports do not match for ${input.dialect}.`
+    );
+  }
+
+  const mergedImports = new Set([...coreImport.imports, ...authImport.imports]);
+  const importLine = renderImportBlock(coreImport.moduleName, mergedImports);
+
+  return `${importLine}\n\n${authImport.remainder}\n\n${coreImport.remainder}\n\nexport const schema = {\n  ...authSchema,\n  ...coreSchema,\n};\n`;
+};
+
+export const renderDbSchemaArtifacts = (input: {
+  authEnabled: boolean;
+  dialect: DatabaseDialect;
+  plugins?: Array<{ schema?: GoodchatPluginSchema }>;
+  cwd?: string;
+}): Promise<Record<string, string>> => {
+  return Promise.resolve({
     "drizzle.config.ts": `import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
@@ -132,13 +96,10 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "${getDrizzleDialect(input.dialect)}",
   dbCredentials: {
-${renderDrizzleCredentials(input.dialect)}
+    url: process.env.DATABASE_URL,
   },
 });
 `,
-    "src/db/core-schema.ts": coreSchema,
-    "src/db/schema.ts": renderComposedSchemaFile(),
-    "src/db/auth-schema.ts": authSchema,
-    "src/db/plugins/schema.ts": "export const pluginSchema = {};\n",
-  };
+    "src/db/schema.ts": renderUnifiedSchemaFile(input),
+  });
 };

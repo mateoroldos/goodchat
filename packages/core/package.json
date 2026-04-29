@@ -28,6 +28,14 @@
     "./types": {
       "types": "./dist/types.d.mts",
       "import": "./dist/types.mjs"
+    },
+    "./db/drizzle-generator": {
+      "types": "./dist/db/drizzle-generator.d.mts",
+      "import": "./dist/db/drizzle-generator.mjs"
+    },
+    "./db/get-tables": {
+      "types": "./dist/db/get-tables.d.mts",
+      "import": "./dist/db/get-tables.mjs"
     }
   },
   "dependencies": {
