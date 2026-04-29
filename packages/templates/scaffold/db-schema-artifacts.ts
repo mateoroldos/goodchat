@@ -28,11 +28,11 @@ const extractImportBlock = (
 
   const names = match[1];
   const moduleName = match[2];
-  if (!names || !moduleName) {
+  if (!moduleName) {
     throw new Error("Schema import block is malformed.");
   }
   const imports = new Set(
-    names
+    (names ?? "")
       .split(",")
       .map((name) => name.trim())
       .filter((name) => name.length > 0)

@@ -11,7 +11,7 @@ describe("renderDbSchemaArtifacts", () => {
     expect(schema).toContain(
       'import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";'
     );
-    expect(schema).not.toContain('import {} from "drizzle-orm/sqlite-core";');
+    expect(schema).toContain('sqliteTable("user"');
   });
 
   it("includes auth tables when enabled", async () => {

@@ -44,7 +44,8 @@ describe("db schema sync command", () => {
     expect(drizzleConfig).toContain('dialect: "sqlite"');
     expect(schema).toContain('sqliteTable("threads"');
     expect(schema).toContain("export const coreSchema = {");
-    expect(schema).toContain("export const authSchema = {};");
+    expect(schema).toContain('sqliteTable("user"');
+    expect(schema).toContain("export const authSchema = {");
     expect(schema).toContain("export const schema = {");
   });
 
