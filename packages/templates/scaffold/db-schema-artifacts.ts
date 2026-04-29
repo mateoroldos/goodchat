@@ -53,6 +53,21 @@ const renderImportBlock = (
   return `import { ${names.join(", ")} } from "${moduleName}";`;
 };
 
+const TABLE_EXPORT_REGEX = /^export const\s+([A-Za-z_$][\w$]*)\s*=\s*/gm;
+const NON_TABLE_EXPORTS = new Set(["authSchema", "coreSchema", "schema"]);
+
+const extractTableExports = (source: string): Set<string> => {
+  const keys = new Set<string>();
+  for (const match of source.matchAll(TABLE_EXPORT_REGEX)) {
+    const key = match[1];
+    if (!key || NON_TABLE_EXPORTS.has(key)) {
+      continue;
+    }
+    keys.add(key);
+  }
+  return keys;
+};
+
 const renderUnifiedSchemaFile = (input: {
   authEnabled: boolean;
   dialect: DatabaseDialect;
@@ -77,6 +92,16 @@ const renderUnifiedSchemaFile = (input: {
 
   const mergedImports = new Set([...coreImport.imports, ...authImport.imports]);
   const importLine = renderImportBlock(coreImport.moduleName, mergedImports);
+
+  const authTables = extractTableExports(authImport.remainder);
+  const coreTables = extractTableExports(coreImport.remainder);
+  const collisions = [...authTables].filter((name) => coreTables.has(name));
+  if (collisions.length > 0) {
+    const sorted = collisions.sort((a, b) => a.localeCompare(b));
+    throw new Error(
+      `Auth and plugin/core schema table keys overlap: ${sorted.join(", ")}. Rename plugin tables to avoid collisions.`
+    );
+  }
 
   return `${importLine}\n\n${authImport.remainder}\n\n${coreImport.remainder}\n\nexport const schema = {\n  ...authSchema,\n  ...coreSchema,\n};\n`;
 };

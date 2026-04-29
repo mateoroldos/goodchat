@@ -44,4 +44,22 @@ describe("renderDbSchemaArtifacts", () => {
     expect(schema).toContain('mysqlTable("todos"');
     expect(schema).toContain('text("title")');
   });
+
+  it("fails when plugin/core table collides with auth table key", async () => {
+    await expect(async () =>
+      renderDbSchemaArtifacts({
+        authEnabled: true,
+        dialect: "sqlite",
+        plugins: [
+          {
+            schema: {
+              user: {
+                columns: { title: { type: "string", required: true } },
+              },
+            },
+          },
+        ],
+      })
+    ).rejects.toThrow("Auth and plugin/core schema table keys overlap: user");
+  });
 });
