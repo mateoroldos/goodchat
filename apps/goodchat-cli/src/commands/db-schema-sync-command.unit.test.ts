@@ -118,6 +118,28 @@ describe("db schema sync command", () => {
     expect(drizzleConfig).toContain('dialect: "postgresql"');
   });
 
+  it("loads config once when dialect comes from config", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await writeFile(
+      join(projectRoot, "src/goodchat.ts"),
+      `globalThis.__goodchatLoadCount = (globalThis.__goodchatLoadCount ?? 0) + 1;
+export const goodchat = {
+  database: { dialect: "sqlite" as const },
+  auth: { enabled: false, mode: "password" as const, webChatPublic: false },
+};
+`,
+      "utf8"
+    );
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    expect(
+      (globalThis as { __goodchatLoadCount?: number }).__goodchatLoadCount
+    ).toBe(1);
+    (globalThis as { __goodchatLoadCount?: number }).__goodchatLoadCount =
+      undefined;
+  });
+
   it("includes plugin table in schema when plugin declares schema", async () => {
     const projectRoot = await createTempProject("sqlite");
     await writeFile(
@@ -232,6 +254,47 @@ describe("db schema sync command", () => {
       "utf8"
     );
     expect(schema).toContain('sqliteTable("todos"');
+
+    warnSpy.mockRestore();
+  });
+
+  it("uses static schema on plugin factory without invoking it", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await writeFile(
+      join(projectRoot, "src/goodchat.ts"),
+      `const pluginFactory = () => {
+  throw new Error("should not execute");
+};
+pluginFactory.schema = {
+  staticTodos: {
+    columns: {
+      title: { type: "string", required: true },
+    },
+  },
+};
+
+export const goodchat = {
+  database: { dialect: "sqlite" as const },
+  auth: { enabled: false, mode: "password" as const, webChatPublic: false },
+  plugins: [pluginFactory],
+};
+`,
+      "utf8"
+    );
+
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    const schema = await readFile(
+      join(projectRoot, "src/db/schema.ts"),
+      "utf8"
+    );
+    expect(schema).toContain('sqliteTable("staticTodos"');
 
     warnSpy.mockRestore();
   });

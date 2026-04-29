@@ -78,10 +78,15 @@ const extractPluginSchemas = (
   plugins: unknown[]
 ): Array<{ schema?: GoodchatPluginSchema }> =>
   plugins.flatMap((p, index) => {
-    // factory function → call with no args to get the definition
     let resolved = p;
     if (typeof resolved === "function") {
-      const pluginFactory = resolved as (() => unknown) & { name?: string };
+      const pluginFactory = resolved as (() => unknown) & {
+        name?: string;
+        schema?: GoodchatPluginSchema;
+      };
+      if (pluginFactory.schema) {
+        return [{ schema: pluginFactory.schema }];
+      }
       try {
         resolved = pluginFactory();
       } catch (error) {
@@ -111,6 +116,7 @@ const extractPluginSchemas = (
 
 const resolveDialect = async (options: {
   configPath: string;
+  config?: LoadedGoodchatConfig;
   cwd: string;
   dialect?: string;
 }): Promise<DatabaseDialect> => {
@@ -124,10 +130,12 @@ const resolveDialect = async (options: {
     return parsed.data;
   }
 
-  const config = await loadGoodchatConfig({
-    configPath: options.configPath,
-    cwd: options.cwd,
-  });
+  const config =
+    options.config ??
+    (await loadGoodchatConfig({
+      configPath: options.configPath,
+      cwd: options.cwd,
+    }));
   const parsed = databaseDialectSchema.safeParse(config.database?.dialect);
   if (parsed.success) {
     return parsed.data;
@@ -147,6 +155,7 @@ export const runDbSchemaSync = async (
   const dialect = await resolveDialect({
     dialect: options.dialect,
     configPath,
+    config,
     cwd: options.cwd,
   });
 
