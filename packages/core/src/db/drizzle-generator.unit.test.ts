@@ -222,6 +222,34 @@ describe("generateDrizzleSchema", () => {
       );
       expect(out).toContain(`{ onDelete: "cascade" }`);
     });
+
+    it("uses the configured referenced field", () => {
+      const out = generateDrizzleSchema(
+        singleTable({
+          threadSlug: {
+            type: "string",
+            references: { model: "threads", field: "thread_id" },
+          },
+        }),
+        "sqlite"
+      );
+      expect(out).toContain(
+        `.references(() => threads.threadId, { onDelete: "cascade" })`
+      );
+    });
+  });
+
+  describe("default escaping", () => {
+    it("escapes string defaults with quotes and newlines", () => {
+      const value = 'He said "hi"\\nnext line';
+      const out = generateDrizzleSchema(
+        singleTable({
+          note: { type: "string", default: value },
+        }),
+        "sqlite"
+      );
+      expect(out).toContain(`.default(${JSON.stringify(value)})`);
+    });
   });
 
   describe("schema structure", () => {

@@ -22,7 +22,7 @@ const fieldToColumn = (
   const notNull = def.required === false ? "" : ".notNull()";
   const unique = def.unique ? ".unique()" : "";
   const ref = def.references
-    ? `.references(() => ${toCamelCase(def.references.model)}.id, { onDelete: "${def.references.onDelete ?? "cascade"}" })`
+    ? `.references(() => ${toCamelCase(def.references.model)}.${toCamelCase(def.references.field)}, { onDelete: "${def.references.onDelete ?? "cascade"}" })`
     : "";
   const dflt = renderDefault(def, dialect);
   return `  ${col}: ${type}${dflt}${notNull}${unique}${ref},`;
@@ -75,7 +75,7 @@ const renderDefault = (def: FieldDef, _dialect: Dialect): string => {
     return `.$defaultFn(${def.default.toString()})`;
   }
   if (typeof def.default === "string") {
-    return `.default("${def.default}")`;
+    return `.default(${JSON.stringify(def.default)})`;
   }
   return `.default(${def.default})`;
 };
