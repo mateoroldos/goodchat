@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { runDbSchemaSync } from "./db-schema-sync-command";
 
 const tempDirectories: string[] = [];
@@ -189,5 +189,50 @@ describe("db schema sync command", () => {
 
     expect(schema).toContain('sqliteTable("user"');
     expect(schema).toContain("export const authSchema = {");
+  });
+
+  it("warns and continues when a plugin factory throws", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await writeFile(
+      join(projectRoot, "src/goodchat.ts"),
+      `export const goodchat = {
+  database: { dialect: "sqlite" as const },
+  auth: { enabled: false, mode: "password" as const, webChatPublic: false },
+  plugins: [
+    () => {
+      throw new Error("factory exploded");
+    },
+    {
+      schema: {
+        todos: {
+          columns: {
+            title: { type: "string", required: true },
+          },
+        },
+      },
+    },
+  ],
+};\n`,
+      "utf8"
+    );
+
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(String(warnSpy.mock.calls[0]?.[0])).toContain(
+      "Failed to resolve plugin factory"
+    );
+
+    const schema = await readFile(
+      join(projectRoot, "src/db/schema.ts"),
+      "utf8"
+    );
+    expect(schema).toContain('sqliteTable("todos"');
+
+    warnSpy.mockRestore();
   });
 });

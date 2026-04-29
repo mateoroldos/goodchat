@@ -77,13 +77,23 @@ const loadGoodchatConfig = async (input: {
 const extractPluginSchemas = (
   plugins: unknown[]
 ): Array<{ schema?: GoodchatPluginSchema }> =>
-  plugins.flatMap((p) => {
+  plugins.flatMap((p, index) => {
     // factory function → call with no args to get the definition
     let resolved = p;
     if (typeof resolved === "function") {
+      const pluginFactory = resolved as (() => unknown) & { name?: string };
       try {
-        resolved = resolved();
-      } catch {
+        resolved = pluginFactory();
+      } catch (error) {
+        const factoryName = pluginFactory.name ?? "";
+        const pluginIdentity =
+          factoryName.length > 0
+            ? factoryName
+            : `plugin factory at index ${index}`;
+        console.warn(
+          `[goodchat] Failed to resolve plugin factory ${pluginIdentity}. Continuing without this plugin schema.`,
+          error
+        );
         return [];
       }
     }
