@@ -125,12 +125,6 @@ dist
 .env
 `;
 
-const renderNodeEsmDbSchemaFile = (content: string): string =>
-  content
-    .replaceAll('"./auth-schema"', '"./auth-schema.js"')
-    .replaceAll('"./core-schema"', '"./core-schema.js"')
-    .replaceAll('"./plugins/schema"', '"./plugins/schema.js"');
-
 export const createProjectFiles = async (
   input: ProjectTemplateInput
 ): Promise<ProjectFile[]> => {
@@ -142,12 +136,6 @@ export const createProjectFiles = async (
     authEnabled: input.config.authEnabled,
     dialect: input.config.databaseDialect,
   });
-  if (nodeEsm) {
-    const dbSchemaFile = schemaFiles["src/db/schema.ts"];
-    if (dbSchemaFile) {
-      schemaFiles["src/db/schema.ts"] = renderNodeEsmDbSchemaFile(dbSchemaFile);
-    }
-  }
   const sqliteMigrateFile =
     input.config.databaseDialect === "sqlite"
       ? [

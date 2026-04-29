@@ -54,10 +54,7 @@ describe("generator integration", () => {
     expect(filePaths).toContain("src/env.ts");
     expect(filePaths).toContain(".env");
     expect(filePaths).toContain("src/db/schema.ts");
-    expect(filePaths).toContain("src/db/core-schema.ts");
-    expect(filePaths).toContain("src/db/auth-schema.ts");
     expect(filePaths).toContain("src/db/migrate.ts");
-    expect(filePaths).toContain("src/db/plugins/schema.ts");
     expect(filePaths).toContain("drizzle.config.ts");
     expect(filePaths).toContain("Dockerfile");
     expect(filePaths).toContain(".dockerignore");
@@ -186,15 +183,9 @@ describe("generator integration", () => {
       'import { schema } from "./db/schema.js";'
     );
     expect(goodchatFile?.content).toContain('import { env } from "./env.js";');
-    expect(schemaFile?.content).toContain(
-      'import { authSchema } from "./auth-schema.js";'
-    );
-    expect(schemaFile?.content).toContain(
-      'import { coreSchema } from "./core-schema.js";'
-    );
-    expect(schemaFile?.content).toContain(
-      'import { pluginSchema } from "./plugins/schema.js";'
-    );
+    expect(schemaFile?.content).toContain("export const authSchema = {");
+    expect(schemaFile?.content).toContain("export const coreSchema = {");
+    expect(schemaFile?.content).toContain("export const schema = {");
     expect(tsconfigFile?.content).toContain('"module": "NodeNext"');
     expect(tsconfigFile?.content).toContain('"moduleResolution": "NodeNext"');
     expect(tsconfigFile?.content).toContain('"types": ["node"]');

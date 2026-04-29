@@ -115,6 +115,10 @@
     "./model/catalog/vercel-gateway": {
       "types": "./dist/model/catalog/vercel-gateway.d.ts",
       "import": "./dist/model/catalog/vercel-gateway.mjs"
+    },
+    "./db/types": {
+      "types": "./dist/db/types.d.ts",
+      "import": "./dist/db/types.mjs"
     }
   },
   "dependencies": {

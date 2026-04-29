@@ -240,6 +240,7 @@
       "name": "@goodchat/templates",
       "version": "0.0.20",
       "dependencies": {
+        "@goodchat/core": "^0.0.20",
         "better-auth": "1.3.4",
       },
       "devDependencies": {
