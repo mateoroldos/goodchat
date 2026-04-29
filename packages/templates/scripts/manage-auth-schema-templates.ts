@@ -25,9 +25,9 @@ const DIALECT_CONFIG_PATHS = {
 } as const satisfies Record<Dialect, string>;
 
 const DIALECT_TARGET_PATHS = {
-  sqlite: "schema/auth/sqlite.ts",
-  postgres: "schema/auth/postgres.ts",
-  mysql: "schema/auth/mysql.ts",
+  sqlite: "packages/storage/schema/auth/sqlite.ts",
+  postgres: "packages/storage/schema/auth/postgres.ts",
+  mysql: "packages/storage/schema/auth/mysql.ts",
 } as const satisfies Record<Dialect, string>;
 
 const AUTH_SCHEMA_EXPORT_BLOCK = `
@@ -172,7 +172,12 @@ const run = async (): Promise<void> => {
           dialect,
           await readFile(generatedPath, "utf8")
         ),
-        targetPath: resolve(PACKAGE_ROOT, DIALECT_TARGET_PATHS[dialect]),
+        targetPath: resolve(
+          PACKAGE_ROOT,
+          "..",
+          "..",
+          DIALECT_TARGET_PATHS[dialect]
+        ),
       });
 
       logSuccess(`Generated and normalized ${dialect} auth schema.`);
