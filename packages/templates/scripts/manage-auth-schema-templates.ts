@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "bun";
+import { normalizeBetterAuthSchemaText } from "./schema-foundation";
 
 type Dialect = "sqlite" | "postgres" | "mysql";
 
@@ -30,17 +31,6 @@ const DIALECT_TARGET_PATHS = {
   mysql: "schema/auth/mysql.ts",
 } as const satisfies Record<Dialect, string>;
 
-const AUTH_SCHEMA_EXPORT_BLOCK = `
-
-export const authSchema = {
-  user,
-  session,
-  account,
-  verification,
-};
-`;
-const UNUSED_POSTGRES_INTEGER_IMPORT_REGEX = /,\s*integer\s*,/;
-const UNUSED_MYSQL_INT_IMPORT_REGEX = /,\s*int\s*,/;
 
 const logInfo = (message: string): void => {
   console.log(`[INFO] ${message}`);
@@ -56,25 +46,6 @@ const logWarn = (message: string): void => {
 
 const logError = (message: string): void => {
   console.error(`[ERR] ${message}`);
-};
-
-const normalizeGeneratedSchema = (dialect: Dialect, source: string): string => {
-  let content = source;
-
-  if (dialect === "postgres") {
-    content = content.replace(UNUSED_POSTGRES_INTEGER_IMPORT_REGEX, ",");
-  }
-
-  if (dialect === "mysql") {
-    content = content.replace(UNUSED_MYSQL_INT_IMPORT_REGEX, ",");
-  }
-
-  const trimmed = content.trimEnd();
-  if (trimmed.includes("export const authSchema")) {
-    return `${trimmed}\n`;
-  }
-
-  return `${trimmed}${AUTH_SCHEMA_EXPORT_BLOCK}`;
 };
 
 const runCommand = async (input: {
@@ -166,12 +137,12 @@ const run = async (): Promise<void> => {
         outputPath: generatedPath,
       });
 
-      generatedByDialect.push({
-        dialect,
-        generatedContent: normalizeGeneratedSchema(
+        generatedByDialect.push({
           dialect,
-          await readFile(generatedPath, "utf8")
-        ),
+          generatedContent: normalizeBetterAuthSchemaText(
+            dialect,
+            await readFile(generatedPath, "utf8")
+          ),
         targetPath: resolve(PACKAGE_ROOT, DIALECT_TARGET_PATHS[dialect]),
       });
 
