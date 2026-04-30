@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createPool } from "mysql2/promise";
 import { customAlphabet } from "nanoid";
-import { mysqlSchema } from "../../schema/mysql";
+import { mysqlSchema } from "../../src/internal-schema/mysql";
 import { mysql } from "../../src/mysql";
 
 export interface TestDatabase {

@@ -20,7 +20,7 @@ import type {
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
-import { sqliteSchema } from "../schema/sqlite";
+import { sqliteSchema } from "./internal-schema/sqlite";
 import { buildCursorFilter, DEFAULT_LIST_LIMIT } from "./repository-shared";
 import type { SqliteDatabase } from "./sqlite";
 

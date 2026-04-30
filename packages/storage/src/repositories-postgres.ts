@@ -20,7 +20,7 @@ import type {
   ThreadUpdate,
 } from "@goodchat/contracts/database/thread";
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
-import { postgresSchema } from "../schema/postgres";
+import { postgresSchema } from "./internal-schema/postgres";
 import type { PostgresDatabase } from "./postgres";
 import { buildCursorFilter, DEFAULT_LIST_LIMIT } from "./repository-shared";
 
