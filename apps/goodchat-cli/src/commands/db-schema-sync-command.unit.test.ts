@@ -157,10 +157,16 @@ describe("db schema sync command", () => {
   it("db schema sync output is byte-stable for same input", async () => {
     const projectRoot = await createTempProject("sqlite");
     await runDbSchemaSync({ cwd: projectRoot, check: false });
-    const first = await readFile(join(projectRoot, "src/db/auth-schema.ts"), "utf8");
+    const first = await readFile(
+      join(projectRoot, "src/db/auth-schema.ts"),
+      "utf8"
+    );
 
     await runDbSchemaSync({ cwd: projectRoot, check: false });
-    const second = await readFile(join(projectRoot, "src/db/auth-schema.ts"), "utf8");
+    const second = await readFile(
+      join(projectRoot, "src/db/auth-schema.ts"),
+      "utf8"
+    );
 
     expect(second).toBe(first);
   });

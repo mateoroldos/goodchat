@@ -1,13 +1,16 @@
+import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 export type Dialect = "sqlite" | "postgres" | "mysql";
 
 const BETTER_AUTH_CLI_VERSION = "1.3.4";
-const PACKAGE_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+const PACKAGE_ROOT = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  ".."
+);
 const DIALECT_AUTH_CONFIG_PATH = {
   sqlite: "scripts/auth-schema/sqlite-auth.config.js",
   postgres: "scripts/auth-schema/postgres-auth.config.js",
@@ -15,16 +18,16 @@ const DIALECT_AUTH_CONFIG_PATH = {
 } as const satisfies Record<Dialect, string>;
 
 export interface CoreColumnDefinition {
-  propertyName?: string;
   columnName: string;
   dataType: "id" | "text" | "integer" | "boolean" | "json";
   notNull?: boolean;
   primaryKey?: boolean;
+  propertyName?: string;
 }
 
 export interface CoreTableDefinition {
-  tableName: string;
   columns: readonly CoreColumnDefinition[];
+  tableName: string;
 }
 
 export const CORE_SCHEMA_DSL: readonly CoreTableDefinition[] = [
@@ -157,7 +160,9 @@ const CORE_SCHEMA_EXPORT_ORDER = [
 ] as const;
 
 const toVariableName = (tableName: string): string => {
-  return tableName.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+  return tableName.replace(/_([a-z])/g, (_, char: string) =>
+    char.toUpperCase()
+  );
 };
 
 const toPropertyName = (column: CoreColumnDefinition): string => {
@@ -169,36 +174,65 @@ const toPropertyName = (column: CoreColumnDefinition): string => {
   );
 };
 
+const getTableFactory = (
+  dialect: Dialect
+): "sqliteTable" | "pgTable" | "mysqlTable" => {
+  if (dialect === "sqlite") {
+    return "sqliteTable";
+  }
+  if (dialect === "postgres") {
+    return "pgTable";
+  }
+  return "mysqlTable";
+};
+
+const getScalarColumnType = (input: {
+  column: CoreColumnDefinition;
+  dialect: Dialect;
+  propertyName: string;
+}): string => {
+  const { column, dialect, propertyName } = input;
+  if (column.dataType === "id") {
+    if (dialect === "mysql") {
+      return `${propertyName}: varchar("${column.columnName}", { length: 191 })`;
+    }
+    return `${propertyName}: text("${column.columnName}")`;
+  }
+  if (column.dataType === "text") {
+    return `${propertyName}: text("${column.columnName}")`;
+  }
+  if (column.dataType === "integer") {
+    return `${propertyName}: ${dialect === "mysql" ? "int" : "integer"}("${column.columnName}")`;
+  }
+  if (dialect === "sqlite") {
+    return `${propertyName}: integer("${column.columnName}", { mode: "boolean" })`;
+  }
+  return `${propertyName}: boolean("${column.columnName}")`;
+};
+
+const getJsonColumnType = (input: {
+  column: CoreColumnDefinition;
+  dialect: Dialect;
+  propertyName: string;
+}): string => {
+  const { column, dialect, propertyName } = input;
+  if (dialect === "sqlite") {
+    return `${propertyName}: text("${column.columnName}", { mode: "json" })`;
+  }
+  return `${propertyName}: ${dialect === "mysql" ? "json" : "jsonb"}("${column.columnName}")`;
+};
+
 const renderColumnExpression = (input: {
   column: CoreColumnDefinition;
   dialect: Dialect;
 }): string => {
   const { column, dialect } = input;
+  const propertyName = toPropertyName(column);
 
-  const baseType = (() => {
-    if (column.dataType === "id") {
-      if (dialect === "mysql") {
-        return `${toPropertyName(column)}: varchar("${column.columnName}", { length: 191 })`;
-      }
-      return `${toPropertyName(column)}: text("${column.columnName}")`;
-    }
-    if (column.dataType === "text") {
-      return `${toPropertyName(column)}: text("${column.columnName}")`;
-    }
-    if (column.dataType === "integer") {
-      return `${toPropertyName(column)}: ${dialect === "mysql" ? "int" : "integer"}("${column.columnName}")`;
-    }
-    if (column.dataType === "boolean") {
-      if (dialect === "sqlite") {
-        return `${toPropertyName(column)}: integer("${column.columnName}", { mode: "boolean" })`;
-      }
-      return `${toPropertyName(column)}: boolean("${column.columnName}")`;
-    }
-    if (dialect === "sqlite") {
-      return `${toPropertyName(column)}: text("${column.columnName}", { mode: "json" })`;
-    }
-    return `${toPropertyName(column)}: ${dialect === "mysql" ? "json" : "jsonb"}("${column.columnName}")`;
-  })();
+  const baseType =
+    column.dataType === "json"
+      ? getJsonColumnType({ column, dialect, propertyName })
+      : getScalarColumnType({ column, dialect, propertyName });
 
   let expression = baseType;
   if (column.primaryKey) {
@@ -217,12 +251,7 @@ const renderTableExpression = (input: {
 }): string => {
   const { dialect, table } = input;
   const variableName = toVariableName(table.tableName);
-  const tableFactory =
-    dialect === "sqlite"
-      ? "sqliteTable"
-      : dialect === "postgres"
-        ? "pgTable"
-        : "mysqlTable";
+  const tableFactory = getTableFactory(dialect);
   const renderedColumns = table.columns
     .map((column) => `  ${renderColumnExpression({ column, dialect })},`)
     .join("\n");

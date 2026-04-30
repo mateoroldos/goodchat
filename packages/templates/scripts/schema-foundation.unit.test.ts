@@ -8,8 +8,11 @@ import {
   normalizeBetterAuthSchemaText,
 } from "./schema-foundation";
 
-const readStorageSchema = async (relativePath: string): Promise<string> => {
-  return readFile(resolve(process.cwd(), "packages/storage", relativePath), "utf8");
+const readStorageSchema = (relativePath: string): Promise<string> => {
+  return readFile(
+    resolve(process.cwd(), "packages/storage", relativePath),
+    "utf8"
+  );
 };
 
 describe("schema foundation", () => {

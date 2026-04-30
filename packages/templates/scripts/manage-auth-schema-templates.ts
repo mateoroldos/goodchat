@@ -31,7 +31,6 @@ const DIALECT_TARGET_PATHS = {
   mysql: "schema/auth/mysql.ts",
 } as const satisfies Record<Dialect, string>;
 
-
 const logInfo = (message: string): void => {
   console.log(`[INFO] ${message}`);
 };
@@ -137,12 +136,12 @@ const run = async (): Promise<void> => {
         outputPath: generatedPath,
       });
 
-        generatedByDialect.push({
+      generatedByDialect.push({
+        dialect,
+        generatedContent: normalizeBetterAuthSchemaText(
           dialect,
-          generatedContent: normalizeBetterAuthSchemaText(
-            dialect,
-            await readFile(generatedPath, "utf8")
-          ),
+          await readFile(generatedPath, "utf8")
+        ),
         targetPath: resolve(PACKAGE_ROOT, DIALECT_TARGET_PATHS[dialect]),
       });
 
