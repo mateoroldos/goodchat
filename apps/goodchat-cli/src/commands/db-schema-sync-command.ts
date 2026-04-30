@@ -89,14 +89,6 @@ const resolveDialectFromGoodchatConfig = async (input: {
   );
 };
 
-const resolveAuthEnabledFromGoodchatConfig = async (input: {
-  configPath: string;
-  cwd: string;
-}): Promise<boolean> => {
-  const moduleExports = await loadGoodchatConfig(input);
-  return moduleExports.auth?.enabled === true;
-};
-
 const resolveDialect = (options: {
   configPath: string;
   cwd: string;
@@ -127,12 +119,7 @@ export const runDbSchemaSync = async (
     configPath,
     cwd: options.cwd,
   });
-  const authEnabled = await resolveAuthEnabledFromGoodchatConfig({
-    configPath,
-    cwd: options.cwd,
-  });
   const expectedFiles = await renderDbSchemaArtifacts({
-    authEnabled,
     cwd: options.cwd,
     dialect,
   });

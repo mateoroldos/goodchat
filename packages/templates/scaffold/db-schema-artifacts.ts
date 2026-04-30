@@ -72,14 +72,9 @@ const renderCoreSchemaFile = async (input: {
 };
 
 const renderAuthSchemaFile = (input: {
-  authEnabled: boolean;
   dialect: DatabaseDialect;
   cwd?: string;
 }): Promise<string> => {
-  if (!input.authEnabled) {
-    return Promise.resolve("export const authSchema = {};\n");
-  }
-
   const authSchemaPathByDialect = {
     mysql: "schema/auth/mysql.ts",
     postgres: "schema/auth/postgres.ts",
@@ -110,14 +105,12 @@ export const schema = {
 };
 
 export const renderDbSchemaArtifacts = async (input: {
-  authEnabled: boolean;
   dialect: DatabaseDialect;
   cwd?: string;
 }): Promise<Record<string, string>> => {
   const [coreSchema, authSchema] = await Promise.all([
     renderCoreSchemaFile({ cwd: input.cwd, dialect: input.dialect }),
     renderAuthSchemaFile({
-      authEnabled: input.authEnabled,
       cwd: input.cwd,
       dialect: input.dialect,
     }),
