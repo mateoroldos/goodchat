@@ -1,6 +1,7 @@
 export type Dialect = "sqlite" | "postgres" | "mysql";
 
 export interface CoreColumnDefinition {
+  propertyName?: string;
   columnName: string;
   dataType: "id" | "text" | "integer" | "boolean" | "json";
   notNull?: boolean;
@@ -117,4 +118,120 @@ export const normalizeBetterAuthSchemaText = (
   }
 
   return `${trimmed}${AUTH_SCHEMA_EXPORT_BLOCK}`;
+};
+
+const DIALECT_IMPORTS = {
+  mysql:
+    'import {\n  boolean,\n  int,\n  json,\n  mysqlTable,\n  text,\n  varchar,\n} from "drizzle-orm/mysql-core";',
+  postgres:
+    'import { boolean, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";',
+  sqlite:
+    'import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";',
+} as const satisfies Record<Dialect, string>;
+
+const DIALECT_SCHEMA_EXPORT = {
+  mysql: "mysqlSchema",
+  postgres: "postgresSchema",
+  sqlite: "sqliteSchema",
+} as const satisfies Record<Dialect, string>;
+
+const CORE_SCHEMA_EXPORT_ORDER = [
+  "ai_runs",
+  "ai_run_tool_calls",
+  "threads",
+  "messages",
+] as const;
+
+const toVariableName = (tableName: string): string => {
+  return tableName.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+};
+
+const toPropertyName = (column: CoreColumnDefinition): string => {
+  if (column.propertyName) {
+    return column.propertyName;
+  }
+  return column.columnName.replace(/_([a-z])/g, (_, char: string) =>
+    char.toUpperCase()
+  );
+};
+
+const renderColumnExpression = (input: {
+  column: CoreColumnDefinition;
+  dialect: Dialect;
+}): string => {
+  const { column, dialect } = input;
+
+  const baseType = (() => {
+    if (column.dataType === "id") {
+      if (dialect === "mysql") {
+        return `${toPropertyName(column)}: varchar("${column.columnName}", { length: 191 })`;
+      }
+      return `${toPropertyName(column)}: text("${column.columnName}")`;
+    }
+    if (column.dataType === "text") {
+      return `${toPropertyName(column)}: text("${column.columnName}")`;
+    }
+    if (column.dataType === "integer") {
+      return `${toPropertyName(column)}: ${dialect === "mysql" ? "int" : "integer"}("${column.columnName}")`;
+    }
+    if (column.dataType === "boolean") {
+      if (dialect === "sqlite") {
+        return `${toPropertyName(column)}: integer("${column.columnName}", { mode: "boolean" })`;
+      }
+      return `${toPropertyName(column)}: boolean("${column.columnName}")`;
+    }
+    if (dialect === "sqlite") {
+      return `${toPropertyName(column)}: text("${column.columnName}", { mode: "json" })`;
+    }
+    return `${toPropertyName(column)}: ${dialect === "mysql" ? "json" : "jsonb"}("${column.columnName}")`;
+  })();
+
+  let expression = baseType;
+  if (column.primaryKey) {
+    expression = `${expression}.primaryKey()`;
+  }
+  if (column.notNull) {
+    expression = `${expression}.notNull()`;
+  }
+
+  return expression;
+};
+
+const renderTableExpression = (input: {
+  dialect: Dialect;
+  table: CoreTableDefinition;
+}): string => {
+  const { dialect, table } = input;
+  const variableName = toVariableName(table.tableName);
+  const tableFactory =
+    dialect === "sqlite"
+      ? "sqliteTable"
+      : dialect === "postgres"
+        ? "pgTable"
+        : "mysqlTable";
+  const renderedColumns = table.columns
+    .map((column) => `  ${renderColumnExpression({ column, dialect })},`)
+    .join("\n");
+
+  return `export const ${variableName} = ${tableFactory}("${table.tableName}", {\n${renderedColumns}\n});`;
+};
+
+export const emitCoreDrizzleSchema = (dialect: Dialect): string => {
+  const renderedTables = CORE_SCHEMA_DSL.map((table) =>
+    renderTableExpression({ dialect, table })
+  ).join("\n\n");
+  const schemaEntries = CORE_SCHEMA_EXPORT_ORDER.map((tableName) =>
+    toVariableName(tableName)
+  )
+    .map((tableVariable) => `  ${tableVariable},`)
+    .join("\n");
+
+  return `${DIALECT_IMPORTS[dialect]}\n\n${renderedTables}\n\nexport const ${DIALECT_SCHEMA_EXPORT[dialect]} = {\n${schemaEntries}\n};\n`;
+};
+
+export const normalizeAuthModelFromBetterAuthImport = (input: {
+  dialect: Dialect;
+  source: string;
+}): string => {
+  return normalizeBetterAuthSchemaText(input.dialect, input.source);
 };
