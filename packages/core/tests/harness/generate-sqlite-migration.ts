@@ -1,13 +1,17 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readdir } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  emitAuthDrizzleSchema,
+  emitCoreDrizzleSchema,
+} from "@goodchat/storage/scaffold/schema-foundation";
 
 const runCommandOrThrow = (input: {
   args: string[];
   command: string;
   cwd: string;
-}): void => {
+}): { stderr: string; stdout: string } => {
   const result = spawnSync(input.command, input.args, {
     cwd: input.cwd,
     encoding: "utf8",
@@ -15,7 +19,10 @@ const runCommandOrThrow = (input: {
   });
 
   if (result.status === 0) {
-    return;
+    return {
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
   }
 
   throw new Error(
@@ -40,13 +47,22 @@ export const generateSqliteMigrationFromTemplateSchemas = async (): Promise<{
   await mkdir(tempRoot, { recursive: true });
 
   const tempDirectory = await mkdtemp(join(tempRoot, "core-auth-integration-"));
-  const schemaPath = join(
-    repositoryRoot,
-    "packages/core/tests/harness/schema.ts"
-  );
+  const schemaDirectory = join(tempDirectory, "schema");
   const outDirectory = join(tempDirectory, "drizzle");
 
-  runCommandOrThrow({
+  await mkdir(schemaDirectory, { recursive: true });
+  await Promise.all([
+    writeFile(
+      join(schemaDirectory, "core.ts"),
+      emitCoreDrizzleSchema("sqlite")
+    ),
+    writeFile(
+      join(schemaDirectory, "auth.ts"),
+      emitAuthDrizzleSchema("sqlite")
+    ),
+  ]);
+
+  const drizzleOutput = runCommandOrThrow({
     command: "bunx",
     args: [
       "drizzle-kit",
@@ -54,7 +70,7 @@ export const generateSqliteMigrationFromTemplateSchemas = async (): Promise<{
       "--dialect",
       "sqlite",
       "--schema",
-      schemaPath,
+      `${schemaDirectory}/*.ts`,
       "--out",
       outDirectory,
     ],
@@ -65,7 +81,12 @@ export const generateSqliteMigrationFromTemplateSchemas = async (): Promise<{
   const migrationFileName = files.find((fileName) => fileName.endsWith(".sql"));
   if (!migrationFileName) {
     throw new Error(
-      `drizzle-kit did not generate a SQLite migration file. Generated entries: ${files.join(", ")}`
+      [
+        "drizzle-kit did not generate a SQLite migration file.",
+        `Generated entries: ${files.join(", ")}`,
+        `stdout: ${drizzleOutput.stdout}`,
+        `stderr: ${drizzleOutput.stderr}`,
+      ].join("\n")
     );
   }
 

@@ -1,2 +1,2 @@
 // biome-ignore lint/performance/noBarrelFile: drizzle-kit expects schema entrypoint exports
-export * from "../../schema/postgres";
+export * from "../../src/internal-schema/postgres";

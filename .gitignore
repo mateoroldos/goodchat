@@ -48,6 +48,7 @@ coverage
 .cache
 tmp
 temp
+.tmp
 
 # START Ruler Generated Files
 /.codex/config.toml

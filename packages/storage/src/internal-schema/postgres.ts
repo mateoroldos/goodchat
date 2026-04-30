@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import { boolean, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
 export const threads = pgTable("threads", {
@@ -60,6 +61,29 @@ export const aiRunToolCalls = pgTable("ai_run_tool_calls", {
   error: jsonb("error"),
   createdAt: text("created_at").notNull(),
 });
+export const threadsRelations = relations(threads, ({ many }) => ({
+  messages: many(messages),
+  aiRuns: many(aiRuns),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  thread: one(threads, {
+    fields: [messages.threadId],
+    references: [threads.id],
+  }),
+}));
+
+export const aiRunsRelations = relations(aiRuns, ({ one, many }) => ({
+  thread: one(threads, { fields: [aiRuns.threadId], references: [threads.id] }),
+  toolCalls: many(aiRunToolCalls),
+}));
+
+export const aiRunToolCallsRelations = relations(aiRunToolCalls, ({ one }) => ({
+  aiRun: one(aiRuns, {
+    fields: [aiRunToolCalls.aiRunId],
+    references: [aiRuns.id],
+  }),
+}));
 
 export const postgresSchema = {
   aiRuns,

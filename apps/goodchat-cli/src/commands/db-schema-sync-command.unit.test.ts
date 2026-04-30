@@ -61,7 +61,8 @@ describe("db schema sync command", () => {
     );
     expect(coreSchema).toContain('sqliteTable("threads"');
     expect(schema).toContain("export const schema = {");
-    expect(authSchema).toBe("export const authSchema = {};\n");
+    expect(authSchema).toContain("export const authSchema = {");
+    expect(authSchema).toContain('sqliteTable("user"');
     expect(pluginSchema).toBe("export const pluginSchema = {};\n");
   });
 
@@ -79,13 +80,15 @@ describe("db schema sync command", () => {
     ).rejects.toThrow("src/db/auth-schema.ts is out of date");
   });
 
-  it("passes in check mode when generated artifacts are in sync", async () => {
-    const projectRoot = await createTempProject("postgres");
-    await runDbSchemaSync({ cwd: projectRoot, check: false });
+  it("db schema sync check passes after sync for each dialect", async () => {
+    for (const dialect of ["sqlite", "postgres", "mysql"] as const) {
+      const projectRoot = await createTempProject(dialect);
+      await runDbSchemaSync({ cwd: projectRoot, check: false });
 
-    await expect(
-      runDbSchemaSync({ cwd: projectRoot, check: true })
-    ).resolves.toBeUndefined();
+      await expect(
+        runDbSchemaSync({ cwd: projectRoot, check: true })
+      ).resolves.toBeUndefined();
+    }
   });
 
   it("fails when goodchat config does not define database dialect", async () => {
@@ -138,13 +141,8 @@ describe("db schema sync command", () => {
     expect(drizzleConfig).toContain('dialect: "postgresql"');
   });
 
-  it("generates local auth schema when auth is enabled", async () => {
+  it("db schema sync always generates auth schema artifact regardless of auth enabled config", async () => {
     const projectRoot = await createTempProject("sqlite");
-    await writeFile(
-      join(projectRoot, "src/goodchat.ts"),
-      'export const goodchat = { database: { dialect: "sqlite" as const }, auth: { enabled: true, mode: "password" as const, webChatPublic: false, password: "secret" } };\n',
-      "utf8"
-    );
 
     await runDbSchemaSync({ cwd: projectRoot, check: false });
 
@@ -154,6 +152,22 @@ describe("db schema sync command", () => {
     );
 
     expect(authSchema).toContain('sqliteTable("user"');
-    expect(authSchema).toContain("export const authSchema = {");
+  });
+
+  it("db schema sync output is byte-stable for same input", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    const first = await readFile(
+      join(projectRoot, "src/db/auth-schema.ts"),
+      "utf8"
+    );
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    const second = await readFile(
+      join(projectRoot, "src/db/auth-schema.ts"),
+      "utf8"
+    );
+
+    expect(second).toBe(first);
   });
 });

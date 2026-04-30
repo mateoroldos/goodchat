@@ -1,13 +1,12 @@
 import { Database as BunSqliteDatabase } from "bun:sqlite";
 import { rm } from "node:fs/promises";
-import { authSchema } from "@goodchat/storage/schema/auth/sqlite";
-import { sqliteSchema } from "@goodchat/storage/schema/sqlite";
 import { sqlite } from "@goodchat/storage/sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { SHARED_AUTH_EMAIL } from "../../src/auth/better-auth";
 import { createGoodchat } from "../../src/index";
 import { generateSqliteMigrationFromTemplateSchemas } from "./generate-sqlite-migration";
+import { authSchema, sqliteSchema } from "./internal-schema";
 
 const DEFAULT_AUTH_SECRET = "integration-test-secret";
 const DEFAULT_AUTH_PASSWORD = "super-secret-password";

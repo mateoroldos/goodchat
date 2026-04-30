@@ -1,6 +1,7 @@
 import type { Database } from "@goodchat/contracts/database/interface";
-import { mysqlSchema } from "../schema/mysql";
-import { postgresSchema } from "../schema/postgres";
+import { mysqlSchema } from "./internal-schema/mysql";
+import { postgresSchema } from "./internal-schema/postgres";
+import type { sqliteSchema } from "./internal-schema/sqlite";
 import type { MysqlDatabase } from "./mysql";
 import type { PostgresDatabase } from "./postgres";
 import { createMysqlRepositories } from "./repositories-mysql";
@@ -22,14 +23,11 @@ export function createRepositories(
   db: PostgresDatabase
 ): Repositories;
 export function createRepositories(
-  schema: typeof import("../schema/sqlite").sqliteSchema,
+  schema: typeof sqliteSchema,
   db: SqliteDatabase
 ): Repositories;
 export function createRepositories(
-  schema:
-    | typeof mysqlSchema
-    | typeof postgresSchema
-    | typeof import("../schema/sqlite").sqliteSchema,
+  schema: typeof mysqlSchema | typeof postgresSchema | typeof sqliteSchema,
   db: MysqlDatabase | PostgresDatabase | SqliteDatabase
 ): Repositories {
   if (schema === mysqlSchema) {
