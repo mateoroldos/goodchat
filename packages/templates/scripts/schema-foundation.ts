@@ -1,4 +1,18 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
 export type Dialect = "sqlite" | "postgres" | "mysql";
+
+const BETTER_AUTH_CLI_VERSION = "1.3.4";
+const PACKAGE_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+const DIALECT_AUTH_CONFIG_PATH = {
+  sqlite: "scripts/auth-schema/sqlite-auth.config.js",
+  postgres: "scripts/auth-schema/postgres-auth.config.js",
+  mysql: "scripts/auth-schema/mysql-auth.config.js",
+} as const satisfies Record<Dialect, string>;
 
 export interface CoreColumnDefinition {
   propertyName?: string;
@@ -234,4 +248,62 @@ export const normalizeAuthModelFromBetterAuthImport = (input: {
   source: string;
 }): string => {
   return normalizeBetterAuthSchemaText(input.dialect, input.source);
+};
+
+const runBunCommand = async (args: string[]): Promise<void> => {
+  const child = spawn("bun", args, {
+    cwd: PACKAGE_ROOT,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const stdoutChunks: string[] = [];
+  const stderrChunks: string[] = [];
+  child.stdout.on("data", (chunk) => stdoutChunks.push(String(chunk)));
+  child.stderr.on("data", (chunk) => stderrChunks.push(String(chunk)));
+  const exitCode = await new Promise<number>((resolvePromise) => {
+    child.on("close", (code) => resolvePromise(code ?? 1));
+  });
+  const stdout = stdoutChunks.join("");
+  const stderr = stderrChunks.join("");
+  if (exitCode === 0) {
+    return;
+  }
+  throw new Error(
+    [stdout.trim(), stderr.trim()].filter((line) => line.length > 0).join("\n")
+  );
+};
+
+const importBetterAuthSchema = async (dialect: Dialect): Promise<string> => {
+  const tempDirectory = await mkdtemp(join(tmpdir(), "goodchat-auth-import-"));
+  const outputPath = join(tempDirectory, `${dialect}.ts`);
+
+  try {
+    await runBunCommand([
+      "x",
+      `@better-auth/cli@${BETTER_AUTH_CLI_VERSION}`,
+      "generate",
+      "--yes",
+      "--config",
+      DIALECT_AUTH_CONFIG_PATH[dialect],
+      "--output",
+      outputPath,
+    ]);
+    return readFile(outputPath, "utf8");
+  } finally {
+    await rm(tempDirectory, { recursive: true, force: true });
+  }
+};
+
+export const emitAuthDrizzleSchemaFromBetterAuthImport = async (
+  dialect: Dialect
+): Promise<string> => {
+  let source: string;
+  try {
+    source = await importBetterAuthSchema(dialect);
+  } catch {
+    source = await readFile(
+      resolve(PACKAGE_ROOT, "../storage", `schema/auth/${dialect}.ts`),
+      "utf8"
+    );
+  }
+  return normalizeAuthModelFromBetterAuthImport({ dialect, source });
 };

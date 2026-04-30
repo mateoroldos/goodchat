@@ -1,6 +1,10 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  emitAuthDrizzleSchemaFromBetterAuthImport,
+  emitCoreDrizzleSchema,
+} from "./schema-foundation";
 
 type Dialect = "sqlite" | "postgres" | "mysql";
 
@@ -8,7 +12,6 @@ const TEMPLATES_ROOT = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   ".."
 );
-const STORAGE_ROOT = resolve(TEMPLATES_ROOT, "../storage");
 const OUTPUT_PATH = resolve(
   TEMPLATES_ROOT,
   "scaffold/generated/db-schema-templates.ts"
@@ -20,32 +23,19 @@ const DIALECTS = [
   "mysql",
 ] as const satisfies readonly Dialect[];
 
-const CORE_SCHEMA_PATH_BY_DIALECT = {
-  mysql: "schema/mysql.ts",
-  postgres: "schema/postgres.ts",
-  sqlite: "schema/sqlite.ts",
-} as const satisfies Record<Dialect, string>;
-
-const AUTH_SCHEMA_PATH_BY_DIALECT = {
-  mysql: "schema/auth/mysql.ts",
-  postgres: "schema/auth/postgres.ts",
-  sqlite: "schema/auth/sqlite.ts",
-} as const satisfies Record<Dialect, string>;
-
-const readSchemaByDialect = async (
-  pathsByDialect: Record<Dialect, string>
-): Promise<Record<Dialect, string>> => {
+export const emitSchemaByDialect = async (input: {
+  emitDialectSchema: (dialect: Dialect) => string | Promise<string>;
+}): Promise<Record<Dialect, string>> => {
   const entries = await Promise.all(
     DIALECTS.map(async (dialect) => {
-      const path = resolve(STORAGE_ROOT, pathsByDialect[dialect]);
-      return [dialect, await readFile(path, "utf8")] as const;
+      return [dialect, await input.emitDialectSchema(dialect)] as const;
     })
   );
 
   return Object.fromEntries(entries) as Record<Dialect, string>;
 };
 
-const renderAssetFile = (input: {
+export const renderAssetFile = (input: {
   authTemplates: Record<Dialect, string>;
   coreTemplates: Record<Dialect, string>;
 }): string => {
@@ -58,10 +48,12 @@ export const AUTH_SCHEMA_TEMPLATE_BY_DIALECT = ${JSON.stringify(input.authTempla
 `;
 };
 
-const run = async (): Promise<void> => {
+export const run = async (): Promise<void> => {
   const [coreTemplates, authTemplates] = await Promise.all([
-    readSchemaByDialect(CORE_SCHEMA_PATH_BY_DIALECT),
-    readSchemaByDialect(AUTH_SCHEMA_PATH_BY_DIALECT),
+    emitSchemaByDialect({ emitDialectSchema: emitCoreDrizzleSchema }),
+    emitSchemaByDialect({
+      emitDialectSchema: emitAuthDrizzleSchemaFromBetterAuthImport,
+    }),
   ]);
 
   await mkdir(dirname(OUTPUT_PATH), { recursive: true });
@@ -72,4 +64,6 @@ const run = async (): Promise<void> => {
   );
 };
 
-await run();
+if (import.meta.main) {
+  await run();
+}
