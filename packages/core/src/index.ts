@@ -125,7 +125,12 @@ export const createGoodchat = (options: BotConfigInput) => {
       auth: bot.auth,
     });
 
-    const chatRuntime = createChatRuntime({ aiTelemetry, bot, logger });
+    const chatRuntime = createChatRuntime({
+      aiTelemetry,
+      bot,
+      hookRegistrations: merged.hookRegistrations,
+      logger,
+    });
 
     await verifyDatabaseMigrationReadiness({
       botId: bot.id,

@@ -1,7 +1,11 @@
 import type { Bot } from "@goodchat/contracts/config/types";
-import type { HookContext } from "@goodchat/contracts/hooks/types";
+import type {
+  HookContext,
+  PluginAfterMessageHook,
+} from "@goodchat/contracts/hooks/types";
 import { Result } from "better-result";
 import type { AiResponseService } from "../ai-response/interface";
+import type { HookRegistration } from "../extensions/models";
 import type { LoggerService } from "../logger/interface";
 import type { MessageContext } from "../types";
 import {
@@ -9,10 +13,15 @@ import {
   ChatResponseHookExecutionError,
   ChatResponseInputInvalidError,
 } from "./errors";
-import { runBeforeHooks } from "./hook-runner";
+import {
+  createCoreDbCapability,
+  createPluginHookCapabilities,
+} from "./hook-capabilities";
+import { runBotBeforeHooks, runPluginBeforeHooks } from "./hook-runner";
 import type { ChatResponseService } from "./interface";
 import {
-  runAfterHooksResilient,
+  runBotAfterHooksResilient,
+  runPluginAfterHookResilient,
   runStreamPostProcess,
   runSyncPostProcess,
 } from "./post-process";
@@ -33,17 +42,25 @@ const MODE_META = {
 interface ChatResponseDependencies {
   aiResponse: AiResponseService;
   bot: Bot;
+  hookRegistrations?: HookRegistration[];
   logger: LoggerService;
 }
 
 export class DefaultChatResponseService implements ChatResponseService {
   readonly #aiResponse: AiResponseService;
   readonly #bot: Bot;
+  readonly #hookRegistrations: HookRegistration[];
   readonly #logger: LoggerService;
 
-  constructor({ aiResponse, bot, logger }: ChatResponseDependencies) {
+  constructor({
+    aiResponse,
+    bot,
+    hookRegistrations,
+    logger,
+  }: ChatResponseDependencies) {
     this.#aiResponse = aiResponse;
     this.#bot = bot;
+    this.#hookRegistrations = hookRegistrations ?? [];
     this.#logger = logger;
   }
 
@@ -69,11 +86,13 @@ export class DefaultChatResponseService implements ChatResponseService {
       }
 
       const { telemetry, text } = botResponse.value;
-      await runAfterHooksResilient({
+      await runBotAfterHooksResilient({
+        db: createCoreDbCapability(this.#bot.database),
         hookContext,
         hooks: this.#bot.hooks.afterMessage,
         responseText: text,
       });
+      await this.#runPluginAfterHooks(hookContext, text);
 
       this.#setResponseStatus(requestLogger, "success", text.length);
 
@@ -129,8 +148,29 @@ export class DefaultChatResponseService implements ChatResponseService {
         buildHookContext: this.#buildHookContext.bind(this),
         context,
         database: this.#bot.database,
+        db: createCoreDbCapability(this.#bot.database),
         hooks: this.#bot.hooks.afterMessage,
         logger: backgroundLogger,
+        pluginAfterHooks: this.#hookRegistrations.reduce<
+          Array<{
+            db: ReturnType<typeof createPluginHookCapabilities>;
+            hook: PluginAfterMessageHook;
+          }>
+        >((accumulator, registration) => {
+          if (!registration.afterMessage) {
+            return accumulator;
+          }
+          accumulator.push({
+            db: createPluginHookCapabilities({
+              database: this.#bot.database,
+              pluginKey: registration.pluginKey,
+              pluginName: registration.pluginName,
+              schema: registration.schema,
+            }),
+            hook: registration.afterMessage,
+          });
+          return accumulator;
+        }, []),
         setResponseStatus: this.#setResponseStatus.bind(this),
         stream: storeStream,
         telemetry: botResponse.value.telemetry,
@@ -194,16 +234,51 @@ export class DefaultChatResponseService implements ChatResponseService {
   }
 
   async #runBeforeHooks(hookContext: HookContext, logger: HookContext["log"]) {
-    await runBeforeHooks({
+    await runBotBeforeHooks({
       context: hookContext,
+      db: createCoreDbCapability(this.#bot.database),
       hooks: this.#bot.hooks.beforeMessage,
     });
+    for (const registration of this.#hookRegistrations) {
+      if (!registration.beforeMessage) {
+        continue;
+      }
+      await runPluginBeforeHooks({
+        context: hookContext,
+        db: createPluginHookCapabilities({
+          database: this.#bot.database,
+          pluginKey: registration.pluginKey,
+          pluginName: registration.pluginName,
+          schema: registration.schema,
+        }),
+        hooks: [registration.beforeMessage],
+      });
+    }
 
     logger.set({
       hooks: {
         beforeCount: this.#bot.hooks.beforeMessage.length,
       },
     });
+  }
+
+  async #runPluginAfterHooks(hookContext: HookContext, responseText: string) {
+    for (const registration of this.#hookRegistrations) {
+      if (!registration.afterMessage) {
+        continue;
+      }
+      await runPluginAfterHookResilient({
+        db: createPluginHookCapabilities({
+          database: this.#bot.database,
+          pluginKey: registration.pluginKey,
+          pluginName: registration.pluginName,
+          schema: registration.schema,
+        }),
+        hook: registration.afterMessage,
+        hookContext,
+        responseText,
+      });
+    }
   }
 
   #toGenerationError(error: {
