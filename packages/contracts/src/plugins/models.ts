@@ -36,6 +36,7 @@ export const goodchatPluginDefinitionSchema = z.object({
     }
   ),
   env: zodSchemaSchema.optional(),
+  key: z.string().min(1).optional(),
   name: z.string().min(1, "Plugin name is required"),
   params: z.unknown().optional(),
   paramsSchema: zodTypeSchema.optional(),

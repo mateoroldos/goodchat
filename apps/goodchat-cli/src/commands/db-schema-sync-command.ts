@@ -57,6 +57,31 @@ const normalizePluginName = (pluginName: string): string => {
     .replace(/^_+|_+$/g, "");
 };
 
+const resolvePluginDefinition = (plugin: unknown): unknown => {
+  if (isPluginFactory(plugin)) {
+    return plugin();
+  }
+  if (isPluginDefinition(plugin)) {
+    return plugin;
+  }
+  return null;
+};
+
+const resolvePluginPrefix = (definition: {
+  key?: unknown;
+  name: string;
+}): string => {
+  const pluginPrefix = normalizePluginName(definition.name);
+  if (!pluginPrefix) {
+    throw new Error(`Plugin "${definition.name}" has an invalid name.`);
+  }
+
+  const keyValue =
+    typeof definition.key === "string" ? definition.key : undefined;
+  const keySuffix = keyValue ? normalizePluginName(keyValue) : "";
+  return keySuffix ? `${pluginPrefix}_${keySuffix}` : pluginPrefix;
+};
+
 const resolvePluginSchemas = (plugins: readonly unknown[] | undefined) => {
   if (!plugins || plugins.length === 0) {
     return [];
@@ -69,22 +94,14 @@ const resolvePluginSchemas = (plugins: readonly unknown[] | undefined) => {
   const seen = new Map<string, string>();
 
   for (const plugin of plugins) {
-    let definition: unknown = null;
-    if (isPluginFactory(plugin)) {
-      definition = plugin();
-    } else if (isPluginDefinition(plugin)) {
-      definition = plugin;
-    }
+    const definition = resolvePluginDefinition(plugin);
     const schema =
       definition && "schema" in definition ? definition.schema : undefined;
     if (!(definition && schema) || schema.length === 0) {
       continue;
     }
 
-    const prefix = normalizePluginName(definition.name);
-    if (!prefix) {
-      throw new Error(`Plugin "${definition.name}" has an invalid name.`);
-    }
+    const prefix = resolvePluginPrefix(definition);
 
     const localNames = new Set(schema.map((table) => table.tableName));
     const tables = schema.map((table) => {

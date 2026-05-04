@@ -28,8 +28,13 @@ export interface GoodchatPlugin {
 
 export interface GoodchatPluginDefinitionBase<TShape extends ZodRawShape> {
   env?: ZodObject<TShape>;
+  key?: string;
   name: string;
   schema?: readonly SchemaTableDeclaration[];
+}
+
+export interface GoodchatPluginInstanceConfig {
+  key?: string;
 }
 
 export type GoodchatPluginDefinitionNoParams<TShape extends ZodRawShape> =
@@ -71,9 +76,12 @@ export type GoodchatPluginFactory<
   TParamsSchema extends ZodTypeAny | undefined = undefined,
 > = TParamsSchema extends ZodTypeAny
   ? (
-      params: ZodInput<TParamsSchema>
+      params: ZodInput<TParamsSchema>,
+      config?: GoodchatPluginInstanceConfig
     ) => GoodchatPluginDefinition<TShape, TParamsSchema>
-  : (params?: undefined) => GoodchatPluginDefinition<TShape, TParamsSchema>;
+  : (
+      config?: GoodchatPluginInstanceConfig
+    ) => GoodchatPluginDefinition<TShape, TParamsSchema>;
 
 export const isPluginDefinition = (
   p: GoodchatPlugin | GoodchatPluginDefinitionAny
