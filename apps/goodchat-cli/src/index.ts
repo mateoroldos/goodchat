@@ -4,7 +4,7 @@ import { runDbSchemaSync } from "./commands/db-schema-sync-command";
 const HELP_TEXT = `goodchat CLI
 
 Usage:
-  goodchat db schema sync [--check] [--config <path>] [--dialect <dialect>]
+  goodchat db schema sync [--check] [--json] [--config <path>] [--dialect <dialect>]
 `;
 
 const isDbSchemaSyncCommand = (args: string[]): boolean => {
@@ -37,8 +37,9 @@ const parseNextFlagValue = (
 
 const parseDbSchemaSyncFlags = (
   flags: string[]
-): { check: boolean; configPath?: string; dialect?: string } => {
+): { check: boolean; json: boolean; configPath?: string; dialect?: string } => {
   let check = false;
+  let json = false;
   let configPath: string | undefined;
   let dialect: string | undefined;
 
@@ -47,6 +48,11 @@ const parseDbSchemaSyncFlags = (
 
     if (flag === "--check") {
       check = true;
+      continue;
+    }
+
+    if (flag === "--json") {
+      json = true;
       continue;
     }
 
@@ -77,7 +83,7 @@ const parseDbSchemaSyncFlags = (
     throw new Error(`Unsupported flag: ${flag}\n\n${HELP_TEXT}`);
   }
 
-  return { check, configPath, dialect };
+  return { check, json, configPath, dialect };
 };
 
 const run = async (): Promise<void> => {
@@ -98,6 +104,7 @@ const run = async (): Promise<void> => {
   await runDbSchemaSync({
     cwd: process.cwd(),
     check: parsedFlags.check,
+    json: parsedFlags.json,
     configPath: parsedFlags.configPath,
     dialect: parsedFlags.dialect,
   });
