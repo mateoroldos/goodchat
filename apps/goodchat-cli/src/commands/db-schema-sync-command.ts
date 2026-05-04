@@ -1,11 +1,10 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import { databaseDialectSchema } from "@goodchat/contracts/config/models";
 import type { DatabaseDialect } from "@goodchat/contracts/config/types";
-import {
-  isPluginDefinition,
-  isPluginFactory,
-} from "@goodchat/contracts/plugins/types";
+import type { GoodchatPluginDefinitionAny } from "@goodchat/contracts/plugins/types";
+import { isPluginFactory } from "@goodchat/contracts/plugins/types";
 import type { SchemaTableDeclaration } from "@goodchat/contracts/schema/types";
 import { renderDbSchemaArtifacts } from "@goodchat/storage/scaffold/db-schema-artifacts";
 import { createJiti } from "jiti";
@@ -15,6 +14,7 @@ export interface DbSchemaSyncOptions {
   configPath?: string;
   cwd: string;
   dialect?: string;
+  json?: boolean;
 }
 
 const GOODCHAT_CONFIG_PATH = "src/goodchat.ts";
@@ -49,6 +49,55 @@ interface LoadedGoodchatConfig {
   plugins?: readonly unknown[];
 }
 
+export const DB_SCHEMA_SYNC_ISSUE_CATEGORIES = [
+  "ARTIFACT_STALE",
+  "MISSING_ARTIFACT",
+  "UNEXPECTED_ARTIFACT",
+  "PLUGIN_SCHEMA_CONFLICT",
+  "MIGRATION_HISTORY_DIVERGENCE",
+  "NON_DETERMINISTIC_INPUT",
+] as const;
+
+export type DbSchemaSyncIssueCategory =
+  (typeof DB_SCHEMA_SYNC_ISSUE_CATEGORIES)[number];
+
+interface DbSchemaSyncIssue {
+  actualHash?: string;
+  category: DbSchemaSyncIssueCategory;
+  expectedHash?: string;
+  message: string;
+  path?: string;
+}
+
+interface DbSchemaSyncCheckReport {
+  issues: DbSchemaSyncIssue[];
+  ok: boolean;
+}
+
+const hashText = (text: string): string => {
+  return createHash("sha256").update(text).digest("hex");
+};
+
+const readJsonFileOrNull = async <T>(path: string): Promise<T | null> => {
+  const content = await readTextFileOrNull(path);
+  if (!content) {
+    return null;
+  }
+
+  return JSON.parse(content) as T;
+};
+
+const readDirectoryNamesOrEmpty = async (path: string): Promise<string[]> => {
+  try {
+    return await readdir(path);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
+};
+
 const normalizePluginName = (pluginName: string): string => {
   return pluginName
     .trim()
@@ -57,12 +106,21 @@ const normalizePluginName = (pluginName: string): string => {
     .replace(/^_+|_+$/g, "");
 };
 
-const resolvePluginDefinition = (plugin: unknown): unknown => {
+const resolvePluginDefinition = (
+  plugin: unknown
+): GoodchatPluginDefinitionAny | null => {
   if (isPluginFactory(plugin)) {
     return plugin();
   }
-  if (isPluginDefinition(plugin)) {
-    return plugin;
+  if (
+    plugin &&
+    typeof plugin === "object" &&
+    "create" in plugin &&
+    typeof plugin.create === "function" &&
+    "name" in plugin &&
+    typeof plugin.name === "string"
+  ) {
+    return plugin as GoodchatPluginDefinitionAny;
   }
   return null;
 };
@@ -108,9 +166,11 @@ const resolvePluginSchemas = (plugins: readonly unknown[] | undefined) => {
       const tableName = `${prefix}_${table.tableName}`;
       const owner = seen.get(tableName);
       if (owner) {
-        throw new Error(
+        const conflict = new Error(
           `Plugin schema table name collision: "${tableName}" is declared by both "${owner}" and "${definition.name}".`
-        );
+        ) as Error & { category?: DbSchemaSyncIssueCategory };
+        conflict.category = "PLUGIN_SCHEMA_CONFLICT";
+        throw conflict;
       }
       seen.set(tableName, definition.name);
 
@@ -133,6 +193,140 @@ const resolvePluginSchemas = (plugins: readonly unknown[] | undefined) => {
   }
 
   return declarations;
+};
+
+interface DrizzleJournalEntry {
+  idx: number;
+  tag: string;
+}
+
+interface DrizzleJournal {
+  entries: DrizzleJournalEntry[];
+}
+
+const getMigrationDivergenceIssues = async (cwd: string) => {
+  const issues: DbSchemaSyncIssue[] = [];
+  const journalPath = join(cwd, "drizzle/meta/_journal.json");
+  const journal = await readJsonFileOrNull<DrizzleJournal>(journalPath);
+  if (!journal) {
+    return issues;
+  }
+
+  if (!Array.isArray(journal.entries)) {
+    issues.push({
+      category: "MIGRATION_HISTORY_DIVERGENCE",
+      message: "drizzle/meta/_journal.json has invalid entries shape.",
+      path: "drizzle/meta/_journal.json",
+    });
+    return issues;
+  }
+
+  for (const [index, entry] of journal.entries.entries()) {
+    if (entry.idx !== index) {
+      issues.push({
+        category: "MIGRATION_HISTORY_DIVERGENCE",
+        message: `Migration journal index mismatch at position ${index}. Expected ${index}, found ${entry.idx}.`,
+        path: "drizzle/meta/_journal.json",
+      });
+    }
+    const sqlPath = join(cwd, "drizzle", `${entry.tag}.sql`);
+    const snapshotPath = join(
+      cwd,
+      "drizzle/meta",
+      `${entry.idx.toString().padStart(4, "0")}_snapshot.json`
+    );
+    const [sql, snapshot] = await Promise.all([
+      readTextFileOrNull(sqlPath),
+      readTextFileOrNull(snapshotPath),
+    ]);
+    if (!sql) {
+      issues.push({
+        category: "MIGRATION_HISTORY_DIVERGENCE",
+        message: `Migration SQL file is missing for journal entry ${entry.tag}.`,
+        path: `drizzle/${entry.tag}.sql`,
+      });
+    }
+    if (!snapshot) {
+      issues.push({
+        category: "MIGRATION_HISTORY_DIVERGENCE",
+        message: `Migration snapshot is missing for journal entry ${entry.idx}.`,
+        path: `drizzle/meta/${entry.idx.toString().padStart(4, "0")}_snapshot.json`,
+      });
+    }
+  }
+
+  return issues;
+};
+
+const buildCheckReport = async (input: {
+  cwd: string;
+  expectedFiles: Record<string, string>;
+}) => {
+  const expectedPaths = Object.keys(input.expectedFiles).sort();
+  const fileResults = await Promise.all(
+    expectedPaths.map(async (path) => {
+      const absolutePath = join(input.cwd, path);
+      const content = await readTextFileOrNull(absolutePath);
+      return { content, path };
+    })
+  );
+
+  const issues: DbSchemaSyncIssue[] = [];
+  for (const file of fileResults) {
+    const expectedContent = input.expectedFiles[file.path];
+    if (expectedContent === undefined) {
+      issues.push({
+        category: "NON_DETERMINISTIC_INPUT",
+        message: `${file.path} could not be resolved in expected artifact set.`,
+        path: file.path,
+      });
+      continue;
+    }
+    if (file.content === null) {
+      issues.push({
+        category: "MISSING_ARTIFACT",
+        message: `${file.path} is missing. Run: goodchat db schema sync`,
+        path: file.path,
+      });
+      continue;
+    }
+    if (file.content !== expectedContent) {
+      const expectedHash = hashText(expectedContent);
+      const actualHash = hashText(file.content);
+      issues.push({
+        actualHash,
+        category: "ARTIFACT_STALE",
+        expectedHash,
+        message: `${file.path} is out of date. Run: goodchat db schema sync`,
+        path: file.path,
+      });
+    }
+  }
+
+  const generatedPluginFiles = await readDirectoryNamesOrEmpty(
+    join(input.cwd, "src/db/plugins")
+  );
+  for (const pluginFile of generatedPluginFiles.sort()) {
+    const relativePath = `src/db/plugins/${pluginFile}`;
+    if (!(relativePath in input.expectedFiles)) {
+      issues.push({
+        category: "UNEXPECTED_ARTIFACT",
+        message: `${relativePath} is unexpected generated artifact. Remove it or update schema sync inputs.`,
+        path: relativePath,
+      });
+    }
+  }
+
+  issues.push(...(await getMigrationDivergenceIssues(input.cwd)));
+  return { issues, ok: issues.length === 0 } satisfies DbSchemaSyncCheckReport;
+};
+
+const renderHumanIssues = (issues: readonly DbSchemaSyncIssue[]): string => {
+  return issues
+    .map((issue) => {
+      return `[${issue.category}] ${issue.message}`;
+    })
+    .join("\n");
 };
 
 const loadGoodchatConfig = async (input: {
@@ -214,34 +408,41 @@ export const runDbSchemaSync = async (
     config,
     configPath,
   });
+  let pluginDeclarations: ReturnType<typeof resolvePluginSchemas> = [];
+  try {
+    pluginDeclarations = resolvePluginSchemas(config.plugins);
+  } catch (error) {
+    const category =
+      error instanceof Error && "category" in error
+        ? (error.category as DbSchemaSyncIssueCategory)
+        : "NON_DETERMINISTIC_INPUT";
+    const issue = {
+      category,
+      message:
+        error instanceof Error ? error.message : "Unknown plugin schema error.",
+    } satisfies DbSchemaSyncIssue;
+    throw new Error(
+      options.json
+        ? JSON.stringify({ issues: [issue], ok: false })
+        : `[${issue.category}] ${issue.message}`
+    );
+  }
+
   const expectedFiles = await renderDbSchemaArtifacts({
     cwd: options.cwd,
     dialect,
-    pluginDeclarations: resolvePluginSchemas(config.plugins),
+    pluginDeclarations,
   });
 
-  const existingFiles = await Promise.all(
-    Object.keys(expectedFiles).map(async (path) => {
-      const absolutePath = join(options.cwd, path);
-      const content = await readTextFileOrNull(absolutePath);
-      return { content, path };
-    })
-  );
-
-  const driftErrors: string[] = [];
-  for (const file of existingFiles) {
-    const expectedContent =
-      expectedFiles[file.path as keyof typeof expectedFiles];
-    if (file.content !== expectedContent) {
-      driftErrors.push(
-        `${file.path} is out of date. Run: goodchat db schema sync`
-      );
-    }
-  }
-
   if (options.check) {
-    if (driftErrors.length > 0) {
-      throw new Error(driftErrors.join("\n"));
+    const report = await buildCheckReport({
+      cwd: options.cwd,
+      expectedFiles,
+    });
+    if (!report.ok) {
+      throw new Error(
+        options.json ? JSON.stringify(report) : renderHumanIssues(report.issues)
+      );
     }
     return;
   }
