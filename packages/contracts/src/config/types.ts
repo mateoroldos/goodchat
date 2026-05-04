@@ -1,5 +1,5 @@
 import type z from "zod";
-import type { AfterMessageHook, BeforeMessageHook } from "../hooks/types";
+import type { BotAfterMessageHook, BotBeforeMessageHook } from "../hooks/types";
 import type {
   authConfigSchema,
   authModeSchema,
@@ -23,7 +23,7 @@ export type Bot = Omit<BotConfig, "hooks"> & {
   id: string;
   systemPrompt?: string;
   hooks: {
-    afterMessage: AfterMessageHook[];
-    beforeMessage: BeforeMessageHook[];
+    afterMessage: BotAfterMessageHook[];
+    beforeMessage: BotBeforeMessageHook[];
   };
 };
