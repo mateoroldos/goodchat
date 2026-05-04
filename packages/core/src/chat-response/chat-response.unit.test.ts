@@ -299,7 +299,14 @@ describe("DefaultChatResponseService", () => {
     expect(backgroundLogger.emit).toHaveBeenCalledTimes(1);
     expect(afterHook).toHaveBeenCalledWith(
       expect.objectContaining({ log: backgroundLogger }),
-      expect.objectContaining({ text: "Hello" })
+      expect.objectContaining({ text: "Hello" }),
+      expect.objectContaining({
+        threads: expect.anything(),
+        messages: expect.anything(),
+        aiRuns: expect.anything(),
+        aiRunToolCalls: expect.anything(),
+        analytics: expect.anything(),
+      })
     );
   });
 

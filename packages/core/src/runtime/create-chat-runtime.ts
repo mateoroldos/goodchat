@@ -4,6 +4,7 @@ import { DefaultAiResponseService } from "../ai-response";
 import type { AiTelemetryService } from "../ai-telemetry/interface";
 import { DefaultChatResponseService } from "../chat-response";
 import type { ChatResponseService } from "../chat-response/interface";
+import type { HookRegistration } from "../extensions/models";
 import { DefaultChatGatewayService } from "../gateway/index";
 import type { ChatGatewayService } from "../gateway/interface";
 import type { LoggerService } from "../logger/interface";
@@ -17,10 +18,12 @@ export interface ChatRuntime {
 export const createChatRuntime = ({
   aiTelemetry,
   bot,
+  hookRegistrations,
   logger,
 }: {
   aiTelemetry: AiTelemetryService;
   bot: Bot;
+  hookRegistrations?: HookRegistration[];
   logger: LoggerService;
 }): ChatRuntime => {
   const aiResponse = new DefaultAiResponseService(
@@ -30,6 +33,7 @@ export const createChatRuntime = ({
   const chatResponse = new DefaultChatResponseService({
     aiResponse,
     bot,
+    hookRegistrations,
     logger,
   });
 

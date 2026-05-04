@@ -1,19 +1,39 @@
 import type { Database } from "@goodchat/contracts/database/interface";
 import type {
-  AfterMessageHook,
+  BotAfterMessageHook,
+  CoreDbCapability,
   HookContext,
+  HookDbCapability,
+  PluginAfterMessageHook,
 } from "@goodchat/contracts/hooks/types";
 import { readUIMessageStream, type UIMessageChunk } from "ai";
 import type { AiRunTelemetry } from "../ai-response/models";
 import type { MessageContext } from "../types";
 import { ChatResponseHookExecutionError } from "./errors";
-import { runAfterHooks } from "./hook-runner";
+import { runBotAfterHooks, runPluginAfterHooks } from "./hook-runner";
 import { persistChatResponse } from "./persistence";
 
-interface RunAfterHooksResilientInput {
-  hookContext: HookContext;
-  hooks: AfterMessageHook[];
-  responseText: string;
+interface RunStreamPostProcessInput {
+  buildHookContext: (
+    context: MessageContext,
+    log: HookContext["log"]
+  ) => HookContext;
+  context: MessageContext;
+  database: Database;
+  db: CoreDbCapability;
+  hooks: BotAfterMessageHook[];
+  logger: HookContext["log"];
+  pluginAfterHooks: Array<{
+    db: HookDbCapability;
+    hook: PluginAfterMessageHook;
+  }>;
+  setResponseStatus: (
+    logger: HookContext["log"],
+    status: "streaming" | "success",
+    responseLength?: number
+  ) => void;
+  stream: ReadableStream<UIMessageChunk>;
+  telemetry: Promise<AiRunTelemetry>;
 }
 
 interface RunSyncPostProcessInput {
@@ -27,24 +47,6 @@ interface RunSyncPostProcessInput {
     responseLength?: number
   ) => void;
   telemetry: AiRunTelemetry;
-}
-
-interface RunStreamPostProcessInput {
-  buildHookContext: (
-    context: MessageContext,
-    log: HookContext["log"]
-  ) => HookContext;
-  context: MessageContext;
-  database: Database;
-  hooks: AfterMessageHook[];
-  logger: HookContext["log"];
-  setResponseStatus: (
-    logger: HookContext["log"],
-    status: "streaming" | "success",
-    responseLength?: number
-  ) => void;
-  stream: ReadableStream<UIMessageChunk>;
-  telemetry: Promise<AiRunTelemetry>;
 }
 
 const toError = (error: unknown, fallbackMessage: string): Error => {
@@ -94,38 +96,67 @@ const persistResponse = async ({
   });
 };
 
-export const runAfterHooksResilient = async ({
+const warnHookFailure = (hookContext: HookContext, error: unknown): void => {
+  const normalized =
+    error instanceof ChatResponseHookExecutionError
+      ? error
+      : new ChatResponseHookExecutionError(
+          "afterMessage hook failed",
+          "after",
+          [],
+          error
+        );
+
+  hookContext.log.warn("afterMessage hook failed; continuing response flow", {
+    error: {
+      code: normalized.code,
+      fix: "Inspect user-provided afterMessage hooks for uncaught errors.",
+      message: normalized.message,
+      stage: normalized.stage,
+      type: normalized.name,
+      why: "Hook execution errors are non-blocking in response post-processing.",
+    },
+  });
+};
+
+export const runBotAfterHooksResilient = async ({
+  db,
   hookContext,
   hooks,
   responseText,
-}: RunAfterHooksResilientInput): Promise<void> => {
+}: {
+  db: CoreDbCapability;
+  hookContext: HookContext;
+  hooks: BotAfterMessageHook[];
+  responseText: string;
+}): Promise<void> => {
   try {
-    await runAfterHooks({
+    await runBotAfterHooks({ context: hookContext, db, hooks, responseText });
+  } catch (error) {
+    warnHookFailure(hookContext, error);
+  }
+};
+
+export const runPluginAfterHookResilient = async ({
+  db,
+  hook,
+  hookContext,
+  responseText,
+}: {
+  db: HookDbCapability;
+  hook: PluginAfterMessageHook;
+  hookContext: HookContext;
+  responseText: string;
+}): Promise<void> => {
+  try {
+    await runPluginAfterHooks({
       context: hookContext,
-      hooks,
+      db,
+      hooks: [hook],
       responseText,
     });
   } catch (error) {
-    const normalized =
-      error instanceof ChatResponseHookExecutionError
-        ? error
-        : new ChatResponseHookExecutionError(
-            "afterMessage hook failed",
-            "after",
-            [],
-            error
-          );
-
-    hookContext.log.warn("afterMessage hook failed; continuing response flow", {
-      error: {
-        code: normalized.code,
-        fix: "Inspect user-provided afterMessage hooks for uncaught errors.",
-        message: normalized.message,
-        stage: normalized.stage,
-        type: normalized.name,
-        why: "Hook execution errors are non-blocking in response post-processing.",
-      },
-    });
+    warnHookFailure(hookContext, error);
   }
 };
 
@@ -163,8 +194,10 @@ export const runStreamPostProcess = async ({
   buildHookContext,
   context,
   database,
+  db,
   hooks,
   logger,
+  pluginAfterHooks,
   setResponseStatus,
   stream,
   telemetry,
@@ -172,11 +205,15 @@ export const runStreamPostProcess = async ({
   try {
     const responseText = await collectAssistantText(stream);
     const hookContext = buildHookContext(context, logger);
-    await runAfterHooksResilient({
-      hookContext,
-      hooks,
-      responseText,
-    });
+    await runBotAfterHooksResilient({ db, hookContext, hooks, responseText });
+    for (const registration of pluginAfterHooks) {
+      await runPluginAfterHookResilient({
+        db: registration.db,
+        hook: registration.hook,
+        hookContext,
+        responseText,
+      });
+    }
     await persistResponse({
       context,
       database,
