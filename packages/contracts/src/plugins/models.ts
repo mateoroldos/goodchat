@@ -1,6 +1,6 @@
 import z from "zod";
 import { mcpServerSchema, toolSchema } from "../capabilities/models";
-import { goodchatHooksSchema } from "../hooks/models";
+import { goodchatPluginHooksSchema } from "../hooks/models";
 import { schemaTableDeclarationSchema } from "../schema/models";
 import type { GoodchatPluginDefinition, GoodchatPluginFactory } from "./types";
 
@@ -20,14 +20,19 @@ const zodTypeSchema = z.custom<z.ZodTypeAny>(
   }
 );
 
+// Runtime plugin shape after definition/factory resolution.
+// This schema validates plugins that are ready to execute in the pipeline.
 export const goodchatPluginSchema = z.object({
-  hooks: goodchatHooksSchema.optional(),
+  hooks: goodchatPluginHooksSchema.optional(),
   mcp: z.array(mcpServerSchema).optional(),
   name: z.string().min(1, "Plugin name is required"),
   systemPrompt: z.string().optional(),
   tools: z.record(z.string(), toolSchema).optional(),
 });
 
+// Definition shape before runtime instantiation.
+// This schema validates plugin declarations that provide `create` (and optional env/params schemas)
+// and are later turned into a runtime plugin matching `goodchatPluginSchema`.
 export const goodchatPluginDefinitionSchema = z.object({
   create: z.custom<GoodchatPluginDefinition["create"]>(
     (value) => typeof value === "function",

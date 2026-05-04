@@ -2,7 +2,8 @@ import type { MCPServerConfig } from "@goodchat/contracts/capabilities/types";
 import type { BotConfigInput } from "@goodchat/contracts/config/types";
 import type {
   GoodchatHooks,
-  GoodchatPlugin,
+  GoodchatPluginDefinitionAny,
+  GoodchatResolvedPlugin,
 } from "@goodchat/contracts/plugins/types";
 import {
   isPluginDefinition,
@@ -20,12 +21,13 @@ interface BaseExtensions {
 }
 
 export const mergePlugins = (
-  plugins: GoodchatPlugin[],
+  plugins: GoodchatResolvedPlugin[],
   base: BaseExtensions
 ): GoodchatExtensions => {
   const extensions: GoodchatExtensions = {
     afterMessage: [],
     beforeMessage: [],
+    hookRegistrations: [],
     mcp: [...(base.mcp ?? [])],
     systemPrompt: base.systemPrompt ?? "",
     tools: { ...(base.tools ?? {}) },
@@ -48,24 +50,32 @@ export const mergePlugins = (
         : plugin.systemPrompt;
     }
 
-    if (plugin.hooks?.beforeMessage) {
-      extensions.beforeMessage.push(plugin.hooks.beforeMessage);
-    }
-    if (plugin.hooks?.afterMessage) {
-      extensions.afterMessage.push(plugin.hooks.afterMessage);
+    if (plugin.hooks?.beforeMessage || plugin.hooks?.afterMessage) {
+      extensions.hookRegistrations.push({
+        afterMessage: plugin.hooks?.afterMessage,
+        beforeMessage: plugin.hooks?.beforeMessage,
+        pluginKey: plugin.key,
+        pluginName: plugin.name,
+        schema: plugin.schema ?? [],
+      });
     }
   }
 
   return extensions;
 };
 
-export const resolvePlugins = (bot: BotConfigInput): GoodchatPlugin[] =>
+// Resolves mixed plugin inputs (plain object, definition, or factory) into a
+// single internal runtime shape used by core extension assembly.
+export const resolvePlugins = (
+  bot: BotConfigInput
+): GoodchatResolvedPlugin[] =>
   bot.plugins
     ? bot.plugins.map((p) => {
-        const pluginDefinition = isPluginFactory(p) ? p() : p;
-        if (!isPluginDefinition(pluginDefinition)) {
-          return pluginDefinition;
+        const pluginCandidate: unknown = isPluginFactory(p) ? p() : p;
+        if (!isPluginDefinition(pluginCandidate as never)) {
+          return pluginCandidate as GoodchatResolvedPlugin;
         }
+        const pluginDefinition = pluginCandidate as GoodchatPluginDefinitionAny;
         const env = pluginDefinition.env
           ? validatePluginEnv(pluginDefinition.name, pluginDefinition.env)
           : ({} as never);
@@ -81,13 +91,17 @@ export const resolvePlugins = (bot: BotConfigInput): GoodchatPlugin[] =>
             pluginDefinition.params
           );
           return {
+            key: pluginDefinition.key,
             name: pluginDefinition.name,
+            schema: pluginDefinition.schema,
             ...pluginDefinition.create(env, params),
           };
         }
 
         return {
+          key: pluginDefinition.key,
           name: pluginDefinition.name,
+          schema: pluginDefinition.schema,
           ...pluginDefinition.create(env, undefined),
         };
       })
