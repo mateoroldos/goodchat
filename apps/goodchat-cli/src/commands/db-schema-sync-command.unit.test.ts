@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runDbSchemaSync } from "./db-schema-sync-command";
 
 const tempDirectories: string[] = [];
+const ARTIFACT_STALE_JSON_REGEX = /"category":"ARTIFACT_STALE"/;
 
 const createTempProject = async (dialect: string): Promise<string> => {
   const directory = await mkdtemp(join(tmpdir(), "goodchat-cli-test-"));
@@ -85,7 +86,79 @@ describe("db schema sync command", () => {
 
     await expect(
       runDbSchemaSync({ cwd: projectRoot, check: true })
-    ).rejects.toThrow("src/db/auth-schema.ts is out of date");
+    ).rejects.toThrow("[ARTIFACT_STALE] src/db/auth-schema.ts is out of date");
+  });
+
+  it("db schema sync check reports missing artifact", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    await rm(join(projectRoot, "src/db/auth-schema.ts"));
+
+    await expect(
+      runDbSchemaSync({ cwd: projectRoot, check: true })
+    ).rejects.toThrow("[MISSING_ARTIFACT] src/db/auth-schema.ts is missing");
+  });
+
+  it("db schema sync check reports unexpected artifact", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    await writeFile(
+      join(projectRoot, "src/db/plugins/extra.ts"),
+      "export const extra = true;\n",
+      "utf8"
+    );
+
+    await expect(
+      runDbSchemaSync({ cwd: projectRoot, check: true })
+    ).rejects.toThrow(
+      "[UNEXPECTED_ARTIFACT] src/db/plugins/extra.ts is unexpected generated artifact"
+    );
+  });
+
+  it("db schema sync check does not mutate files", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    const trackedFiles = [
+      "drizzle.config.ts",
+      "src/db/schema.ts",
+      "src/db/core-schema.ts",
+      "src/db/auth-schema.ts",
+      "src/db/plugins/schema.ts",
+    ] as const;
+
+    const before = await Promise.all(
+      trackedFiles.map(async (path) => {
+        const content = await readFile(join(projectRoot, path), "utf8");
+        return [path, content] as const;
+      })
+    );
+
+    await expect(
+      runDbSchemaSync({ cwd: projectRoot, check: true })
+    ).resolves.toBeUndefined();
+
+    const after = await Promise.all(
+      trackedFiles.map(async (path) => {
+        const content = await readFile(join(projectRoot, path), "utf8");
+        return [path, content] as const;
+      })
+    );
+
+    expect(Object.fromEntries(after)).toEqual(Object.fromEntries(before));
+  });
+
+  it("db schema sync check emits json diagnostics when json mode enabled", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    await writeFile(
+      join(projectRoot, "src/db/auth-schema.ts"),
+      "export const authSchema = { stale: true };\n",
+      "utf8"
+    );
+
+    await expect(
+      runDbSchemaSync({ cwd: projectRoot, check: true, json: true })
+    ).rejects.toThrow(ARTIFACT_STALE_JSON_REGEX);
   });
 
   it("db schema sync check passes after sync for each dialect", async () => {
@@ -250,7 +323,30 @@ export const goodchat = {
 
     await expect(
       runDbSchemaSync({ cwd: projectRoot, check: false })
-    ).rejects.toThrow("Plugin schema table name collision");
+    ).rejects.toThrow(
+      "[PLUGIN_SCHEMA_CONFLICT] Plugin schema table name collision"
+    );
+  });
+
+  it("db schema sync check reports migration history divergence", async () => {
+    const projectRoot = await createTempProject("sqlite");
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+    await mkdir(join(projectRoot, "drizzle/meta"), { recursive: true });
+    await writeFile(
+      join(projectRoot, "drizzle/meta/_journal.json"),
+      JSON.stringify(
+        {
+          entries: [{ idx: 0, tag: "0000_alpha" }],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    await expect(
+      runDbSchemaSync({ cwd: projectRoot, check: true })
+    ).rejects.toThrow("[MIGRATION_HISTORY_DIVERGENCE]");
   });
 
   it("uses optional plugin key suffix for multi-instance schema", async () => {
