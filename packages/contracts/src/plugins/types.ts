@@ -8,6 +8,7 @@ import type {
 } from "zod";
 import type { MCPServerConfig } from "../capabilities/types";
 import type { GoodchatHooks } from "../hooks/types";
+import type { SchemaTableDeclaration } from "../schema/types";
 
 export type {
   BotResponse,
@@ -28,6 +29,7 @@ export interface GoodchatPlugin {
 export interface GoodchatPluginDefinitionBase<TShape extends ZodRawShape> {
   env?: ZodObject<TShape>;
   name: string;
+  schema?: readonly SchemaTableDeclaration[];
 }
 
 export type GoodchatPluginDefinitionNoParams<TShape extends ZodRawShape> =
