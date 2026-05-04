@@ -252,4 +252,40 @@ export const goodchat = {
       runDbSchemaSync({ cwd: projectRoot, check: false })
     ).rejects.toThrow("Plugin schema table name collision");
   });
+
+  it("uses optional plugin key suffix for multi-instance schema", async () => {
+    const projectRoot = await createTempProjectWithConfig(`
+const plugin = (config) => ({
+  key: config?.key,
+  name: "Rate Limiter",
+  schema: [{ tableName: "limits", columns: [{ columnName: "id", dataType: "id", primaryKey: true }] }],
+  create() {
+    return { tools: {} };
+  },
+});
+
+export const goodchat = {
+  database: { dialect: "sqlite" },
+  auth: { enabled: false, mode: "password", webChatPublic: false },
+  plugins: [
+    plugin({ key: "workspace-a" }),
+    plugin({ key: "workspace-b" }),
+  ],
+};
+`);
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    const pluginSchema = await readFile(
+      join(projectRoot, "src/db/plugins/schema.ts"),
+      "utf8"
+    );
+
+    expect(pluginSchema).toContain(
+      'sqliteTable("rate_limiter_workspace_a_limits"'
+    );
+    expect(pluginSchema).toContain(
+      'sqliteTable("rate_limiter_workspace_b_limits"'
+    );
+  });
 });
