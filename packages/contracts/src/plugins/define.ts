@@ -6,7 +6,11 @@ import type {
   ZodTypeAny,
 } from "zod";
 import type { SchemaTableDeclaration } from "../schema/types";
-import type { GoodchatPlugin, GoodchatPluginFactory } from "./types";
+import type {
+  GoodchatPlugin,
+  GoodchatPluginFactory,
+  GoodchatPluginInstanceConfig,
+} from "./types";
 
 interface DefinePluginNoParamsOptions<TShape extends ZodRawShape> {
   create: (
@@ -50,9 +54,13 @@ export function definePlugin(
   | GoodchatPluginFactory<ZodRawShape, ZodTypeAny>
   | GoodchatPluginFactory<ZodRawShape, undefined> {
   if ("paramsSchema" in options && options.paramsSchema) {
-    return (params: ZodInput<ZodTypeAny>) => ({
+    return (
+      params: ZodInput<ZodTypeAny>,
+      config?: GoodchatPluginInstanceConfig
+    ) => ({
       create: options.create,
       env: options.env,
+      key: config?.key,
       name: options.name,
       params,
       paramsSchema: options.paramsSchema,
@@ -60,9 +68,10 @@ export function definePlugin(
     });
   }
 
-  return () => ({
+  return (config?: GoodchatPluginInstanceConfig) => ({
     create: options.create,
     env: options.env,
+    key: config?.key,
     name: options.name,
     params: undefined,
     paramsSchema: undefined,
