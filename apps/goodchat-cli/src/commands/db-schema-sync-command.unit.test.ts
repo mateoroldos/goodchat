@@ -18,6 +18,14 @@ const createTempProject = async (dialect: string): Promise<string> => {
   return directory;
 };
 
+const createTempProjectWithConfig = async (source: string): Promise<string> => {
+  const directory = await mkdtemp(join(tmpdir(), "goodchat-cli-test-"));
+  tempDirectories.push(directory);
+  await mkdir(join(directory, "src"), { recursive: true });
+  await writeFile(join(directory, "src/goodchat.ts"), source, "utf8");
+  return directory;
+};
+
 afterEach(async () => {
   await Promise.all(
     tempDirectories
@@ -169,5 +177,79 @@ describe("db schema sync command", () => {
     );
 
     expect(second).toBe(first);
+  });
+
+  it("includes plugin-declared schema in generated plugin artifacts", async () => {
+    const projectRoot = await createTempProjectWithConfig(`
+const plugin = {
+  name: "Rate Limiter",
+  schema: [
+    {
+      tableName: "limits",
+      columns: [
+        { columnName: "id", dataType: "id", primaryKey: true, notNull: true },
+        { columnName: "key", dataType: "text", notNull: true },
+      ],
+      relations: [{ kind: "many", name: "events", targetTable: "events" }],
+    },
+    {
+      tableName: "events",
+      columns: [{ columnName: "id", dataType: "id", primaryKey: true, notNull: true }],
+      relations: [{ kind: "one", name: "limit", targetTable: "limits", fields: ["id"], references: ["id"] }],
+    },
+  ],
+  create() {
+    return { tools: {} };
+  },
+};
+
+export const goodchat = {
+  database: { dialect: "sqlite" },
+  auth: { enabled: false, mode: "password", webChatPublic: false },
+  plugins: [plugin],
+};
+`);
+
+    await runDbSchemaSync({ cwd: projectRoot, check: false });
+
+    const pluginSchema = await readFile(
+      join(projectRoot, "src/db/plugins/schema.ts"),
+      "utf8"
+    );
+
+    expect(pluginSchema).toContain('sqliteTable("rate_limiter_limits"');
+    expect(pluginSchema).toContain('sqliteTable("rate_limiter_events"');
+    expect(pluginSchema).toContain("events: many(rateLimiterEvents)");
+    expect(pluginSchema).toContain("limit: one(rateLimiterLimits");
+  });
+
+  it("fails on effective plugin table name collisions", async () => {
+    const projectRoot = await createTempProjectWithConfig(`
+const a = {
+  name: "Rate Limiter",
+  schema: [{ tableName: "limits", columns: [{ columnName: "id", dataType: "id", primaryKey: true }] }],
+  create() {
+    return { tools: {} };
+  },
+};
+
+const b = {
+  name: "rate limiter",
+  schema: [{ tableName: "limits", columns: [{ columnName: "id", dataType: "id", primaryKey: true }] }],
+  create() {
+    return { tools: {} };
+  },
+};
+
+export const goodchat = {
+  database: { dialect: "sqlite" },
+  auth: { enabled: false, mode: "password", webChatPublic: false },
+  plugins: [a, b],
+};
+`);
+
+    await expect(
+      runDbSchemaSync({ cwd: projectRoot, check: false })
+    ).rejects.toThrow("Plugin schema table name collision");
   });
 });

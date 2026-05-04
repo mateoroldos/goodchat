@@ -248,6 +248,7 @@ export const createGoodchat = (options: BotConfigInput) => {
     name: options.name,
     database: { dialect: options.database.dialect },
     auth: options.auth,
+    plugins: options.plugins,
     get ready() {
       _ready ??= initialize();
       return _ready;
