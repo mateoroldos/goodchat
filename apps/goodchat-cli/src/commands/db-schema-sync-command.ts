@@ -2,6 +2,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import { databaseDialectSchema } from "@goodchat/contracts/config/models";
 import type { DatabaseDialect } from "@goodchat/contracts/config/types";
+import {
+  isPluginDefinition,
+  isPluginFactory,
+} from "@goodchat/contracts/plugins/types";
+import type { SchemaTableDeclaration } from "@goodchat/contracts/schema/types";
 import { renderDbSchemaArtifacts } from "@goodchat/storage/scaffold/db-schema-artifacts";
 import { createJiti } from "jiti";
 
@@ -41,7 +46,77 @@ interface LoadedGoodchatConfig {
   database?: {
     dialect?: unknown;
   };
+  plugins?: readonly unknown[];
 }
+
+const normalizePluginName = (pluginName: string): string => {
+  return pluginName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+};
+
+const resolvePluginSchemas = (plugins: readonly unknown[] | undefined) => {
+  if (!plugins || plugins.length === 0) {
+    return [];
+  }
+
+  const declarations: {
+    pluginName: string;
+    tables: readonly SchemaTableDeclaration[];
+  }[] = [];
+  const seen = new Map<string, string>();
+
+  for (const plugin of plugins) {
+    let definition: unknown = null;
+    if (isPluginFactory(plugin)) {
+      definition = plugin();
+    } else if (isPluginDefinition(plugin)) {
+      definition = plugin;
+    }
+    const schema =
+      definition && "schema" in definition ? definition.schema : undefined;
+    if (!(definition && schema) || schema.length === 0) {
+      continue;
+    }
+
+    const prefix = normalizePluginName(definition.name);
+    if (!prefix) {
+      throw new Error(`Plugin "${definition.name}" has an invalid name.`);
+    }
+
+    const localNames = new Set(schema.map((table) => table.tableName));
+    const tables = schema.map((table) => {
+      const tableName = `${prefix}_${table.tableName}`;
+      const owner = seen.get(tableName);
+      if (owner) {
+        throw new Error(
+          `Plugin schema table name collision: "${tableName}" is declared by both "${owner}" and "${definition.name}".`
+        );
+      }
+      seen.set(tableName, definition.name);
+
+      return {
+        ...table,
+        tableName,
+        relations: table.relations?.map((relation) => ({
+          ...relation,
+          targetTable: localNames.has(relation.targetTable)
+            ? `${prefix}_${relation.targetTable}`
+            : relation.targetTable,
+        })),
+      };
+    });
+
+    declarations.push({
+      pluginName: definition.name,
+      tables,
+    });
+  }
+
+  return declarations;
+};
 
 const loadGoodchatConfig = async (input: {
   configPath: string;
@@ -72,13 +147,12 @@ const loadGoodchatConfig = async (input: {
   );
 };
 
-const resolveDialectFromGoodchatConfig = async (input: {
+const resolveDialectFromGoodchatConfig = (input: {
   configPath: string;
-  cwd: string;
-}): Promise<DatabaseDialect> => {
-  const moduleExports = await loadGoodchatConfig(input);
+  config: LoadedGoodchatConfig;
+}): DatabaseDialect => {
   const parsedDialect = databaseDialectSchema.safeParse(
-    moduleExports.database?.dialect
+    input.config.database?.dialect
   );
   if (parsedDialect.success) {
     return parsedDialect.data;
@@ -90,10 +164,10 @@ const resolveDialectFromGoodchatConfig = async (input: {
 };
 
 const resolveDialect = (options: {
+  config: LoadedGoodchatConfig;
   configPath: string;
-  cwd: string;
   dialect?: string;
-}): Promise<DatabaseDialect> => {
+}): DatabaseDialect => {
   if (options.dialect) {
     const parsed = databaseDialectSchema.safeParse(options.dialect);
     if (!parsed.success) {
@@ -101,12 +175,12 @@ const resolveDialect = (options: {
         `Invalid --dialect value: ${options.dialect}. Expected one of sqlite, postgres, mysql.`
       );
     }
-    return Promise.resolve(parsed.data);
+    return parsed.data;
   }
 
   return resolveDialectFromGoodchatConfig({
+    config: options.config,
     configPath: options.configPath,
-    cwd: options.cwd,
   });
 };
 
@@ -114,14 +188,19 @@ export const runDbSchemaSync = async (
   options: DbSchemaSyncOptions
 ): Promise<void> => {
   const configPath = options.configPath ?? GOODCHAT_CONFIG_PATH;
-  const dialect = await resolveDialect({
-    dialect: options.dialect,
+  const config = await loadGoodchatConfig({
     configPath,
     cwd: options.cwd,
+  });
+  const dialect = resolveDialect({
+    dialect: options.dialect,
+    config,
+    configPath,
   });
   const expectedFiles = await renderDbSchemaArtifacts({
     cwd: options.cwd,
     dialect,
+    pluginDeclarations: resolvePluginSchemas(config.plugins),
   });
 
   const existingFiles = await Promise.all(
