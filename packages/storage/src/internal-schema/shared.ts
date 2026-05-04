@@ -21,15 +21,7 @@ import {
   timestamp as pgTimestamp,
 } from "drizzle-orm/pg-core";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-
-export const toPropertyName = (column: SchemaColumnDeclaration): string => {
-  if (column.propertyName) {
-    return column.propertyName;
-  }
-  return column.columnName.replace(/_([a-z])/g, (_, char: string) =>
-    char.toUpperCase()
-  );
-};
+import { toPropertyName } from "../schema-declaration/shared";
 
 const applyFlags = <T>(input: {
   column: SchemaColumnDeclaration;

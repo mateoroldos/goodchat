@@ -3,10 +3,16 @@ import {
   CORE_SCHEMA_TABLES,
 } from "@goodchat/contracts/schema/declarations";
 import type {
+  PluginSchemaDeclaration,
   SchemaColumnDeclaration,
   SchemaDialect,
   SchemaTableDeclaration,
 } from "@goodchat/contracts/schema/types";
+import {
+  renderScalarExpression,
+  toPropertyName,
+  toVariableName,
+} from "../schema-declaration/shared";
 
 export type Dialect = SchemaDialect;
 
@@ -27,61 +33,16 @@ const CORE_SCHEMA_EXPORT = {
   sqlite: "sqliteSchema",
 } as const satisfies Record<Dialect, string>;
 
-const toVariableName = (tableName: string): string => {
-  return tableName.replace(/_([a-z])/g, (_, char: string) =>
-    char.toUpperCase()
-  );
-};
-
-const toPropertyName = (column: SchemaColumnDeclaration): string => {
-  if (column.propertyName) {
-    return column.propertyName;
-  }
-  return column.columnName.replace(/_([a-z])/g, (_, char: string) =>
-    char.toUpperCase()
-  );
-};
-
-const renderScalar = (
-  dialect: Dialect,
-  column: SchemaColumnDeclaration,
-  property: string
-): string => {
-  if (column.dataType === "id") {
-    if (dialect === "mysql") {
-      return `${property}: varchar("${column.columnName}", { length: 191 })`;
-    }
-    return `${property}: text("${column.columnName}")`;
-  }
-  if (column.dataType === "text") {
-    return `${property}: text("${column.columnName}")`;
-  }
-  if (column.dataType === "integer") {
-    return `${property}: ${dialect === "mysql" ? "int" : "integer"}("${column.columnName}")`;
-  }
-  if (column.dataType === "json") {
-    if (dialect === "sqlite") {
-      return `${property}: text("${column.columnName}", { mode: "json" })`;
-    }
-    return `${property}: ${dialect === "mysql" ? "json" : "jsonb"}("${column.columnName}")`;
-  }
-  if (column.dataType === "timestamp") {
-    if (dialect === "sqlite") {
-      return `${property}: integer("${column.columnName}", { mode: "timestamp" })`;
-    }
-    return `${property}: timestamp("${column.columnName}")`;
-  }
-  if (dialect === "sqlite") {
-    return `${property}: integer("${column.columnName}", { mode: "boolean" })`;
-  }
-  return `${property}: boolean("${column.columnName}")`;
-};
-
 const renderColumn = (
   dialect: Dialect,
   column: SchemaColumnDeclaration
 ): string => {
-  let expr = renderScalar(dialect, column, toPropertyName(column));
+  let expr = renderScalarExpression({
+    dialect,
+    dataType: column.dataType,
+    propertyName: toPropertyName(column),
+    columnName: column.columnName,
+  });
   if (column.primaryKey) {
     expr = `${expr}.primaryKey()`;
   }
@@ -162,4 +123,23 @@ export const emitAuthDrizzleSchema = (dialect: Dialect): string => {
   const authTables = AUTH_SCHEMA_TABLES_BY_DIALECT[dialect];
   const tables = renderTables(dialect, authTables);
   return `${buildImports(dialect, authTables)}\n\n${tables}\n\nexport const authSchema = {\n  user,\n  session,\n  account,\n  verification,\n};\n`;
+};
+
+export const emitPluginDrizzleSchema = (input: {
+  declarations: readonly PluginSchemaDeclaration[];
+  dialect: Dialect;
+}): string => {
+  const tables = input.declarations.flatMap(
+    (declaration) => declaration.tables
+  );
+  if (tables.length === 0) {
+    return "export const pluginSchema = {};\n";
+  }
+
+  const renderedTables = renderTables(input.dialect, tables);
+  const schemaEntries = tables.map(
+    (table) => `  ${toVariableName(table.tableName)},`
+  );
+
+  return `${buildImports(input.dialect, tables)}\n\n${renderedTables}\n\nexport const pluginSchema = {\n${schemaEntries.join("\n")}\n};\n`;
 };
