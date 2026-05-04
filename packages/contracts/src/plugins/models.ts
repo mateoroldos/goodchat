@@ -1,6 +1,7 @@
 import z from "zod";
 import { mcpServerSchema, toolSchema } from "../capabilities/models";
 import { goodchatHooksSchema } from "../hooks/models";
+import { schemaTableDeclarationSchema } from "../schema/models";
 import type { GoodchatPluginDefinition, GoodchatPluginFactory } from "./types";
 
 const zodSchemaSchema = z.custom<z.ZodObject<z.ZodRawShape>>(
@@ -38,6 +39,7 @@ export const goodchatPluginDefinitionSchema = z.object({
   name: z.string().min(1, "Plugin name is required"),
   params: z.unknown().optional(),
   paramsSchema: zodTypeSchema.optional(),
+  schema: z.array(schemaTableDeclarationSchema).optional(),
 });
 
 export const goodchatPluginFactorySchema = z.custom<GoodchatPluginFactory>(
