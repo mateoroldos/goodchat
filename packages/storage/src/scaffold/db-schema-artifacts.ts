@@ -1,6 +1,8 @@
+import type { PluginSchemaDeclaration } from "@goodchat/contracts/schema/types";
 import {
   emitAuthDrizzleSchema,
   emitCoreDrizzleSchema,
+  emitPluginDrizzleSchema,
 } from "./schema-foundation";
 
 export type DatabaseDialect = "sqlite" | "postgres" | "mysql";
@@ -42,10 +44,17 @@ export const schema = {
 export const renderDbSchemaArtifacts = async (input: {
   cwd?: string;
   dialect: DatabaseDialect;
+  pluginDeclarations?: readonly PluginSchemaDeclaration[];
 }): Promise<Record<string, string>> => {
-  const [coreSchema, authSchema] = await Promise.all([
+  const [coreSchema, authSchema, pluginSchema] = await Promise.all([
     Promise.resolve(renderCoreSchemaFile(input.dialect)),
     Promise.resolve(emitAuthDrizzleSchema(input.dialect)),
+    Promise.resolve(
+      emitPluginDrizzleSchema({
+        dialect: input.dialect,
+        declarations: input.pluginDeclarations ?? [],
+      })
+    ),
   ]);
 
   return {
@@ -64,6 +73,6 @@ export default defineConfig({
     "src/db/core-schema.ts": coreSchema,
     "src/db/schema.ts": renderComposedSchemaFile(),
     "src/db/auth-schema.ts": authSchema,
-    "src/db/plugins/schema.ts": "export const pluginSchema = {};\n",
+    "src/db/plugins/schema.ts": pluginSchema,
   };
 };
