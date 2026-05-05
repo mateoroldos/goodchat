@@ -6,6 +6,7 @@ import type {
   PluginSchemaDeclaration,
   SchemaColumnDeclaration,
   SchemaDialect,
+  SchemaIndexDeclaration,
   SchemaTableDeclaration,
 } from "@goodchat/contracts/schema/types";
 import {
@@ -18,11 +19,11 @@ export type Dialect = SchemaDialect;
 
 const DIALECT_TABLE_IMPORTS = {
   mysql:
-    'import { boolean, int, json, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";',
+    'import { boolean, index, int, json, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";',
   postgres:
-    'import { boolean, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";',
+    'import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";',
   sqlite:
-    'import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";',
+    'import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";',
 } as const satisfies Record<Dialect, string>;
 
 const RELATIONS_IMPORT = 'import { relations } from "drizzle-orm";';
@@ -53,6 +54,20 @@ const renderColumn = (
     expr = `${expr}.unique()`;
   }
   return expr;
+};
+
+const renderIndexes = (
+  tableVariable: string,
+  indexes: readonly SchemaIndexDeclaration[]
+): string => {
+  return indexes
+    .map((idx) => {
+      const fn = idx.unique ? "uniqueIndex" : "index";
+      const cols = idx.columns.map((col) => `t.${col}`).join(", ");
+      const name = idx.name ?? `idx_${tableVariable}_${idx.columns.join("_")}`;
+      return `  ${fn}("${name}").on(${cols}),`;
+    })
+    .join("\n");
 };
 
 const renderRelations = (table: SchemaTableDeclaration): string => {
@@ -92,10 +107,15 @@ const renderTables = (
 
   const tableDefs = tables
     .map((table) => {
+      const varName = toVariableName(table.tableName);
       const columns = table.columns
         .map((column) => `  ${renderColumn(dialect, column)},`)
         .join("\n");
-      return `export const ${toVariableName(table.tableName)} = ${tableFactory}("${table.tableName}", {\n${columns}\n});`;
+      if (table.indexes && table.indexes.length > 0) {
+        const indexes = renderIndexes(varName, table.indexes);
+        return `export const ${varName} = ${tableFactory}("${table.tableName}", {\n${columns}\n}, (t) => [\n${indexes}\n]);`;
+      }
+      return `export const ${varName} = ${tableFactory}("${table.tableName}", {\n${columns}\n});`;
     })
     .join("\n\n");
   const relationDefs = tables.map((table) => renderRelations(table)).join("\n");

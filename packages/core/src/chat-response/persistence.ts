@@ -1,7 +1,11 @@
 import type { AiRunCreate } from "@goodchat/contracts/database/ai-run";
 import type { AiRunToolCallCreate } from "@goodchat/contracts/database/ai-run-tool-call";
 import type { Database } from "@goodchat/contracts/database/interface";
-import type { MessageCreate } from "@goodchat/contracts/database/message";
+import type {
+  MessageCreate,
+  MessageMetadata,
+  MessageResponseSourceMetadata,
+} from "@goodchat/contracts/database/message";
 import type {
   ThreadCreate,
   ThreadUpdate,
@@ -18,6 +22,13 @@ interface PersistChatResponseParams {
   telemetry: AiRunTelemetry;
 }
 
+interface PersistHookResponseParams {
+  context: MessageContext;
+  database: Database;
+  responseSource?: MessageResponseSourceMetadata;
+  responseText: string;
+}
+
 export const persistChatResponse = async ({
   context,
   database,
@@ -27,14 +38,10 @@ export const persistChatResponse = async ({
   const timestamp = new Date().toISOString();
 
   await database.transaction(async (transaction) => {
-    const threadId = context.threadId;
-    await upsertThread(transaction, context, responseText, timestamp);
-
-    const assistantMessage = await createMessages({
+    const assistantMessage = await persistConversationMessages({
       context,
       database: transaction,
       responseText,
-      threadId,
       timestamp,
     });
 
@@ -42,8 +49,50 @@ export const persistChatResponse = async ({
       assistantMessageId: assistantMessage.id,
       context,
       telemetry,
-      threadId,
+      threadId: context.threadId,
     });
+  });
+};
+
+export const persistHookResponse = async ({
+  context,
+  database,
+  responseSource = { hook: "beforeMessage", kind: "hook" },
+  responseText,
+}: PersistHookResponseParams) => {
+  const timestamp = new Date().toISOString();
+
+  await database.transaction(async (transaction) => {
+    await persistConversationMessages({
+      context,
+      database: transaction,
+      responseMetadata: { responseSource },
+      responseText,
+      timestamp,
+    });
+  });
+};
+
+const persistConversationMessages = async ({
+  context,
+  database,
+  responseMetadata,
+  responseText,
+  timestamp,
+}: PersistHookResponseParams & {
+  responseMetadata?: MessageMetadata;
+  timestamp: string;
+}) => {
+  const threadId = context.threadId;
+  await upsertThread(database, context, responseText, timestamp);
+
+  return createMessages({
+    context,
+    database,
+    responseMetadata,
+    responseText,
+    threadId,
+    timestamp,
   });
 };
 
@@ -116,12 +165,14 @@ const upsertThread = async (
 const createMessages = async ({
   context,
   database,
+  responseMetadata,
   responseText,
   threadId,
   timestamp,
 }: {
   context: MessageContext;
   database: Database;
+  responseMetadata?: MessageMetadata;
   responseText: string;
   threadId: string;
   timestamp: string;
@@ -141,6 +192,7 @@ const createMessages = async ({
     adapterName: context.adapterName,
     createdAt: timestamp,
     id: nanoid(),
+    ...(responseMetadata ? { metadata: responseMetadata } : {}),
     role: "assistant",
     text: responseText,
     threadId,
