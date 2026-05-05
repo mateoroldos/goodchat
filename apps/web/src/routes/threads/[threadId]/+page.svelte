@@ -13,7 +13,7 @@
   } from "lucide-svelte";
   import { page } from "$app/state";
   import { threadsQueries } from "$lib/api/threads/threads.queries";
-  import type { Run } from "$lib/api/threads/threads.types";
+  import type { Message, Run } from "$lib/api/threads/threads.types";
   import PageHeader from "$lib/components/page-header.svelte";
   import * as Card from "$lib/components/ui/card";
   import { Separator } from "$lib/components/ui/separator";
@@ -53,10 +53,24 @@
     runs.reduce((sum, r) => sum + (r.durationMs ?? 0), 0)
   );
 
+  const getResponseSource = (metadata: Message["metadata"] | undefined) => {
+    const source = metadata?.responseSource;
+    if (source?.kind !== "hook") {
+      return undefined;
+    }
+
+    return {
+      hook: source.hook ?? "hook",
+      pluginKey: source.pluginKey,
+      pluginName: source.pluginName,
+    };
+  };
+
   const enrichedMessages = $derived(
     messages.map((msg) => ({
       ...msg,
       isBot: msg.role === "assistant",
+      responseSource: getResponseSource(msg.metadata),
       run: msg.role === "assistant" ? runByMessageId.get(msg.id) : undefined,
     }))
   );
@@ -229,6 +243,32 @@
           >
             <p class="whitespace-pre-wrap">{msg.text}</p>
           </div>
+
+          {#if msg.isBot && msg.responseSource}
+            <div class="ml-6 mt-1.5 max-w-[72%]">
+              <div
+                class="flex flex-wrap items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-[10px] text-amber-700 dark:text-amber-300"
+              >
+                <Zap size={10} class="shrink-0" />
+                <span class="font-semibold uppercase tracking-wider"
+                  >Hook response</span
+                >
+                <span class="opacity-50">·</span>
+                <span class="font-mono">{msg.responseSource.hook}</span>
+                {#if msg.responseSource.pluginName}
+                  <span class="opacity-50">·</span>
+                  <span>plugin</span>
+                  <span class="font-mono">{msg.responseSource.pluginName}</span>
+                {/if}
+                {#if msg.responseSource.pluginKey}
+                  <span class="opacity-50">/</span>
+                  <span class="font-mono opacity-80"
+                    >{msg.responseSource.pluginKey}</span
+                  >
+                {/if}
+              </div>
+            </div>
+          {/if}
 
           <!-- AI run details linked to this bot message -->
           {#if msg.run}

@@ -3,6 +3,7 @@ import { defineConfig } from "tsdown";
 export default defineConfig({
   entry: {
     linear: "./src/linear.ts",
+    "rate-limiter": "./src/rate-limiter.ts",
   },
   format: ["esm"],
   dts: {
