@@ -37,12 +37,13 @@ const readCountFromResult = (value: unknown): number | null => {
   const record = value as Record<string, unknown>;
   let rows: unknown[] | null = null;
   if (Array.isArray(value) && value.length > 0) {
-    rows = value;
+    const [firstEntry] = value;
+    rows = Array.isArray(firstEntry) ? firstEntry : value;
   } else if (Array.isArray(record.rows)) {
     rows = record.rows as unknown[];
   }
 
-  const row = rows?.[0];
+  const row = rows?.[0] ?? value;
   if (!row || typeof row !== "object") {
     return null;
   }
@@ -74,10 +75,16 @@ const queryAppliedMigrationCount = async (
 
   const rawConnection = (database as { rawConnection?: unknown }).rawConnection;
   const rawConnectionWithQuery = rawConnection as {
-    query?: (statement: string) => Promise<unknown>;
+    query?: (statement: string) => Promise<unknown> | unknown;
   };
   if (typeof rawConnectionWithQuery?.query === "function") {
     const result = await rawConnectionWithQuery.query(query);
+    const statementResult = result as {
+      get?: () => unknown;
+    };
+    if (typeof statementResult.get === "function") {
+      return readCountFromResult(statementResult.get());
+    }
     return readCountFromResult(result);
   }
 

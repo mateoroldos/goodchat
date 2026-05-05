@@ -124,14 +124,22 @@ export const runBotAfterHooksResilient = async ({
   hookContext,
   hooks,
   responseText,
+  telemetry,
 }: {
   db: CoreDbCapability;
   hookContext: HookContext;
   hooks: BotAfterMessageHook[];
   responseText: string;
+  telemetry?: AiRunTelemetry;
 }): Promise<void> => {
   try {
-    await runBotAfterHooks({ context: hookContext, db, hooks, responseText });
+    await runBotAfterHooks({
+      context: hookContext,
+      db,
+      hooks,
+      responseText,
+      telemetry,
+    });
   } catch (error) {
     warnHookFailure(hookContext, error);
   }
@@ -142,11 +150,13 @@ export const runPluginAfterHookResilient = async ({
   hook,
   hookContext,
   responseText,
+  telemetry,
 }: {
   db: HookDbCapability;
   hook: PluginAfterMessageHook;
   hookContext: HookContext;
   responseText: string;
+  telemetry?: AiRunTelemetry;
 }): Promise<void> => {
   try {
     await runPluginAfterHooks({
@@ -154,6 +164,7 @@ export const runPluginAfterHookResilient = async ({
       db,
       hooks: [hook],
       responseText,
+      telemetry,
     });
   } catch (error) {
     warnHookFailure(hookContext, error);
@@ -204,21 +215,29 @@ export const runStreamPostProcess = async ({
 }: RunStreamPostProcessInput) => {
   try {
     const responseText = await collectAssistantText(stream);
+    const resolvedTelemetry = await telemetry;
     const hookContext = buildHookContext(context, logger);
-    await runBotAfterHooksResilient({ db, hookContext, hooks, responseText });
+    await runBotAfterHooksResilient({
+      db,
+      hookContext,
+      hooks,
+      responseText,
+      telemetry: resolvedTelemetry,
+    });
     for (const registration of pluginAfterHooks) {
       await runPluginAfterHookResilient({
         db: registration.db,
         hook: registration.hook,
         hookContext,
         responseText,
+        telemetry: resolvedTelemetry,
       });
     }
     await persistResponse({
       context,
       database,
       responseText,
-      telemetry: await telemetry,
+      telemetry: resolvedTelemetry,
     });
     setResponseStatus(logger, "success", responseText.length);
   } catch (error) {

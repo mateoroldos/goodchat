@@ -32,6 +32,58 @@ describe("verifyDatabaseMigrationReadiness", () => {
     expect(listSpy).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    {
+      dialect: "postgres" as const,
+      queryResult: { rows: [{ count: "2" }] },
+      expectedStatement: 'SELECT COUNT(*) as count FROM "__drizzle_migrations"',
+    },
+    {
+      dialect: "mysql" as const,
+      queryResult: [[{ count: 2 }]],
+      expectedStatement: "SELECT COUNT(*) as count FROM `__drizzle_migrations`",
+    },
+  ])("passes startup when $dialect migration history matches local migration journal", async ({
+    dialect,
+    expectedStatement,
+    queryResult,
+  }) => {
+    const workspace = await mkdtemp(join(tmpdir(), "goodchat-readiness-"));
+    await mkdir(join(workspace, "drizzle/meta"), { recursive: true });
+    await writeFile(
+      join(workspace, "drizzle/meta/_journal.json"),
+      JSON.stringify({ entries: [{ idx: 0 }, { idx: 1 }] }),
+      "utf8"
+    );
+
+    const database = createDatabaseStub() as ReturnType<
+      typeof createDatabaseStub
+    > & {
+      dialect: typeof dialect;
+      rawConnection?: {
+        query: (statement: string) => Promise<unknown>;
+      };
+    };
+    database.dialect = dialect;
+    database.rawConnection = {
+      query: vi.fn(async () => queryResult),
+    };
+
+    await expect(
+      verifyDatabaseMigrationReadiness({
+        botId: "bot-id",
+        cwd: workspace,
+        database,
+        isServerless: false,
+        pluginNames: ["rate-limiter"],
+      })
+    ).resolves.toBeUndefined();
+
+    expect(database.rawConnection.query).toHaveBeenCalledWith(
+      expectedStatement
+    );
+  });
+
   it("fails startup when applied drizzle migrations are behind local migration journal", async () => {
     const workspace = await mkdtemp(join(tmpdir(), "goodchat-readiness-"));
     await mkdir(join(workspace, "drizzle/meta"), { recursive: true });
