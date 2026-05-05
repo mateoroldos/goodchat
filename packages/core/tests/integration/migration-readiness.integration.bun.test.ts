@@ -12,7 +12,12 @@ describe("verifyDatabaseMigrationReadiness with Bun SQLite", () => {
     await mkdir(join(workspace, "drizzle/meta"), { recursive: true });
     await writeFile(
       join(workspace, "drizzle/meta/_journal.json"),
-      JSON.stringify({ entries: [{ idx: 0 }, { idx: 1 }] }),
+      JSON.stringify({
+        entries: [
+          { idx: 0, when: 1 },
+          { idx: 1, when: 2 },
+        ],
+      }),
       "utf8"
     );
 

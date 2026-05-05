@@ -7,15 +7,17 @@ const migrationReadinessCache = new WeakMap<object, number>();
 
 interface MigrationJournalEntry {
   idx: number;
+  tag?: string;
+  when?: number;
 }
 
 interface MigrationJournal {
   entries: MigrationJournalEntry[];
 }
 
-const readExpectedMigrationCount = async (
+const readExpectedMigrationIds = async (
   cwd: string
-): Promise<number | null> => {
+): Promise<string[] | null> => {
   const journalPath = join(cwd, "drizzle/meta/_journal.json");
   try {
     const content = await readFile(journalPath, "utf8");
@@ -23,53 +25,61 @@ const readExpectedMigrationCount = async (
     if (!Array.isArray(parsed.entries)) {
       return null;
     }
-    return parsed.entries.length;
+    return parsed.entries.map((entry) =>
+      String(entry.when ?? entry.tag ?? entry.idx)
+    );
   } catch {
     return null;
   }
 };
 
-const readCountFromResult = (value: unknown): number | null => {
+const readRowsFromResult = (value: unknown): unknown[] | null => {
   if (!value) {
     return null;
   }
 
   const record = value as Record<string, unknown>;
-  let rows: unknown[] | null = null;
   if (Array.isArray(value) && value.length > 0) {
     const [firstEntry] = value;
-    rows = Array.isArray(firstEntry) ? firstEntry : value;
-  } else if (Array.isArray(record.rows)) {
-    rows = record.rows as unknown[];
+    return Array.isArray(firstEntry) ? firstEntry : value;
+  }
+  if (Array.isArray(record.rows)) {
+    return record.rows as unknown[];
   }
 
-  const row = rows?.[0] ?? value;
-  if (!row || typeof row !== "object") {
+  return [value];
+};
+
+const readIdsFromResult = (value: unknown): string[] | null => {
+  const rows = readRowsFromResult(value);
+  if (!rows) {
     return null;
   }
 
-  const countRaw = (row as Record<string, unknown>).count;
-  if (typeof countRaw === "number") {
-    return countRaw;
+  const ids: string[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") {
+      return null;
+    }
+    const id = (row as Record<string, unknown>).id;
+    if (id === undefined || id === null) {
+      return null;
+    }
+    ids.push(String(id));
   }
-  if (typeof countRaw === "string") {
-    const parsed = Number.parseInt(countRaw, 10);
-    return Number.isNaN(parsed) ? null : parsed;
-  }
-  if (typeof countRaw === "bigint") {
-    return Number(countRaw);
-  }
-
-  return null;
+  return ids;
 };
 
-const queryAppliedMigrationCount = async (
+const queryAppliedMigrationIds = async (
   database: Bot["database"]
-): Promise<number | null> => {
+): Promise<string[] | null> => {
   const sqlByDialect: Record<Bot["database"]["dialect"], string> = {
-    sqlite: 'SELECT COUNT(*) as count FROM "__drizzle_migrations"',
-    postgres: 'SELECT COUNT(*) as count FROM "__drizzle_migrations"',
-    mysql: "SELECT COUNT(*) as count FROM `__drizzle_migrations`",
+    sqlite:
+      'SELECT created_at as id FROM "__drizzle_migrations" ORDER BY id ASC',
+    postgres:
+      'SELECT created_at as id FROM "__drizzle_migrations" ORDER BY id ASC',
+    mysql:
+      "SELECT created_at as id FROM `__drizzle_migrations` ORDER BY id ASC",
   };
   const query = sqlByDialect[database.dialect];
 
@@ -80,12 +90,16 @@ const queryAppliedMigrationCount = async (
   if (typeof rawConnectionWithQuery?.query === "function") {
     const result = await rawConnectionWithQuery.query(query);
     const statementResult = result as {
+      all?: () => unknown;
       get?: () => unknown;
     };
-    if (typeof statementResult.get === "function") {
-      return readCountFromResult(statementResult.get());
+    if (typeof statementResult.all === "function") {
+      return readIdsFromResult(statementResult.all());
     }
-    return readCountFromResult(result);
+    if (typeof statementResult.get === "function") {
+      return readIdsFromResult(statementResult.get());
+    }
+    return readIdsFromResult(result);
   }
 
   const rawConnectionWithExecute = rawConnection as {
@@ -93,7 +107,7 @@ const queryAppliedMigrationCount = async (
   };
   if (typeof rawConnectionWithExecute?.execute === "function") {
     const result = await rawConnectionWithExecute.execute(query);
-    return readCountFromResult(result);
+    return readIdsFromResult(result);
   }
 
   const connection = (database as { connection?: unknown }).connection;
@@ -102,10 +116,32 @@ const queryAppliedMigrationCount = async (
   };
   if (typeof connectionWithExecute?.execute === "function") {
     const result = await connectionWithExecute.execute(query);
-    return readCountFromResult(result);
+    return readIdsFromResult(result);
   }
 
   return null;
+};
+
+const assertMigrationIdsMatch = (
+  expectedMigrationIds: readonly string[],
+  appliedMigrationIds: readonly string[] | null
+): void => {
+  const firstMismatchIndex = expectedMigrationIds.findIndex(
+    (expectedId, index) => appliedMigrationIds?.[index] !== expectedId
+  );
+  if (
+    appliedMigrationIds === null ||
+    firstMismatchIndex !== -1 ||
+    appliedMigrationIds.length !== expectedMigrationIds.length
+  ) {
+    const mismatchIndex =
+      firstMismatchIndex === -1
+        ? expectedMigrationIds.length
+        : firstMismatchIndex;
+    throw new Error(
+      `drizzle migration history differs at position ${mismatchIndex + 1}: expected ${expectedMigrationIds[mismatchIndex] ?? "<none>"}, applied ${appliedMigrationIds?.[mismatchIndex] ?? "<none>"}.`
+    );
+  }
 };
 
 export interface VerifyDatabaseMigrationReadinessInput {
@@ -133,21 +169,14 @@ export const verifyDatabaseMigrationReadiness = async (
   }
 
   try {
-    const expectedMigrationCount = await readExpectedMigrationCount(
+    const expectedMigrationIds = await readExpectedMigrationIds(
       input.cwd ?? process.cwd()
     );
-    if (expectedMigrationCount !== null && expectedMigrationCount > 0) {
-      const appliedMigrationCount = await queryAppliedMigrationCount(
+    if (expectedMigrationIds !== null && expectedMigrationIds.length > 0) {
+      const appliedMigrationIds = await queryAppliedMigrationIds(
         input.database
       );
-      if (
-        appliedMigrationCount === null ||
-        appliedMigrationCount < expectedMigrationCount
-      ) {
-        throw new Error(
-          `drizzle migration history is behind (${appliedMigrationCount ?? 0}/${expectedMigrationCount} applied).`
-        );
-      }
+      assertMigrationIdsMatch(expectedMigrationIds, appliedMigrationIds);
     }
 
     await input.database.threads.list({

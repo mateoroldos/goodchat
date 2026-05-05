@@ -35,13 +35,15 @@ describe("verifyDatabaseMigrationReadiness", () => {
   it.each([
     {
       dialect: "postgres" as const,
-      queryResult: { rows: [{ count: "2" }] },
-      expectedStatement: 'SELECT COUNT(*) as count FROM "__drizzle_migrations"',
+      queryResult: { rows: [{ id: "1000" }, { id: "2000" }] },
+      expectedStatement:
+        'SELECT created_at as id FROM "__drizzle_migrations" ORDER BY id ASC',
     },
     {
       dialect: "mysql" as const,
-      queryResult: [[{ count: 2 }]],
-      expectedStatement: "SELECT COUNT(*) as count FROM `__drizzle_migrations`",
+      queryResult: [[{ id: "1000" }, { id: "2000" }]],
+      expectedStatement:
+        "SELECT created_at as id FROM `__drizzle_migrations` ORDER BY id ASC",
     },
   ])("passes startup when $dialect migration history matches local migration journal", async ({
     dialect,
@@ -52,7 +54,12 @@ describe("verifyDatabaseMigrationReadiness", () => {
     await mkdir(join(workspace, "drizzle/meta"), { recursive: true });
     await writeFile(
       join(workspace, "drizzle/meta/_journal.json"),
-      JSON.stringify({ entries: [{ idx: 0 }, { idx: 1 }] }),
+      JSON.stringify({
+        entries: [
+          { idx: 0, when: 1000 },
+          { idx: 1, when: 2000 },
+        ],
+      }),
       "utf8"
     );
 
@@ -84,6 +91,44 @@ describe("verifyDatabaseMigrationReadiness", () => {
     );
   });
 
+  it("fails startup when applied drizzle migration ids differ from local migration journal", async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "goodchat-readiness-"));
+    await mkdir(join(workspace, "drizzle/meta"), { recursive: true });
+    await writeFile(
+      join(workspace, "drizzle/meta/_journal.json"),
+      JSON.stringify({
+        entries: [
+          { idx: 0, when: 1000, tag: "0000_first" },
+          { idx: 1, when: 2000, tag: "0001_second" },
+        ],
+      }),
+      "utf8"
+    );
+
+    const database = createDatabaseStub() as ReturnType<
+      typeof createDatabaseStub
+    > & {
+      rawConnection?: {
+        query: (statement: string) => Promise<{ rows: Array<{ id: string }> }>;
+      };
+    };
+    database.rawConnection = {
+      query: vi.fn(async () => ({ rows: [{ id: "1000" }, { id: "3000" }] })),
+    };
+
+    await expect(
+      verifyDatabaseMigrationReadiness({
+        botId: "bot-id",
+        cwd: workspace,
+        database,
+        isServerless: false,
+        pluginNames: ["rate-limiter"],
+      })
+    ).rejects.toThrow(
+      "drizzle migration history differs at position 2: expected 2000, applied 3000."
+    );
+  });
+
   it("fails startup when applied drizzle migrations are behind local migration journal", async () => {
     const workspace = await mkdtemp(join(tmpdir(), "goodchat-readiness-"));
     await mkdir(join(workspace, "drizzle/meta"), { recursive: true });
@@ -97,13 +142,11 @@ describe("verifyDatabaseMigrationReadiness", () => {
       typeof createDatabaseStub
     > & {
       rawConnection?: {
-        query: (
-          statement: string
-        ) => Promise<{ rows: Array<{ count: string }> }>;
+        query: (statement: string) => Promise<{ rows: Array<{ id: string }> }>;
       };
     };
     database.rawConnection = {
-      query: vi.fn(async () => ({ rows: [{ count: "1" }] })),
+      query: vi.fn(async () => ({ rows: [{ id: "0" }] })),
     };
 
     await expect(
@@ -114,6 +157,8 @@ describe("verifyDatabaseMigrationReadiness", () => {
         isServerless: false,
         pluginNames: ["rate-limiter"],
       })
-    ).rejects.toThrow("drizzle migration history is behind");
+    ).rejects.toThrow(
+      "drizzle migration history differs at position 2: expected 1, applied <none>."
+    );
   });
 });
