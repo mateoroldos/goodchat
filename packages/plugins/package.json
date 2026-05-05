@@ -23,6 +23,10 @@
       "types": "./dist/linear.d.mts",
       "import": "./dist/linear.mjs"
     },
+    "./rate-limiter": {
+      "types": "./dist/rate-limiter.d.mts",
+      "import": "./dist/rate-limiter.mjs"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {
