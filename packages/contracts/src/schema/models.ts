@@ -28,8 +28,15 @@ export const schemaRelationDeclarationSchema = z.object({
   targetTable: z.string().min(1),
 });
 
+export const schemaIndexDeclarationSchema = z.object({
+  columns: z.array(z.string().min(1)).min(1),
+  name: z.string().min(1).optional(),
+  unique: z.boolean().optional(),
+});
+
 export const schemaTableDeclarationSchema = z.object({
   columns: z.array(schemaColumnDeclarationSchema),
+  indexes: z.array(schemaIndexDeclarationSchema).optional(),
   relations: z.array(schemaRelationDeclarationSchema).optional(),
   tableName: z.string().min(1),
 });
