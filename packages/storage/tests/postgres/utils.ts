@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { customAlphabet } from "nanoid";
 import { Pool } from "pg";
-import { postgresSchema } from "../../schema/postgres";
+import { postgresSchema } from "../../src/internal-schema/postgres";
 import { postgres } from "../../src/postgres";
 
 export interface TestDatabase {

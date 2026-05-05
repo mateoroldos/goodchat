@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { Database } from "@goodchat/contracts/database/interface";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { sqliteSchema } from "../../schema/sqlite";
+import { sqliteSchema } from "../../src/internal-schema/sqlite";
 import { createSqliteRepositories } from "../../src/repositories-sqlite";
 import type { SqliteDatabase } from "../../src/sqlite";
 

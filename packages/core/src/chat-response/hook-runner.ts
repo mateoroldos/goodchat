@@ -1,20 +1,14 @@
 import type {
-  AfterMessageHook,
-  BeforeMessageHook,
+  BotAfterMessageHook,
+  BotBeforeMessageHook,
+  CoreDbCapability,
   HookContext,
+  HookDbCapability,
+  HookTelemetry,
+  PluginAfterMessageHook,
+  PluginBeforeMessageHook,
 } from "@goodchat/contracts/hooks/types";
 import { ChatResponseHookExecutionError } from "./errors";
-
-interface RunBeforeHooksInput {
-  context: HookContext;
-  hooks: BeforeMessageHook[];
-}
-
-interface RunAfterHooksInput {
-  context: HookContext;
-  hooks: AfterMessageHook[];
-  responseText: string;
-}
 
 const toHookError = (
   stage: "before" | "after",
@@ -35,27 +29,80 @@ const toHookError = (
   );
 };
 
-export const runBeforeHooks = async ({
+export const runBotBeforeHooks = async ({
   context,
+  db,
   hooks,
-}: RunBeforeHooksInput): Promise<void> => {
+}: {
+  context: HookContext;
+  db: CoreDbCapability;
+  hooks: BotBeforeMessageHook[];
+}): Promise<void> => {
   for (const [index, hook] of hooks.entries()) {
     try {
-      await hook(context);
+      await hook(context, db);
     } catch (error) {
       throw toHookError("before", index, error);
     }
   }
 };
 
-export const runAfterHooks = async ({
+export const runPluginBeforeHooks = async ({
   context,
+  db,
   hooks,
-  responseText,
-}: RunAfterHooksInput): Promise<void> => {
+}: {
+  context: HookContext;
+  db: HookDbCapability;
+  hooks: PluginBeforeMessageHook[];
+}): Promise<void> => {
   for (const [index, hook] of hooks.entries()) {
     try {
-      await hook(context, { text: responseText });
+      await hook(context, db);
+    } catch (error) {
+      throw toHookError("before", index, error);
+    }
+  }
+};
+
+export const runBotAfterHooks = async ({
+  context,
+  db,
+  hooks,
+  responseText,
+  telemetry,
+}: {
+  context: HookContext;
+  db: CoreDbCapability;
+  hooks: BotAfterMessageHook[];
+  responseText: string;
+  telemetry?: HookTelemetry;
+}): Promise<void> => {
+  for (const [index, hook] of hooks.entries()) {
+    try {
+      await hook(context, { telemetry, text: responseText }, db);
+    } catch (error) {
+      throw toHookError("after", index, error);
+    }
+  }
+};
+
+export const runPluginAfterHooks = async ({
+  context,
+  db,
+  hooks,
+  responseText,
+  telemetry,
+}: {
+  context: HookContext;
+  db: HookDbCapability;
+  hooks: PluginAfterMessageHook[];
+  responseText: string;
+  telemetry?: HookTelemetry;
+}): Promise<void> => {
+  for (const [index, hook] of hooks.entries()) {
+    try {
+      await hook(context, { telemetry, text: responseText }, db);
     } catch (error) {
       throw toHookError("after", index, error);
     }

@@ -92,6 +92,18 @@
       "types": "./dist/platform/platform-metadata.d.ts",
       "import": "./dist/platform/platform-metadata.mjs"
     },
+    "./schema/models": {
+      "types": "./dist/schema/models.d.ts",
+      "import": "./dist/schema/models.mjs"
+    },
+    "./schema/declarations": {
+      "types": "./dist/schema/declarations.d.ts",
+      "import": "./dist/schema/declarations.mjs"
+    },
+    "./schema/types": {
+      "types": "./dist/schema/types.d.ts",
+      "import": "./dist/schema/types.mjs"
+    },
     "./model/catalog/openai": {
       "types": "./dist/model/catalog/openai.d.ts",
       "import": "./dist/model/catalog/openai.mjs"

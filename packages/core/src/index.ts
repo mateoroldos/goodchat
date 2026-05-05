@@ -19,6 +19,7 @@ import { bootstrapSharedAccount } from "./auth/bootstrap-shared-account";
 import { mergePlugins, resolvePlugins } from "./extensions/merge";
 import { ElysiaLoggerService, NoopLoggerService } from "./logger/service";
 import { createChatRuntime } from "./runtime/create-chat-runtime";
+import { verifyDatabaseMigrationReadiness } from "./runtime/migration-readiness";
 import {
   createAuthApi,
   createWebChatApi,
@@ -105,6 +106,13 @@ export const createGoodchat = (options: BotConfigInput) => {
       ? new EvlogAiTelemetryService(logger)
       : new NoopAiTelemetryService();
 
+    await verifyDatabaseMigrationReadiness({
+      botId: bot.id,
+      database: bot.database,
+      isServerless: bot.isServerless,
+      pluginNames: (bot.plugins ?? []).map((plugin) => plugin.name),
+    });
+
     const authRuntime = createAuthRuntime({
       config: bot.auth,
       database: bot.database,
@@ -124,7 +132,13 @@ export const createGoodchat = (options: BotConfigInput) => {
       auth: bot.auth,
     });
 
-    const chatRuntime = createChatRuntime({ aiTelemetry, bot, logger });
+    const chatRuntime = createChatRuntime({
+      aiTelemetry,
+      bot,
+      hookRegistrations: merged.hookRegistrations,
+      logger,
+    });
+
     // For non serverless environments we initialize the gateway on startup
     // For serverless environments we pass the initialization to webhook controller
     // so gatweay only boots when webhhoks are hit
@@ -248,6 +262,7 @@ export const createGoodchat = (options: BotConfigInput) => {
     name: options.name,
     database: { dialect: options.database.dialect },
     auth: options.auth,
+    plugins: options.plugins,
     get ready() {
       _ready ??= initialize();
       return _ready;

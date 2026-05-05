@@ -1,4 +1,4 @@
-import { renderDbSchemaArtifacts } from "@goodchat/templates/scaffold/db-schema-artifacts";
+import { renderDbSchemaArtifacts } from "@goodchat/storage/scaffold/db-schema-artifacts";
 import { DEPLOYMENT_PROFILES } from "./deployment-profiles";
 import type { DeploymentTarget } from "./deployment-targets";
 import {
@@ -139,7 +139,6 @@ export const createProjectFiles = async (
   const usesPlugins = (input.config.plugins ?? []).length > 0;
   const nodeEsm = target === "vercel";
   const schemaFiles = await renderDbSchemaArtifacts({
-    authEnabled: input.config.authEnabled,
     dialect: input.config.databaseDialect,
   });
   if (nodeEsm) {

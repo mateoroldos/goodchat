@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AiResponseGenerationError } from "../ai-response/errors";
 import type { AiResponseService } from "../ai-response/interface";
 import type { AiRunTelemetry } from "../ai-response/models";
+import type { HookRegistration } from "../extensions/models";
 import type { LoggerService } from "../logger/interface";
 import { createDatabaseStub } from "../test-utils/database-stub";
 import type { MessageContext } from "../types";
@@ -108,16 +109,19 @@ const createService = ({
   logger,
   database,
   bot,
+  hookRegistrations,
 }: {
   aiResponse: AiResponseService;
   database?: Database;
   bot?: Bot;
+  hookRegistrations?: HookRegistration[];
   logger: LoggerService;
 }) => {
   const db = database ?? createDatabaseStub();
   return new DefaultChatResponseService({
     aiResponse,
     bot: bot ?? createBot({ database: db }),
+    hookRegistrations,
     logger,
   });
 };
@@ -157,6 +161,76 @@ describe("DefaultChatResponseService", () => {
     expect(result.error.code).toBe("CHAT_RESPONSE_GENERATION_FAILED");
     expect(result.error.message).toBe("upstream failed");
     expect(requestLogger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it("persists a hook response as messages without creating an ai run", async () => {
+    const database = createDatabaseStub();
+    const requestLogger = createLogger({ requestId: "req-1" });
+    const hookResponse = new Error("Rate limited") as Error & {
+      responseText: string;
+    };
+    hookResponse.name = "GoodchatHookResponseError";
+    hookResponse.responseText = "You've hit the rate limit. Try again in 1m.";
+    const beforeHook = vi.fn(() => {
+      throw hookResponse;
+    });
+    const aiResponse: AiResponseService = {
+      generate: vi.fn(),
+      stream: vi.fn(),
+    };
+    const logger = createLoggerService(requestLogger);
+
+    const service = createService({
+      aiResponse,
+      bot: createBot({
+        database,
+        hooks: {
+          afterMessage: [],
+          beforeMessage: [beforeHook],
+        },
+      }),
+      logger,
+    });
+
+    const result = await service.handleMessage(createContext());
+
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw new Error("Expected handleMessage to return a hook response");
+    }
+    expect(result.value.text).toBe(hookResponse.responseText);
+    const thread = await database.threads.getById("thread-1");
+    expect(thread?.responseText).toBe(hookResponse.responseText);
+    const messages = await database.messages.listByThread({
+      sort: "asc",
+      threadId: "thread-1",
+    });
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: "user",
+          text: "Hello",
+          userId: "user-1",
+        }),
+        expect.objectContaining({
+          role: "assistant",
+          text: hookResponse.responseText,
+          userId: "bot-id",
+        }),
+      ])
+    );
+    const assistantMessage = messages.find(
+      (message) => message.role === "assistant"
+    );
+    expect(assistantMessage?.metadata).toEqual({
+      responseSource: {
+        hook: "beforeMessage",
+        kind: "hook",
+      },
+    });
+    const aiRuns = await database.aiRuns.listByThread({ threadId: "thread-1" });
+    expect(aiRuns).toHaveLength(0);
+    expect(aiResponse.generate).not.toHaveBeenCalled();
   });
 
   it("returns a hook error result when beforeMessage hook throws", async () => {
@@ -299,7 +373,14 @@ describe("DefaultChatResponseService", () => {
     expect(backgroundLogger.emit).toHaveBeenCalledTimes(1);
     expect(afterHook).toHaveBeenCalledWith(
       expect.objectContaining({ log: backgroundLogger }),
-      expect.objectContaining({ text: "Hello" })
+      expect.objectContaining({ text: "Hello" }),
+      expect.objectContaining({
+        threads: expect.anything(),
+        messages: expect.anything(),
+        aiRuns: expect.anything(),
+        aiRunToolCalls: expect.anything(),
+        analytics: expect.anything(),
+      })
     );
   });
 

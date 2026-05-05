@@ -37,3 +37,6 @@ jobs:
 
       - name: Build
         run: bun run build
+
+      - name: Check storage core schema sync with contracts
+        run: bun turbo check:core-schema-sync

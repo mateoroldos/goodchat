@@ -18,6 +18,9 @@
     "check-types": {
       "dependsOn": ["^build", "^check-types"]
     },
+    "check:core-schema-sync": {
+      "dependsOn": ["^build"]
+    },
     "test": {
       "dependsOn": ["^test"]
     },

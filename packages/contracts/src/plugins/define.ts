@@ -5,7 +5,12 @@ import type {
   ZodRawShape,
   ZodTypeAny,
 } from "zod";
-import type { GoodchatPlugin, GoodchatPluginFactory } from "./types";
+import type { SchemaTableDeclaration } from "../schema/types";
+import type {
+  GoodchatPlugin,
+  GoodchatPluginFactory,
+  GoodchatPluginInstanceConfig,
+} from "./types";
 
 interface DefinePluginNoParamsOptions<TShape extends ZodRawShape> {
   create: (
@@ -15,6 +20,7 @@ interface DefinePluginNoParamsOptions<TShape extends ZodRawShape> {
   env?: ZodObject<TShape>;
   name: string;
   paramsSchema?: undefined;
+  schema?: readonly SchemaTableDeclaration[];
 }
 
 interface DefinePluginWithParamsOptions<
@@ -28,6 +34,7 @@ interface DefinePluginWithParamsOptions<
   env?: ZodObject<TShape>;
   name: string;
   paramsSchema: TParamsSchema;
+  schema?: readonly SchemaTableDeclaration[];
 }
 
 export function definePlugin<TShape extends ZodRawShape>(
@@ -47,20 +54,27 @@ export function definePlugin(
   | GoodchatPluginFactory<ZodRawShape, ZodTypeAny>
   | GoodchatPluginFactory<ZodRawShape, undefined> {
   if ("paramsSchema" in options && options.paramsSchema) {
-    return (params: ZodInput<ZodTypeAny>) => ({
+    return (
+      params: ZodInput<ZodTypeAny>,
+      config?: GoodchatPluginInstanceConfig
+    ) => ({
       create: options.create,
       env: options.env,
+      key: config?.key,
       name: options.name,
       params,
       paramsSchema: options.paramsSchema,
+      schema: options.schema,
     });
   }
 
-  return () => ({
+  return (config?: GoodchatPluginInstanceConfig) => ({
     create: options.create,
     env: options.env,
+    key: config?.key,
     name: options.name,
     params: undefined,
     paramsSchema: undefined,
+    schema: options.schema,
   });
 }

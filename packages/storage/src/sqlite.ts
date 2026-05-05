@@ -47,7 +47,10 @@ export const sqlite = (
   options: SqliteAdapterOptions
 ): SqliteDatabaseInstance => {
   const client = options.client ?? new BunSqliteDatabase(options.path);
-  const db = drizzle(client, { logger: options.debugLogs });
+  const db = drizzle(client, {
+    logger: options.debugLogs,
+    schema: options.schema,
+  });
   const transactionRunner: TransactionRunner = (fn) =>
     db.transaction((tx) =>
       fn(

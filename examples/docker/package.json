@@ -27,9 +27,10 @@
     "docker:check": "docker compose ps --format json app"
   },
   "dependencies": {
-    "@goodchat/cli": "^0.0.13",
-    "@goodchat/core": "^0.0.19",
-    "@goodchat/storage": "^0.0.19",
+    "@goodchat/cli": "workspace:*",
+    "@goodchat/core": "workspace:*",
+    "@goodchat/storage": "workspace:*",
+    "@goodchat/plugins": "workspace:*",
     "@t3-oss/env-core": "^0.13.1",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.45.2",

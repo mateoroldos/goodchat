@@ -1,7 +1,14 @@
 import type { Bot } from "@goodchat/contracts/config/types";
-import type { HookContext } from "@goodchat/contracts/hooks/types";
+import type { MessageResponseSourceMetadata } from "@goodchat/contracts/database/message";
+import type {
+  HookContext,
+  PluginAfterMessageHook,
+} from "@goodchat/contracts/hooks/types";
+import { createUIMessageStream } from "ai";
 import { Result } from "better-result";
 import type { AiResponseService } from "../ai-response/interface";
+import type { AiRunTelemetry } from "../ai-response/models";
+import type { HookRegistration } from "../extensions/models";
 import type { LoggerService } from "../logger/interface";
 import type { MessageContext } from "../types";
 import {
@@ -9,15 +16,31 @@ import {
   ChatResponseHookExecutionError,
   ChatResponseInputInvalidError,
 } from "./errors";
-import { runBeforeHooks } from "./hook-runner";
-import type { ChatResponseService } from "./interface";
 import {
-  runAfterHooksResilient,
+  createCoreDbCapability,
+  createPluginHookCapabilities,
+} from "./hook-capabilities";
+import { runBotBeforeHooks, runPluginBeforeHooks } from "./hook-runner";
+import type { ChatResponseService } from "./interface";
+import { persistHookResponse } from "./persistence";
+import {
+  runBotAfterHooksResilient,
+  runPluginAfterHookResilient,
   runStreamPostProcess,
   runSyncPostProcess,
 } from "./post-process";
 
 type ChatResponseMode = "stream" | "sync";
+
+interface HookResponseErrorShape {
+  name: "GoodchatHookResponseError";
+  responseText: string;
+}
+
+interface HookResponseResult {
+  source: MessageResponseSourceMetadata;
+  text: string;
+}
 
 const MODE_META = {
   stream: {
@@ -33,17 +56,25 @@ const MODE_META = {
 interface ChatResponseDependencies {
   aiResponse: AiResponseService;
   bot: Bot;
+  hookRegistrations?: HookRegistration[];
   logger: LoggerService;
 }
 
 export class DefaultChatResponseService implements ChatResponseService {
   readonly #aiResponse: AiResponseService;
   readonly #bot: Bot;
+  readonly #hookRegistrations: HookRegistration[];
   readonly #logger: LoggerService;
 
-  constructor({ aiResponse, bot, logger }: ChatResponseDependencies) {
+  constructor({
+    aiResponse,
+    bot,
+    hookRegistrations,
+    logger,
+  }: ChatResponseDependencies) {
     this.#aiResponse = aiResponse;
     this.#bot = bot;
+    this.#hookRegistrations = hookRegistrations ?? [];
     this.#logger = logger;
   }
 
@@ -69,11 +100,14 @@ export class DefaultChatResponseService implements ChatResponseService {
       }
 
       const { telemetry, text } = botResponse.value;
-      await runAfterHooksResilient({
+      await runBotAfterHooksResilient({
+        db: createCoreDbCapability(this.#bot.database),
         hookContext,
         hooks: this.#bot.hooks.afterMessage,
         responseText: text,
+        telemetry,
       });
+      await this.#runPluginAfterHooks(hookContext, text, telemetry);
 
       this.#setResponseStatus(requestLogger, "success", text.length);
 
@@ -97,6 +131,19 @@ export class DefaultChatResponseService implements ChatResponseService {
         threadEntryId: context.threadId,
       });
     } catch (error) {
+      const hookResponse = this.#toHookResponse(error);
+      if (hookResponse) {
+        await persistHookResponse({
+          context,
+          database: this.#bot.database,
+          responseSource: hookResponse.source,
+          responseText: hookResponse.text,
+        });
+        return Result.ok({
+          text: hookResponse.text,
+          threadEntryId: context.threadId,
+        });
+      }
       return Result.err(this.#toResponseError(error));
     }
   }
@@ -129,8 +176,29 @@ export class DefaultChatResponseService implements ChatResponseService {
         buildHookContext: this.#buildHookContext.bind(this),
         context,
         database: this.#bot.database,
+        db: createCoreDbCapability(this.#bot.database),
         hooks: this.#bot.hooks.afterMessage,
         logger: backgroundLogger,
+        pluginAfterHooks: this.#hookRegistrations.reduce<
+          Array<{
+            db: ReturnType<typeof createPluginHookCapabilities>;
+            hook: PluginAfterMessageHook;
+          }>
+        >((accumulator, registration) => {
+          if (!registration.afterMessage) {
+            return accumulator;
+          }
+          accumulator.push({
+            db: createPluginHookCapabilities({
+              database: this.#bot.database,
+              pluginKey: registration.pluginKey,
+              pluginName: registration.pluginName,
+              schema: registration.schema,
+            }),
+            hook: registration.afterMessage,
+          });
+          return accumulator;
+        }, []),
         setResponseStatus: this.#setResponseStatus.bind(this),
         stream: storeStream,
         telemetry: botResponse.value.telemetry,
@@ -140,6 +208,18 @@ export class DefaultChatResponseService implements ChatResponseService {
 
       return Result.ok({ uiStream: clientStream });
     } catch (error) {
+      const hookResponse = this.#toHookResponse(error);
+      if (hookResponse) {
+        await persistHookResponse({
+          context,
+          database: this.#bot.database,
+          responseSource: hookResponse.source,
+          responseText: hookResponse.text,
+        });
+        return Result.ok({
+          uiStream: this.#createTextStream(hookResponse.text),
+        });
+      }
       return Result.err(this.#toResponseError(error));
     }
   }
@@ -194,16 +274,109 @@ export class DefaultChatResponseService implements ChatResponseService {
   }
 
   async #runBeforeHooks(hookContext: HookContext, logger: HookContext["log"]) {
-    await runBeforeHooks({
+    await runBotBeforeHooks({
       context: hookContext,
+      db: createCoreDbCapability(this.#bot.database),
       hooks: this.#bot.hooks.beforeMessage,
     });
+    for (const registration of this.#hookRegistrations) {
+      if (!registration.beforeMessage) {
+        continue;
+      }
+      try {
+        await runPluginBeforeHooks({
+          context: hookContext,
+          db: createPluginHookCapabilities({
+            database: this.#bot.database,
+            pluginKey: registration.pluginKey,
+            pluginName: registration.pluginName,
+            schema: registration.schema,
+          }),
+          hooks: [registration.beforeMessage],
+        });
+      } catch (error) {
+        if (error && typeof error === "object") {
+          Object.assign(error, {
+            responseSource: {
+              hook: "beforeMessage",
+              kind: "hook",
+              pluginKey: registration.pluginKey,
+              pluginName: registration.pluginName,
+            } satisfies MessageResponseSourceMetadata,
+          });
+        }
+        throw error;
+      }
+    }
 
     logger.set({
       hooks: {
         beforeCount: this.#bot.hooks.beforeMessage.length,
       },
     });
+  }
+
+  async #runPluginAfterHooks(
+    hookContext: HookContext,
+    responseText: string,
+    telemetry?: AiRunTelemetry
+  ) {
+    for (const registration of this.#hookRegistrations) {
+      if (!registration.afterMessage) {
+        continue;
+      }
+      await runPluginAfterHookResilient({
+        db: createPluginHookCapabilities({
+          database: this.#bot.database,
+          pluginKey: registration.pluginKey,
+          pluginName: registration.pluginName,
+          schema: registration.schema,
+        }),
+        hook: registration.afterMessage,
+        hookContext,
+        responseText,
+        telemetry,
+      });
+    }
+  }
+
+  #createTextStream(text: string) {
+    return createUIMessageStream({
+      execute: ({ writer }) => {
+        const id = crypto.randomUUID();
+        writer.write({ type: "text-start", id });
+        writer.write({ type: "text-delta", id, delta: text });
+        writer.write({ type: "text-end", id });
+        writer.write({ type: "finish", finishReason: "stop" });
+      },
+    });
+  }
+
+  #toHookResponse(error: unknown): HookResponseResult | undefined {
+    if (!(error instanceof ChatResponseHookExecutionError)) {
+      return undefined;
+    }
+
+    const cause = (error as { cause?: unknown }).cause;
+    if (!cause || typeof cause !== "object") {
+      return undefined;
+    }
+
+    const hookResponse = cause as Partial<HookResponseErrorShape>;
+    if (
+      hookResponse.name !== "GoodchatHookResponseError" ||
+      typeof hookResponse.responseText !== "string"
+    ) {
+      return undefined;
+    }
+
+    const source = (error as { responseSource?: MessageResponseSourceMetadata })
+      .responseSource ?? { hook: "beforeMessage", kind: "hook" };
+
+    return {
+      source,
+      text: hookResponse.responseText,
+    };
   }
 
   #toGenerationError(error: {

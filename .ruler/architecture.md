@@ -16,10 +16,9 @@ Packages
 - `packages/contracts/` - Source of truth for zod models and inferred types: bot config, platforms, model/provider metadata, hooks, plugins, capabilities (tools + MCP), and DB interfaces.
 - `packages/core/` - Runtime composition and server APIs: auth runtime, gateway boot, webhook routing, web chat endpoints, AI response pipeline, plugin merge/validation, telemetry, and dashboard static serving.
 - `packages/plugins/` - Built-in plugin implementations (currently `linear`) built on the contracts plugin factory.
-- `packages/storage/` - Drizzle-backed storage adapters and repositories for sqlite/postgres/mysql, plus schema exports for core + auth tables.
+- `packages/storage/` - Drizzle-backed storage adapters and repositories for sqlite/postgres/mysql, plus schema declaration emitters and db schema artifact rendering used by CLIs.
 - `packages/state-sqlite/` - Chat SDK state adapter for SQLite (locks, subscriptions, cache, lists, queue).
 - `packages/state-mysql/` - Chat SDK state adapter for MySQL with equivalent state semantics.
-- `packages/templates/` - Reusable schema/template asset pipeline consumed by CLIs (including generated multi-dialect schema templates).
 - `packages/styles/` - Shared Tailwind v4 design tokens, theme variables, and bundled fonts.
 - `packages/typescript-config/` - Shared TypeScript base config.
 
