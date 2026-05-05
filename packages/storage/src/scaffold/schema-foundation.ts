@@ -17,14 +17,47 @@ import {
 
 export type Dialect = SchemaDialect;
 
-const DIALECT_TABLE_IMPORTS = {
-  mysql:
-    'import { boolean, index, int, json, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";',
-  postgres:
-    'import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";',
-  sqlite:
-    'import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";',
+const DIALECT_IMPORT_SOURCES = {
+  mysql: "drizzle-orm/mysql-core",
+  postgres: "drizzle-orm/pg-core",
+  sqlite: "drizzle-orm/sqlite-core",
 } as const satisfies Record<Dialect, string>;
+
+const TABLE_FACTORY_IMPORTS = {
+  mysql: "mysqlTable",
+  postgres: "pgTable",
+  sqlite: "sqliteTable",
+} as const satisfies Record<Dialect, string>;
+
+const DIALECT_COLUMN_IMPORTS = {
+  mysql: {
+    boolean: "boolean",
+    id: "varchar",
+    integer: "int",
+    json: "json",
+    text: "text",
+    timestamp: "timestamp",
+  },
+  postgres: {
+    boolean: "boolean",
+    id: "text",
+    integer: "integer",
+    json: "jsonb",
+    text: "text",
+    timestamp: "timestamp",
+  },
+  sqlite: {
+    boolean: "integer",
+    id: "text",
+    integer: "integer",
+    json: "text",
+    text: "text",
+    timestamp: "integer",
+  },
+} as const satisfies Record<
+  Dialect,
+  Record<SchemaColumnDeclaration["dataType"], string>
+>;
 
 const RELATIONS_IMPORT = 'import { relations } from "drizzle-orm";';
 
@@ -34,7 +67,7 @@ const CORE_SCHEMA_EXPORT = {
   sqlite: "sqliteSchema",
 } as const satisfies Record<Dialect, string>;
 
-const renderColumn = (
+export const renderColumn = (
   dialect: Dialect,
   column: SchemaColumnDeclaration
 ): string => {
@@ -56,7 +89,7 @@ const renderColumn = (
   return expr;
 };
 
-const renderIndexes = (
+export const renderIndexes = (
   tableVariable: string,
   indexes: readonly SchemaIndexDeclaration[]
 ): string => {
@@ -70,7 +103,7 @@ const renderIndexes = (
     .join("\n");
 };
 
-const renderRelations = (table: SchemaTableDeclaration): string => {
+export const renderRelations = (table: SchemaTableDeclaration): string => {
   if (!table.relations || table.relations.length === 0) {
     return "";
   }
@@ -92,7 +125,7 @@ const renderRelations = (table: SchemaTableDeclaration): string => {
   return `\nexport const ${tableVariable}Relations = relations(${tableVariable}, ({ ${params} }) => ({\n${lines}\n}));`;
 };
 
-const renderTables = (
+export const renderTables = (
   dialect: Dialect,
   tables: readonly SchemaTableDeclaration[]
 ): string => {
@@ -126,12 +159,23 @@ const buildImports = (
   dialect: Dialect,
   tables: readonly SchemaTableDeclaration[]
 ): string => {
-  const hasRelations = tables.some(
-    (t) => t.relations && t.relations.length > 0
-  );
-  return hasRelations
-    ? `${DIALECT_TABLE_IMPORTS[dialect]}\n${RELATIONS_IMPORT}`
-    : DIALECT_TABLE_IMPORTS[dialect];
+  const coreImports = new Set<string>([TABLE_FACTORY_IMPORTS[dialect]]);
+  let hasRelations = false;
+
+  for (const table of tables) {
+    for (const column of table.columns) {
+      coreImports.add(DIALECT_COLUMN_IMPORTS[dialect][column.dataType]);
+    }
+    for (const indexDeclaration of table.indexes ?? []) {
+      coreImports.add(indexDeclaration.unique ? "uniqueIndex" : "index");
+    }
+    if (table.relations && table.relations.length > 0) {
+      hasRelations = true;
+    }
+  }
+
+  const dialectImport = `import { ${[...coreImports].sort().join(", ")} } from "${DIALECT_IMPORT_SOURCES[dialect]}";`;
+  return hasRelations ? `${dialectImport}\n${RELATIONS_IMPORT}` : dialectImport;
 };
 
 export const emitCoreDrizzleSchema = (dialect: Dialect): string => {
