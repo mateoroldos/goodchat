@@ -8,6 +8,13 @@
       "when": 1777288359770,
       "tag": "0000_loose_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1777991514745,
+      "tag": "0001_curved_frank_castle",
+      "breakpoints": true
     }
   ]
 }

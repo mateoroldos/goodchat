@@ -1,4 +1,5 @@
 import type { Database } from "@goodchat/contracts/database/interface";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { describe, expect, it, vi } from "vitest";
 import {
   createCoreDbCapability,
@@ -98,8 +99,35 @@ describe("hook capabilities", () => {
     );
   });
 
-  it("Plugin hook delegates query.findFirst to the connection", async () => {
-    const { db: database, findFirst } = makeDb();
+  it("Plugin hook resolves generated Drizzle schema keys from physical plugin table names", async () => {
+    const table = sqliteTable("rate_limiter_counters", {
+      id: text("id").primaryKey(),
+    });
+    const { db: baseDatabase, select } = makeDb();
+    const database = {
+      ...baseDatabase,
+      schema: { rateLimiterCounters: table },
+    } as Database;
+
+    const db = createPluginHookCapabilities({
+      database,
+      pluginName: "rate-limiter",
+      schema: [
+        {
+          columns: [{ columnName: "id", dataType: "id" as const }],
+          tableName: "counters" as const,
+        },
+      ],
+    });
+
+    await db.query.counters.findFirst();
+
+    expect(db.tables.counters).toBe(table);
+    expect(select).toHaveBeenCalled();
+  });
+
+  it("Plugin hook provides query.findFirst through scoped select", async () => {
+    const { db: database, select } = makeDb();
     const db = createPluginHookCapabilities({
       database,
       pluginName: "rate-limiter",
@@ -108,11 +136,11 @@ describe("hook capabilities", () => {
 
     await db.query.limits.findFirst();
 
-    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(select).toHaveBeenCalledTimes(1);
   });
 
-  it("Plugin hook delegates query.findMany to the connection", async () => {
-    const { db: database, findMany } = makeDb();
+  it("Plugin hook provides query.findMany through scoped select", async () => {
+    const { db: database, select } = makeDb();
     const db = createPluginHookCapabilities({
       database,
       pluginName: "rate-limiter",
@@ -121,6 +149,6 @@ describe("hook capabilities", () => {
 
     await db.query.limits.findMany();
 
-    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(select).toHaveBeenCalledTimes(1);
   });
 });
