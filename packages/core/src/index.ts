@@ -106,6 +106,13 @@ export const createGoodchat = (options: BotConfigInput) => {
       ? new EvlogAiTelemetryService(logger)
       : new NoopAiTelemetryService();
 
+    await verifyDatabaseMigrationReadiness({
+      botId: bot.id,
+      database: bot.database,
+      isServerless: bot.isServerless,
+      pluginNames: (bot.plugins ?? []).map((plugin) => plugin.name),
+    });
+
     const authRuntime = createAuthRuntime({
       config: bot.auth,
       database: bot.database,
@@ -130,13 +137,6 @@ export const createGoodchat = (options: BotConfigInput) => {
       bot,
       hookRegistrations: merged.hookRegistrations,
       logger,
-    });
-
-    await verifyDatabaseMigrationReadiness({
-      botId: bot.id,
-      database: bot.database,
-      isServerless: bot.isServerless,
-      pluginNames: (bot.plugins ?? []).map((plugin) => plugin.name),
     });
 
     // For non serverless environments we initialize the gateway on startup
