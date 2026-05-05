@@ -4,6 +4,7 @@ import type {
   CoreDbCapability,
   HookContext,
   HookDbCapability,
+  HookTelemetry,
   PluginAfterMessageHook,
   PluginBeforeMessageHook,
 } from "@goodchat/contracts/hooks/types";
@@ -69,15 +70,17 @@ export const runBotAfterHooks = async ({
   db,
   hooks,
   responseText,
+  telemetry,
 }: {
   context: HookContext;
   db: CoreDbCapability;
   hooks: BotAfterMessageHook[];
   responseText: string;
+  telemetry?: HookTelemetry;
 }): Promise<void> => {
   for (const [index, hook] of hooks.entries()) {
     try {
-      await hook(context, { text: responseText }, db);
+      await hook(context, { telemetry, text: responseText }, db);
     } catch (error) {
       throw toHookError("after", index, error);
     }
@@ -89,15 +92,17 @@ export const runPluginAfterHooks = async ({
   db,
   hooks,
   responseText,
+  telemetry,
 }: {
   context: HookContext;
   db: HookDbCapability;
   hooks: PluginAfterMessageHook[];
   responseText: string;
+  telemetry?: HookTelemetry;
 }): Promise<void> => {
   for (const [index, hook] of hooks.entries()) {
     try {
-      await hook(context, { text: responseText }, db);
+      await hook(context, { telemetry, text: responseText }, db);
     } catch (error) {
       throw toHookError("after", index, error);
     }

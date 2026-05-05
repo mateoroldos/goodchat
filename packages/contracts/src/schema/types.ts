@@ -5,6 +5,7 @@ import type {
   schemaColumnDeclarationSchema,
   schemaColumnTypeSchema,
   schemaDialectSchema,
+  schemaIndexDeclarationSchema,
   schemaRelationDeclarationSchema,
 } from "./models";
 
@@ -13,12 +14,16 @@ export type SchemaColumnType = z.infer<typeof schemaColumnTypeSchema>;
 export type SchemaColumnDeclaration = z.infer<
   typeof schemaColumnDeclarationSchema
 >;
+export type SchemaIndexDeclaration = z.infer<
+  typeof schemaIndexDeclarationSchema
+>;
 export type SchemaRelationDeclaration = z.infer<
   typeof schemaRelationDeclarationSchema
 >;
 
 export interface SchemaTableDeclaration {
   columns: readonly SchemaColumnDeclaration[];
+  indexes?: readonly SchemaIndexDeclaration[];
   relations?: readonly SchemaRelationDeclaration[];
   tableName: string;
 }

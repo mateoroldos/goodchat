@@ -17,7 +17,18 @@ export interface MessageContext {
   userId: string;
 }
 
+export interface HookTelemetry {
+  durationMs?: number;
+  finishReason?: string;
+  inputTokens?: number;
+  modelId: string;
+  outputTokens?: number;
+  provider: string;
+  totalTokens?: number;
+}
+
 export interface BotResponse {
+  telemetry?: HookTelemetry;
   text: string;
 }
 
@@ -102,6 +113,9 @@ export interface HookDbCapability<
     };
   };
   tables: HookTableMap<TSchema>;
+  transaction: <T>(
+    fn: (db: HookDbCapability<TSchema>) => Promise<T>
+  ) => Promise<T>;
   update: <TName extends HookTableName<TSchema>>(
     table: HookTableMap<TSchema>[TName]
   ) => {

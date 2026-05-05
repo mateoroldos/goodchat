@@ -1,5 +1,6 @@
 import { createGoodchat, openai } from "@goodchat/core";
 import { linear } from "@goodchat/plugins/linear";
+import { rateLimiter } from "@goodchat/plugins/rate-limiter";
 import { sqlite } from "@goodchat/storage/sqlite";
 import { schema } from "./db/schema";
 import { env } from "./env";
@@ -14,7 +15,15 @@ export const goodchat = createGoodchat({
     enabled: env.ENVIRONMENT !== "development",
     password: env.GOODCHAT_DASHBOARD_PASSWORD,
   },
-  plugins: [linear({ team: "EME" })],
+  plugins: [
+    linear({ team: "EME" }),
+    rateLimiter({
+      limits: [
+        { by: "user", max: 5, window: "1m" },
+        { by: "global", max: 100, window: "1h" },
+      ],
+    }),
+  ],
   database: sqlite({
     path: env.DATABASE_URL,
     schema,
